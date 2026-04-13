@@ -145,6 +145,23 @@ div[data-baseweb="input"] > div {
     margin-top: 6px;
 }
 
+.kpi-small {
+    padding: 12px 14px !important;
+    border-radius: 14px !important;
+}
+
+.kpi-small .kpi-label {
+    font-size: 0.7rem !important;
+}
+
+.kpi-small .kpi-value {
+    font-size: 1.2rem !important;
+}
+
+.kpi-small .kpi-note {
+    font-size: 0.7rem !important;
+}
+
 .panel-title {
     font-size: 1.05rem;
     font-weight: 900;
@@ -521,7 +538,7 @@ st.markdown("""
 st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
 
 # ── FILTER ───────────────────────────────────────────────────────────────────
-f1, f2, f3, f4 = st.columns([4, 1, 1, 1], gap="medium")
+f1, f2, f3, f4 = st.columns([2, 1, 1, 1], gap="medium")
 
 with f2:
     st.markdown('<div class="filter-label">TAHUN</div>', unsafe_allow_html=True)
