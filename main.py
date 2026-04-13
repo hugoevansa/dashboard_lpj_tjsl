@@ -98,6 +98,7 @@ div[data-testid="metric-container"] {
     background: linear-gradient(135deg, var(--maroon-dark) 0%, var(--maroon) 60%, var(--maroon-mid) 100%);
     border-radius: 22px;
     padding: 22px 28px;
+    margin-top: 14px;
     margin-bottom: 0;
     display: flex;
     align-items: center;
