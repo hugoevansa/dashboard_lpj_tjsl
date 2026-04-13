@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import requests
+import urllib.parse
 from io import StringIO
 
 st.set_page_config(
@@ -13,15 +14,28 @@ st.set_page_config(
 # ─── SESSION STATE INIT ───────────────────────────────────────────────────────
 if "detail_nama" not in st.session_state:
     st.session_state.detail_nama = None
+if "notif_dismissed" not in st.session_state:
+    st.session_state.notif_dismissed = set()
+if "toast_shown" not in st.session_state:
+    st.session_state.toast_shown = False
 
-# ─── HANDLE QUERY PARAM DARI TOMBOL DETAIL DI TABEL ──────────────────────────
-import urllib.parse
+# ─── HANDLE QUERY PARAM ───────────────────────────────────────────────────────
 _qp = st.query_params
+
+# Navigasi ke halaman detail
 if "detail" in _qp:
     _nama = urllib.parse.unquote(_qp["detail"])
     st.session_state.detail_nama = _nama
     st.query_params.clear()
     st.switch_page("pages/database.py")
+
+# Dismiss notifikasi (klik "Sudah Chat" dari tabel)
+if "dismiss" in _qp:
+    _dismiss_nama = urllib.parse.unquote(_qp["dismiss"])
+    st.session_state.notif_dismissed.add(_dismiss_nama)
+    st.session_state.toast_shown = False
+    st.query_params.clear()
+    st.rerun()
 
 # ─── CSS ──────────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -67,10 +81,7 @@ section[data-testid="stSidebar"] * { color: #fff !important; }
 
 div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] { gap: 0 !important; }
 
-div[data-testid="stPlotlyChart"] {
-    border-radius: var(--radius);
-    overflow: hidden;
-}
+div[data-testid="stPlotlyChart"] { border-radius: var(--radius); overflow: hidden; }
 
 div[data-baseweb="select"] > div,
 div[data-baseweb="input"] > div {
@@ -96,18 +107,8 @@ div[data-baseweb="input"] > div {
     border-radius: 16px;
     padding: 10px 14px;
 }
-.page-header-title {
-    color: #fff;
-    font-size: 1.7rem;
-    font-weight: 900;
-    line-height: 1.1;
-    margin: 0;
-}
-.page-header-sub {
-    color: rgba(255,255,255,0.75);
-    font-size: 0.9rem;
-    margin-top: 3px;
-}
+.page-header-title { color:#fff; font-size:1.7rem; font-weight:900; line-height:1.1; margin:0; }
+.page-header-sub   { color:rgba(255,255,255,0.75); font-size:0.9rem; margin-top:3px; }
 
 .kpi-wrap {
     background: #fff;
@@ -127,37 +128,12 @@ div[data-baseweb="input"] > div {
     background: linear-gradient(180deg, var(--maroon) 0%, var(--maroon-mid) 100%);
     border-radius: 4px 0 0 4px;
 }
-.kpi-label {
-    font-size: 0.82rem;
-    font-weight: 700;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 8px;
-}
-.kpi-value {
-    font-size: 1.85rem;
-    font-weight: 900;
-    color: var(--text);
-    line-height: 1.1;
-}
-.kpi-note {
-    font-size: 0.8rem;
-    color: var(--muted);
-    margin-top: 6px;
-}
+.kpi-label { font-size:0.82rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px; }
+.kpi-value { font-size:1.85rem; font-weight:900; color:var(--text); line-height:1.1; }
+.kpi-note  { font-size:0.8rem; color:var(--muted); margin-top:6px; }
 
-.panel-title {
-    font-size: 1.05rem;
-    font-weight: 900;
-    color: var(--text);
-    margin-bottom: 2px;
-}
-.panel-sub {
-    font-size: 0.82rem;
-    color: var(--muted);
-    margin-bottom: 10px;
-}
+.panel-title { font-size:1.05rem; font-weight:900; color:var(--text); margin-bottom:2px; }
+.panel-sub   { font-size:0.82rem; color:var(--muted); margin-bottom:10px; }
 
 .mini-stat {
     background: var(--maroon-soft);
@@ -166,117 +142,46 @@ div[data-baseweb="input"] > div {
     padding: 12px 14px;
     margin-bottom: 10px;
 }
-.mini-stat-label {
-    font-size: 0.8rem;
-    color: var(--muted);
-    font-weight: 600;
-    margin-bottom: 4px;
-}
-.mini-stat-value {
-    font-size: 1.55rem;
-    font-weight: 900;
-    color: var(--maroon);
-}
+.mini-stat-label { font-size:0.8rem; color:var(--muted); font-weight:600; margin-bottom:4px; }
+.mini-stat-value { font-size:1.55rem; font-weight:900; color:var(--maroon); }
 
-.section-head {
-    font-size: 1.15rem;
-    font-weight: 900;
-    color: var(--text);
-    margin: 0;
-    padding: 0;
-}
-.section-sub {
-    font-size: 0.86rem;
-    color: var(--muted);
-    margin-top: 2px;
-    margin-bottom: 10px;
-}
+.section-head { font-size:1.15rem; font-weight:900; color:var(--text); margin:0; padding:0; }
+.section-sub  { font-size:0.86rem; color:var(--muted); margin-top:2px; margin-bottom:10px; }
 
-.filter-label {
-    font-size: 0.78rem;
-    font-weight: 800;
-    color: var(--muted);
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    margin-bottom: 4px;
-}
+.filter-label { font-size:0.78rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:4px; }
 
-.note-box {
-    background: linear-gradient(135deg, #fff8fa, #fdf0f4);
-    border: 1.5px solid #e8c8d4;
-    border-radius: 16px;
-    padding: 14px 18px;
-    font-size: 0.9rem;
-    color: var(--text);
-}
-.note-box b { color: var(--maroon); }
+.chip { display:inline-block; padding:4px 11px; border-radius:999px; font-size:0.77rem; font-weight:800; white-space:nowrap; }
+.chip-lunas     { background:#e6f5ec; color:var(--success); border:1px solid #b0dfc0; }
+.chip-belum     { background:#fff4e0; color:var(--warning); border:1px solid #f0d49a; }
+.chip-jatuh     { background:#fde8ec; color:var(--danger);  border:1px solid #f0bfc9; }
+.chip-chat      { background:#eef4ff; color:var(--info);    border:1px solid #c7d7fe; }
+.chip-menunggu  { background:#eef2ff; color:#4338ca;        border:1px solid #c7d2fe; }
+.chip-follow    { background:#fff7e6; color:#b36b00;        border:1px solid #f1d193; }
+.chip-blacklist { background:#111827; color:#fff;           border:1px solid #374151; }
+.chip-muted     { background:#f5f5f5; color:#6b7280;        border:1px solid #d1d5db; }
 
-.chip {
-    display: inline-block;
-    padding: 4px 11px;
-    border-radius: 999px;
-    font-size: 0.77rem;
-    font-weight: 800;
-    white-space: nowrap;
-}
-.chip-lunas      { background: #e6f5ec; color: var(--success); border: 1px solid #b0dfc0; }
-.chip-belum      { background: #fff4e0; color: var(--warning); border: 1px solid #f0d49a; }
-.chip-jatuh      { background: #fde8ec; color: var(--danger);  border: 1px solid #f0bfc9; }
-.chip-chat       { background: #eef4ff; color: var(--info); border: 1px solid #c7d7fe; }
-.chip-menunggu   { background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; }
-.chip-follow     { background: #fff7e6; color: #b36b00; border: 1px solid #f1d193; }
-.chip-blacklist  { background: #111827; color: #fff; border: 1px solid #374151; }
-.chip-muted      { background: #f5f5f5; color: #6b7280; border: 1px solid #d1d5db; }
-
-.tbl-wrap {
-    border-radius: 16px;
-    border: 1.5px solid var(--line);
-    box-shadow: var(--shadow);
-    overflow: hidden;
-}
+.tbl-wrap { border-radius:16px; border:1.5px solid var(--line); box-shadow:var(--shadow); overflow:hidden; }
 .tbl-scroll {
     max-height: 360px;
     overflow-y: auto;
     overflow-x: auto;
     border-radius: 0 0 14px 14px;
 }
-.tbl-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
-.tbl-scroll::-webkit-scrollbar-track { background: #f5eaef; border-radius: 10px; }
-.tbl-scroll::-webkit-scrollbar-thumb { background: var(--maroon-mid); border-radius: 10px; }
-.tbl-scroll::-webkit-scrollbar-thumb:hover { background: var(--maroon); }
+.tbl-scroll::-webkit-scrollbar       { width:6px; height:6px; }
+.tbl-scroll::-webkit-scrollbar-track { background:#f5eaef; border-radius:10px; }
+.tbl-scroll::-webkit-scrollbar-thumb { background:var(--maroon-mid); border-radius:10px; }
+.tbl-scroll::-webkit-scrollbar-thumb:hover { background:var(--maroon); }
 
-.tbl {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13.5px;
-}
-.tbl thead { position: sticky; top: 0; z-index: 2; }
+.tbl { width:100%; border-collapse:collapse; font-size:13.5px; }
+.tbl thead { position:sticky; top:0; z-index:2; }
 .tbl th {
     background: linear-gradient(180deg, var(--maroon) 0%, var(--maroon-dark) 100%);
-    color: #fff;
-    font-weight: 800;
-    padding: 11px 14px;
-    text-align: left;
-    white-space: nowrap;
-    font-size: 13px;
+    color:#fff; font-weight:800; padding:11px 14px; text-align:left; white-space:nowrap; font-size:13px;
 }
-.tbl td {
-    padding: 10px 14px;
-    border-bottom: 1px solid #f2e2e8;
-    color: var(--text);
-    vertical-align: middle;
-    white-space: nowrap;
-}
-.tbl tr:last-child td { border-bottom: none; }
-.tbl tr:nth-child(even) td { background: #fffafc; }
-.tbl tr:hover td { background: #fff5f8; }
-
-.footer {
-    color: var(--muted);
-    font-size: 0.82rem;
-    text-align: center;
-    margin-top: 10px;
-}
+.tbl td { padding:10px 14px; border-bottom:1px solid #f2e2e8; color:var(--text); vertical-align:middle; white-space:nowrap; }
+.tbl tr:last-child td      { border-bottom:none; }
+.tbl tr:nth-child(even) td { background:#fffafc; }
+.tbl tr:hover td           { background:#fff5f8; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -293,38 +198,29 @@ def fmt_rupiah(x):
 
 def fmt_tgl(x):
     if pd.isna(x): return "-"
-    bulan = {
-        1:"Januari", 2:"Februari", 3:"Maret", 4:"April",
-        5:"Mei", 6:"Juni", 7:"Juli", 8:"Agustus",
-        9:"September", 10:"Oktober", 11:"November", 12:"Desember"
-    }
+    bulan = {1:"Januari",2:"Februari",3:"Maret",4:"April",5:"Mei",6:"Juni",
+             7:"Juli",8:"Agustus",9:"September",10:"Oktober",11:"November",12:"Desember"}
     return f"{x.day} {bulan[x.month]} {x.year}"
 
 def clean_currency(s):
     return pd.to_numeric(
         s.astype(str)
-         .str.replace("Rp", "", regex=False)
-         .str.replace(".", "", regex=False)
-         .str.replace(",", "", regex=False)
-         .str.replace(" ", "", regex=False)
-         .str.strip(),
+         .str.replace("Rp","",regex=False).str.replace(".","",regex=False)
+         .str.replace(",","",regex=False).str.replace(" ","",regex=False).str.strip(),
         errors="coerce"
     )
 
 def clean_phone(s):
     s = s.astype(str).str.strip()
-    return (
-        s.replace(["nan", "NaN", "None", "<NA>"], "", regex=False)
-         .str.replace(".0", "", regex=False)
-    )
+    return s.replace(["nan","NaN","None","<NA>"],"",regex=False).str.replace(".0","",regex=False)
 
 def normalize_status(st_val):
     v = str(st_val).strip().lower()
-    return "Lunas" if v in ["lunas", "sudah lunas"] else "Belum Lunas"
+    return "Lunas" if v in ["lunas","sudah lunas"] else "Belum Lunas"
 
 def normalize_chat(val):
     v = str(val).strip().lower()
-    if v in ["sudah di chat", "sudah", "sudah chat", "sudah dichat", "sudah dihubungi"]:
+    if v in ["sudah di chat","sudah","sudah chat","sudah dichat","sudah dihubungi"]:
         return "Sudah di Chat"
     return "Belum di Chat"
 
@@ -333,27 +229,12 @@ def chip_status(val):
     if val == "Jatuh Tempo": return '<span class="chip chip-jatuh">Jatuh Tempo</span>'
     return '<span class="chip chip-belum">Belum Lunas</span>'
 
-def chip_chat(val):
-    if val == "Sudah di Chat":
-        return '<span class="chip chip-chat">Sudah di Chat</span>'
-    return '<span class="chip chip-muted">Belum di Chat</span>'
-
-def chip_aksi_chat(val):
+def chip_aksi_prioritas(val, chat_normal=None):
+    if chat_normal == "Belum di Chat":
+        return '<span class="chip chip-jatuh">Segera di Chat</span>'
     if val == "Menunggu LPJ":  return '<span class="chip chip-menunggu">Menunggu LPJ</span>'
     if val == "Follow Up LPJ": return '<span class="chip chip-follow">Follow Up LPJ</span>'
     if val == "BlackList":     return '<span class="chip chip-blacklist">BlackList</span>'
-    return '<span class="chip chip-muted">-</span>'
-
-def chip_aksi_prioritas(val, chat_normal=None):
-    # khusus untuk tabel prioritas
-    if chat_normal == "Belum di Chat":
-        return '<span class="chip chip-jatuh">Segera di Chat</span>'
-    if val == "Menunggu LPJ":
-        return '<span class="chip chip-menunggu">Menunggu LPJ</span>'
-    if val == "Follow Up LPJ":
-        return '<span class="chip chip-follow">Follow Up LPJ</span>'
-    if val == "BlackList":
-        return '<span class="chip chip-blacklist">BlackList</span>'
     return '<span class="chip chip-muted">-</span>'
 
 def df_to_html(df, max_height=360):
@@ -371,15 +252,24 @@ def df_to_html(df, max_height=360):
     )
 
 def detail_btn_html(nama):
-    """Render tombol Detail sebagai link dengan query param ?detail=NAMA"""
-    import urllib.parse
-    encoded = urllib.parse.quote(nama)
+    enc = urllib.parse.quote(nama)
     return (
-        f'<a href="?detail={encoded}" target="_self" '
+        f'<a href="?detail={enc}" target="_self" '
         f'style="display:inline-block;padding:5px 13px;border-radius:8px;'
-        f'background:var(--maroon);color:#fff;font-size:12px;font-weight:700;'
-        f'text-decoration:none;border:none;cursor:pointer;white-space:nowrap;">'
-        f'🔍 Detail</a>'
+        f'background:#7c1f3f;color:#fff;font-size:12px;font-weight:700;'
+        f'text-decoration:none;white-space:nowrap;">🔍 Detail</a>'
+    )
+
+def dismiss_btn_html(nama, sudah_dismiss=False):
+    """Tombol 'Sudah Chat' di dalam tabel — menggunakan query param ?dismiss=NAMA"""
+    if sudah_dismiss:
+        return '<span class="chip chip-lunas">✓ Dicatat</span>'
+    enc = urllib.parse.quote(nama)
+    return (
+        f'<a href="?dismiss={enc}" target="_self" '
+        f'style="display:inline-block;padding:5px 11px;border-radius:8px;'
+        f'background:#1b7a45;color:#fff;font-size:11px;font-weight:700;'
+        f'text-decoration:none;white-space:nowrap;">✅ Sudah Chat</a>'
     )
 
 def hitung_jeda_chat(tanggal_chat, chat_status, today):
@@ -394,14 +284,10 @@ def label_jeda_chat(hari):
     return "< 1 Minggu"
 
 def klasifikasi_chat(hari):
-    if hari is None:
-        return ""
-    if 0 <= hari < 14:
-        return "Menunggu LPJ"
-    if 14 <= hari < 21:
-        return "Follow Up LPJ"
-    if hari >= 21:
-        return "BlackList"
+    if hari is None:    return ""
+    if 0 <= hari < 14:  return "Menunggu LPJ"
+    if 14 <= hari < 21: return "Follow Up LPJ"
+    if hari >= 21:      return "BlackList"
     return ""
 
 @st.cache_data(ttl=300)
@@ -424,23 +310,15 @@ except Exception as e:
     st.stop()
 
 data.columns = [str(c).strip() for c in data.columns]
-
 aliases = {
-    "No HP Penerima": "No Hp Penerima",
-    "No Hp": "No Hp Penerima",
-    "No HP": "No Hp Penerima",
-    "Nomor HP Penerima": "No Hp Penerima",
-    "jumlah Bantuan (Rp)": "Jumlah Bantuan (Rp)",
-    "Tanggal dibantu": "Tanggal Dibantu",
-    "StatusChat": "Status Chat",
-    "Status_Chat": "Status Chat"
+    "No HP Penerima":"No Hp Penerima","No Hp":"No Hp Penerima","No HP":"No Hp Penerima",
+    "Nomor HP Penerima":"No Hp Penerima","jumlah Bantuan (Rp)":"Jumlah Bantuan (Rp)",
+    "Tanggal dibantu":"Tanggal Dibantu","StatusChat":"Status Chat","Status_Chat":"Status Chat"
 }
-data = data.rename(columns={k: v for k, v in aliases.items() if k in data.columns})
+data = data.rename(columns={k:v for k,v in aliases.items() if k in data.columns})
 
-required_cols = [
-    "Nama Bantuan", "Jumlah Bantuan (Rp)", "Tanggal Dibantu", "Tenggat",
-    "PIC", "No Hp Penerima", "Status", "Chat", "Status Chat"
-]
+required_cols = ["Nama Bantuan","Jumlah Bantuan (Rp)","Tanggal Dibantu","Tenggat",
+                 "PIC","No Hp Penerima","Status","Chat","Status Chat"]
 for col in required_cols:
     if col not in data.columns: data[col] = ""
 
@@ -479,8 +357,25 @@ data["Label Tampilan"]   = data.apply(
 )
 data = data.reset_index(drop=True)
 
+# ─── NOTIFIKASI ───────────────────────────────────────────────────────────────
+# Data jatuh tempo + belum di-chat + belum di-dismiss
+notif_df = data[
+    (data["Status Pembayaran"] == "Belum Lunas") &
+    (data["Kondisi Tenggat"] == "Jatuh Tempo") &
+    (data["Chat Normal"] == "Belum di Chat") &
+    (~data["Nama Bantuan"].isin(st.session_state.notif_dismissed))
+].copy()
+
+# Toast sekali per session
+if not notif_df.empty and not st.session_state.toast_shown:
+    st.toast(
+        f"🔴 {len(notif_df)} penerima bantuan jatuh tempo belum dihubungi!",
+        icon="⚠️"
+    )
+    st.session_state.toast_shown = True
+
 # ═════════════════════════════════════════════════════════════════════════════
-#  LAYOUT DASHBOARD
+#  LAYOUT
 # ═════════════════════════════════════════════════════════════════════════════
 
 st.markdown("""
@@ -493,6 +388,42 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
+
+# ── SIDEBAR NOTIFIKASI ────────────────────────────────────────────────────────
+with st.sidebar:
+    st.markdown("### 🔔 Notifikasi")
+    if notif_df.empty:
+        st.success("✅ Tidak ada notifikasi baru.")
+    else:
+        st.error(f"⚠️ {len(notif_df)} belum dihubungi!")
+        st.markdown("---")
+        for _, nrow in notif_df.iterrows():
+            st.markdown(f"**{nrow['Nama Bantuan']}**")
+            st.caption(f"PIC: {nrow['PIC']} | Terlambat: {int(nrow['Terlambat Hari'])} hari")
+            if st.button("✅ Sudah Chat", key=f"sb_dismiss_{nrow.name}"):
+                st.session_state.notif_dismissed.add(nrow["Nama Bantuan"])
+                st.session_state.toast_shown = False
+                st.rerun()
+            st.markdown("---")
+
+# ── BANNER ALERT ──────────────────────────────────────────────────────────────
+if not notif_df.empty:
+    st.markdown(
+        f'''<div style="background:linear-gradient(135deg,#fde8ec,#fff5f7);
+            border:2px solid #f0bfc9;border-radius:14px;padding:12px 18px;
+            margin-bottom:12px;display:flex;align-items:center;gap:12px;">
+            <span style="font-size:1.5rem;">🔴</span>
+            <div>
+                <div style="font-weight:900;color:#b42318;font-size:0.95rem;">
+                    {len(notif_df)} penerima bantuan jatuh tempo belum dihubungi!
+                </div>
+                <div style="font-size:0.82rem;color:#8a6672;margin-top:2px;">
+                    Buka sidebar atau klik <b>✅ Sudah Chat</b> di tabel untuk menonaktifkan notifikasi.
+                </div>
+            </div>
+        </div>''',
+        unsafe_allow_html=True
+    )
 
 # ── FILTER ───────────────────────────────────────────────────────────────────
 f1, f2, f3, f4 = st.columns([2, 1, 1, 1], gap="medium")
@@ -509,19 +440,18 @@ with f4:
     st.markdown('<div class="filter-label">STATUS CHAT</div>', unsafe_allow_html=True)
     selected_chat = st.selectbox(
         "Status Chat",
-        ["Semua", "Belum di Chat", "Sudah di Chat", "Menunggu LPJ", "Follow Up LPJ", "BlackList"],
+        ["Semua","Belum di Chat","Sudah di Chat","Menunggu LPJ","Follow Up LPJ","BlackList"],
         label_visibility="collapsed"
     )
 
 # ── BUILD FILTERED ────────────────────────────────────────────────────────────
 def make_filtered(tahun, status, chat):
     f = data.copy()
-    if tahun != "Semua":      f = f[f["Tahun"] == tahun]
-    if status == "Lunas":     f = f[f["Status Pembayaran"] == "Lunas"]
+    if tahun != "Semua":    f = f[f["Tahun"] == tahun]
+    if status == "Lunas":   f = f[f["Status Pembayaran"] == "Lunas"]
     elif status == "Belum Lunas":
-        f = f[(f["Status Pembayaran"] == "Belum Lunas") & (f["Kondisi Tenggat"] == "Belum Jatuh Tempo")]
-    elif status == "Jatuh Tempo":
-        f = f[f["Kondisi Tenggat"] == "Jatuh Tempo"]
+        f = f[(f["Status Pembayaran"]=="Belum Lunas") & (f["Kondisi Tenggat"]=="Belum Jatuh Tempo")]
+    elif status == "Jatuh Tempo": f = f[f["Kondisi Tenggat"] == "Jatuh Tempo"]
     if chat == "Belum di Chat":   f = f[f["Chat Normal"] == "Belum di Chat"]
     elif chat == "Sudah di Chat": f = f[f["Chat Normal"] == "Sudah di Chat"]
     elif chat == "Menunggu LPJ":  f = f[f["Klasifikasi Chat"] == "Menunggu LPJ"]
@@ -532,7 +462,7 @@ def make_filtered(tahun, status, chat):
 filtered = make_filtered(selected_tahun, selected_status, selected_chat)
 
 total_nominal_semua = filtered["Jumlah Bantuan (Rp)"].fillna(0).sum()
-total_nominal_lunas = filtered.loc[filtered["Status Pembayaran"] == "Lunas", "Jumlah Bantuan (Rp)"].fillna(0).sum()
+total_nominal_lunas = filtered.loc[filtered["Status Pembayaran"]=="Lunas","Jumlah Bantuan (Rp)"].fillna(0).sum()
 
 with f1:
     st.markdown(f"""
@@ -550,23 +480,23 @@ with f1:
 
 # ── KPI CARDS ────────────────────────────────────────────────────────────────
 total_penerima    = len(filtered)
-total_lunas       = len(filtered[filtered["Status Pembayaran"] == "Lunas"])
-total_belum_lunas = len(filtered[filtered["Status Pembayaran"] == "Belum Lunas"])
-total_jatuh_tempo = len(filtered[filtered["Kondisi Tenggat"] == "Jatuh Tempo"])
-total_menunggu    = len(filtered[filtered["Klasifikasi Chat"] == "Menunggu LPJ"])
-total_follow_up   = len(filtered[filtered["Klasifikasi Chat"] == "Follow Up LPJ"])
-total_blacklist   = len(filtered[filtered["Klasifikasi Chat"] == "BlackList"])
+total_lunas       = len(filtered[filtered["Status Pembayaran"]=="Lunas"])
+total_belum_lunas = len(filtered[filtered["Status Pembayaran"]=="Belum Lunas"])
+total_jatuh_tempo = len(filtered[filtered["Kondisi Tenggat"]=="Jatuh Tempo"])
+total_menunggu    = len(filtered[filtered["Klasifikasi Chat"]=="Menunggu LPJ"])
+total_follow_up   = len(filtered[filtered["Klasifikasi Chat"]=="Follow Up LPJ"])
+total_blacklist   = len(filtered[filtered["Klasifikasi Chat"]=="BlackList"])
 
-k1, k2, k3, k4, k5, k6 = st.columns(6, gap="medium")
+k1,k2,k3,k4,k5,k6 = st.columns(6, gap="medium")
 cards = [
-    ("Total Penerima", str(total_penerima), "Jumlah penerima bantuan"),
-    ("Sudah Lunas", str(total_lunas), "Selesai dikembalikan"),
-    ("Belum Lunas", str(total_belum_lunas), "Belum selesai"),
-    ("Jatuh Tempo", str(total_jatuh_tempo), "Perlu segera follow-up"),
-    ("Menunggu LPJ", str(total_menunggu), "Sudah 1 minggu setelah chat"),
-    ("Follow Up / BlackList", f"{total_follow_up} / {total_blacklist}", "2 minggu / 3 minggu ke atas"),
+    ("Total Penerima",str(total_penerima),"Jumlah penerima bantuan"),
+    ("Sudah Lunas",str(total_lunas),"Selesai dikembalikan"),
+    ("Belum Lunas",str(total_belum_lunas),"Belum selesai"),
+    ("Jatuh Tempo",str(total_jatuh_tempo),"Perlu segera follow-up"),
+    ("Menunggu LPJ",str(total_menunggu),"Sudah 1 minggu setelah chat"),
+    ("Follow Up / BlackList",f"{total_follow_up} / {total_blacklist}","2 minggu / 3 minggu ke atas"),
 ]
-for col, (label_txt, val, note) in zip([k1, k2, k3, k4, k5, k6], cards):
+for col,(label_txt,val,note) in zip([k1,k2,k3,k4,k5,k6],cards):
     with col:
         st.markdown(f"""
         <div class="kpi-wrap">
@@ -579,25 +509,22 @@ for col, (label_txt, val, note) in zip([k1, k2, k3, k4, k5, k6], cards):
 st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
 
 # ── CHARTS ───────────────────────────────────────────────────────────────────
-MAROON_COLORS = {"Lunas": "#7c1f3f", "Belum Lunas": "#c07090", "Jatuh Tempo": "#e8c0cf"}
+MAROON_COLORS = {"Lunas":"#7c1f3f","Belum Lunas":"#c07090","Jatuh Tempo":"#e8c0cf"}
 PLOTLY_BASE = dict(
     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-    margin=dict(t=8, b=8, l=0, r=0),
-    font=dict(family="DM Sans, sans-serif", color="#2a0d18"),
+    margin=dict(t=8,b=8,l=0,r=0),
+    font=dict(family="DM Sans, sans-serif",color="#2a0d18"),
 )
 
 chart_df = filtered["Status Pembayaran"].value_counts().reset_index()
-chart_df.columns = ["Status", "Jumlah"]
-
+chart_df.columns = ["Status","Jumlah"]
 status_dist_df = (
-    filtered["Label Tampilan"]
-    .value_counts()
-    .reindex(["Lunas", "Belum Lunas", "Jatuh Tempo"], fill_value=0)
-    .reset_index()
+    filtered["Label Tampilan"].value_counts()
+    .reindex(["Lunas","Belum Lunas","Jatuh Tempo"],fill_value=0).reset_index()
 )
-status_dist_df.columns = ["Kategori", "Jumlah"]
+status_dist_df.columns = ["Kategori","Jumlah"]
 
-c1, c2, c3 = st.columns(3, gap="medium")
+c1,c2,c3 = st.columns(3, gap="medium")
 
 with c1:
     with st.container(border=True):
@@ -607,9 +534,9 @@ with c1:
             fig = px.pie(chart_df, names="Status", values="Jumlah", hole=0.62,
                          color="Status", color_discrete_map=MAROON_COLORS)
             fig.update_traces(textposition="inside", textinfo="percent",
-                              marker=dict(line=dict(color="white", width=3)))
+                              marker=dict(line=dict(color="white",width=3)))
             fig.update_layout(**PLOTLY_BASE, height=280)
-            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar":False})
         else:
             st.info("Tidak ada data.")
 
@@ -622,7 +549,7 @@ with c2:
                           color_discrete_map=MAROON_COLORS)
             fig2.update_layout(**PLOTLY_BASE, height=280, xaxis_title="", yaxis_title="Jumlah", showlegend=False)
             fig2.update_traces(marker_line_width=0)
-            st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
+            st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar":False})
         else:
             st.info("Tidak ada data.")
 
@@ -630,13 +557,13 @@ with c3:
     with st.container(border=True):
         st.markdown('<div class="panel-title">Ringkasan Cepat</div>', unsafe_allow_html=True)
         st.markdown('<div class="panel-sub">Prioritas tindak lanjut</div>', unsafe_allow_html=True)
-        pct_jt = round((total_jatuh_tempo / total_penerima) * 100, 1) if total_penerima else 0
-        pct_fu = round((total_follow_up / total_penerima) * 100, 1) if total_penerima else 0
-        pct_bl = round((total_blacklist / total_penerima) * 100, 1) if total_penerima else 0
+        pct_jt = round((total_jatuh_tempo/total_penerima)*100,1) if total_penerima else 0
+        pct_fu = round((total_follow_up/total_penerima)*100,1)   if total_penerima else 0
+        pct_bl = round((total_blacklist/total_penerima)*100,1)   if total_penerima else 0
         for label_ms, value_ms in [
-            ("Persentase Jatuh Tempo", f"{pct_jt}%"),
-            ("Persentase Follow Up LPJ", f"{pct_fu}%"),
-            ("Persentase BlackList", f"{pct_bl}%"),
+            ("Persentase Jatuh Tempo",f"{pct_jt}%"),
+            ("Persentase Follow Up LPJ",f"{pct_fu}%"),
+            ("Persentase BlackList",f"{pct_bl}%"),
         ]:
             st.markdown(f"""
             <div class="mini-stat">
@@ -650,11 +577,11 @@ st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
 # ── TABEL PRIORITAS JATUH TEMPO ──────────────────────────────────────────────
 prioritas = (
     filtered[
-        (filtered["Status Pembayaran"] == "Belum Lunas") &
-        (filtered["Kondisi Tenggat"] == "Jatuh Tempo")
+        (filtered["Status Pembayaran"]=="Belum Lunas") &
+        (filtered["Kondisi Tenggat"]=="Jatuh Tempo")
     ]
     .copy()
-    .sort_values(["Terlambat Hari", "Tenggat"], ascending=[False, True])
+    .sort_values(["Terlambat Hari","Tenggat"], ascending=[False,True])
 )
 
 st.markdown('<div class="section-head">🔴 Penerima Bantuan Jatuh Tempo — Segera Hubungi</div>', unsafe_allow_html=True)
@@ -663,8 +590,8 @@ st.markdown(f'<div class="section-sub">{len(prioritas)} penerima bantuan perlu s
 if prioritas.empty:
     st.success("✅ Tidak ada penerima bantuan yang jatuh tempo.")
 else:
-    prioritas_belum_chat = prioritas[prioritas["Chat Normal"] == "Belum di Chat"].copy()
-    prioritas_sudah_chat = prioritas[prioritas["Chat Normal"] == "Sudah di Chat"].copy()
+    prioritas_belum_chat = prioritas[prioritas["Chat Normal"]=="Belum di Chat"].copy()
+    prioritas_sudah_chat = prioritas[prioritas["Chat Normal"]=="Sudah di Chat"].copy()
 
     col_kiri, col_kanan = st.columns(2, gap="large")
 
@@ -678,23 +605,24 @@ else:
         if prioritas_belum_chat.empty:
             st.info("Tidak ada penerima bantuan di kategori ini.")
         else:
-            # ── Tabel (layout kodingan 2) ────────────────────────────────────
             pv_belum = prioritas_belum_chat[[
-                "Nama Bantuan", "Jumlah Bantuan (Rp)", "No Hp Penerima", "Chat Normal", "Klasifikasi Chat"
+                "Nama Bantuan","Jumlah Bantuan (Rp)","No Hp Penerima","Chat Normal","Klasifikasi Chat"
             ]].copy()
-            
             pv_belum["Jumlah Bantuan (Rp)"] = pv_belum["Jumlah Bantuan (Rp)"].apply(fmt_rupiah)
-            pv_belum["No Hp Penerima"]      = pv_belum["No Hp Penerima"].replace("", "-")
+            pv_belum["No Hp Penerima"]      = pv_belum["No Hp Penerima"].replace("","-")
             pv_belum["Aksi Chat"]           = pv_belum.apply(
                 lambda r: chip_aksi_prioritas(r["Klasifikasi Chat"], r["Chat Normal"]), axis=1
             )
-            pv_belum["Detail"] = pv_belum["Nama Bantuan"].apply(lambda n: detail_btn_html(n))
-            
+            # Tombol "Sudah Chat" di dalam tabel untuk dismiss notif
+            pv_belum["Sudah Chat"] = pv_belum["Nama Bantuan"].apply(
+                lambda n: dismiss_btn_html(n, sudah_dismiss=(n in st.session_state.notif_dismissed))
+            )
+            pv_belum["Detail"] = pv_belum["Nama Bantuan"].apply(detail_btn_html)
             pv_belum = pv_belum[[
-                "Nama Bantuan", "Jumlah Bantuan (Rp)", "No Hp Penerima", "Aksi Chat", "Detail"
+                "Nama Bantuan","Jumlah Bantuan (Rp)","No Hp Penerima","Aksi Chat","Sudah Chat","Detail"
             ]]
-            
             st.markdown(df_to_html(pv_belum, max_height=360), unsafe_allow_html=True)
+
     # ── KANAN: Sudah di Chat ─────────────────────────────────────────────────
     with col_kanan:
         st.markdown('<div class="section-head">💬 Sudah di Chat</div>', unsafe_allow_html=True)
@@ -705,23 +633,18 @@ else:
         if prioritas_sudah_chat.empty:
             st.info("Tidak ada penerima bantuan di kategori ini.")
         else:
-            # ── Tabel (layout kodingan 2) ────────────────────────────────────
             pv_sudah = prioritas_sudah_chat[[
-                "Nama Bantuan", "Jumlah Bantuan (Rp)", "No Hp Penerima",
-                "Chat Normal", "Klasifikasi Chat"
+                "Nama Bantuan","Jumlah Bantuan (Rp)","No Hp Penerima","Chat Normal","Klasifikasi Chat"
             ]].copy()
-            
             pv_sudah["Jumlah Bantuan (Rp)"] = pv_sudah["Jumlah Bantuan (Rp)"].apply(fmt_rupiah)
-            pv_sudah["No Hp Penerima"]      = pv_sudah["No Hp Penerima"].replace("", "-")
+            pv_sudah["No Hp Penerima"]      = pv_sudah["No Hp Penerima"].replace("","-")
             pv_sudah["Aksi Chat"]           = pv_sudah.apply(
                 lambda r: chip_aksi_prioritas(r["Klasifikasi Chat"], r["Chat Normal"]), axis=1
             )
-            pv_sudah["Detail"] = pv_sudah["Nama Bantuan"].apply(lambda n: detail_btn_html(n))
-            
+            pv_sudah["Detail"] = pv_sudah["Nama Bantuan"].apply(detail_btn_html)
             pv_sudah = pv_sudah[[
-                "Nama Bantuan", "Jumlah Bantuan (Rp)", "No Hp Penerima", "Aksi Chat", "Detail"
+                "Nama Bantuan","Jumlah Bantuan (Rp)","No Hp Penerima","Aksi Chat","Detail"
             ]]
-            
             st.markdown(df_to_html(pv_sudah, max_height=360), unsafe_allow_html=True)
 
 st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
@@ -730,8 +653,7 @@ st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
 st.markdown('<div class="section-head">📋 Data Semua Penerima Bantuan</div>', unsafe_allow_html=True)
 
 search = st.text_input(
-    "Cari",
-    label_visibility="collapsed",
+    "Cari", label_visibility="collapsed",
     placeholder="🔍 Cari nama bantuan, PIC, nomor HP, status, atau status chat...",
     key="dash_search"
 )
@@ -740,13 +662,13 @@ table_df = filtered.copy()
 if search:
     kw = search.lower()
     table_df = table_df[
-        table_df["Nama Bantuan"].astype(str).str.lower().str.contains(kw, na=False) |
-        table_df["PIC"].astype(str).str.lower().str.contains(kw, na=False) |
-        table_df["No Hp Penerima"].astype(str).str.lower().str.contains(kw, na=False) |
-        table_df["Label Tampilan"].astype(str).str.lower().str.contains(kw, na=False) |
-        table_df["Chat Normal"].astype(str).str.lower().str.contains(kw, na=False) |
-        table_df["Label Jeda Chat"].astype(str).str.lower().str.contains(kw, na=False) |
-        table_df["Klasifikasi Chat"].astype(str).str.lower().str.contains(kw, na=False)
+        table_df["Nama Bantuan"].astype(str).str.lower().str.contains(kw,na=False) |
+        table_df["PIC"].astype(str).str.lower().str.contains(kw,na=False) |
+        table_df["No Hp Penerima"].astype(str).str.lower().str.contains(kw,na=False) |
+        table_df["Label Tampilan"].astype(str).str.lower().str.contains(kw,na=False) |
+        table_df["Chat Normal"].astype(str).str.lower().str.contains(kw,na=False) |
+        table_df["Label Jeda Chat"].astype(str).str.lower().str.contains(kw,na=False) |
+        table_df["Klasifikasi Chat"].astype(str).str.lower().str.contains(kw,na=False)
     ]
 
 st.markdown(
@@ -755,18 +677,18 @@ st.markdown(
 )
 
 disp = table_df[[
-    "Nama Bantuan", "Jumlah Bantuan (Rp)", "Tanggal Dibantu", "Tenggat",
-    "PIC", "No Hp Penerima", "Tahun", "Label Tampilan", "Klasifikasi Chat"
+    "Nama Bantuan","Jumlah Bantuan (Rp)","Tanggal Dibantu","Tenggat",
+    "PIC","No Hp Penerima","Tahun","Label Tampilan","Klasifikasi Chat"
 ]].copy()
 disp["Jumlah Bantuan (Rp)"] = disp["Jumlah Bantuan (Rp)"].apply(fmt_rupiah)
 disp["Tanggal Dibantu"]     = disp["Tanggal Dibantu"].apply(fmt_tgl)
 disp["Tenggat"]             = disp["Tenggat"].apply(fmt_tgl)
-disp["No Hp Penerima"]      = disp["No Hp Penerima"].replace("", "-")
+disp["No Hp Penerima"]      = disp["No Hp Penerima"].replace("","-")
 disp["Status"]              = disp["Label Tampilan"].apply(chip_status)
-disp = disp.drop(columns=["Label Tampilan", "Klasifikasi Chat"])
+disp = disp.drop(columns=["Label Tampilan","Klasifikasi Chat"])
 disp = disp[[
-    "Nama Bantuan", "Jumlah Bantuan (Rp)", "Tanggal Dibantu", "Tenggat",
-    "PIC", "No Hp Penerima", "Tahun", "Status"
+    "Nama Bantuan","Jumlah Bantuan (Rp)","Tanggal Dibantu","Tenggat",
+    "PIC","No Hp Penerima","Tahun","Status"
 ]]
 
 st.markdown(df_to_html(disp), unsafe_allow_html=True)
