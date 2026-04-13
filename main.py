@@ -616,13 +616,13 @@ MAROON_COLORS = {
 chart_df = filtered["Status Pembayaran"].value_counts().reset_index()
 chart_df.columns = ["Status", "Jumlah"]
 
-chat_df = (
-    filtered["Klasifikasi Chat"]
-    .replace("", "Normal")
+status_dist_df = (
+    filtered["Label Tampilan"]
     .value_counts()
+    .reindex(["Lunas", "Belum Lunas", "Jatuh Tempo"], fill_value=0)
     .reset_index()
 )
-chat_df.columns = ["Kategori", "Jumlah"]
+status_dist_df.columns = ["Kategori", "Jumlah"]
 
 PLOTLY_BASE = dict(
     paper_bgcolor="rgba(0,0,0,0)",
@@ -649,11 +649,29 @@ with c1:
 
 with c2:
     with st.container(border=True):
-        st.markdown('<div class="panel-title">Distribusi Chat</div>', unsafe_allow_html=True)
-        st.markdown('<div class="panel-sub">Menunggu LPJ, follow up LPJ, dan blacklist</div>', unsafe_allow_html=True)
-        if not chat_df.empty:
-            fig2 = px.bar(chat_df, x="Kategori", y="Jumlah")
-            fig2.update_layout(**PLOTLY_BASE, height=280, xaxis_title="", yaxis_title="Jumlah", showlegend=False)
+        st.markdown('<div class="panel-title">Distribusi Status</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-sub">Lunas, belum lunas, dan jatuh tempo</div>', unsafe_allow_html=True)
+
+        if not status_dist_df.empty:
+            fig2 = px.bar(
+                status_dist_df,
+                x="Kategori",
+                y="Jumlah",
+                color="Kategori",
+                color_discrete_map={
+                    "Lunas": "#7c1f3f",
+                    "Belum Lunas": "#c07090",
+                    "Jatuh Tempo": "#e8c0cf",
+                }
+            )
+            fig2.update_layout(
+                **PLOTLY_BASE,
+                height=280,
+                xaxis_title="",
+                yaxis_title="Jumlah",
+                showlegend=False
+            )
+            fig2.update_traces(marker_line_width=0)
             st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
         else:
             st.info("Tidak ada data.")
@@ -767,8 +785,7 @@ st.markdown(f'<div class="section-sub">Menampilkan {len(table_df)} dari {len(fil
 disp = table_df[
     [
         "Nama Bantuan", "Jumlah Bantuan (Rp)", "Tanggal Dibantu", "Tenggat",
-        "PIC", "No Hp Penerima", "Tahun", "Label Tampilan",
-        "Chat Normal", "Tanggal Chat", "Label Jeda Chat", "Klasifikasi Chat"
+        "PIC", "No Hp Penerima", "Tahun", "Label Tampilan", "Klasifikasi Chat"
     ]
 ].copy()
 
@@ -777,18 +794,14 @@ disp["Tanggal Dibantu"]     = disp["Tanggal Dibantu"].apply(fmt_tgl)
 disp["Tenggat"]             = disp["Tenggat"].apply(fmt_tgl)
 disp["No Hp Penerima"]      = disp["No Hp Penerima"].replace("", "-")
 disp["Status"]              = disp["Label Tampilan"].apply(chip_status)
-disp["Chat"]                = disp["Chat Normal"].apply(chip_chat)
-disp["Tanggal Chat"]        = disp["Tanggal Chat"].apply(fmt_tgl)
-disp["Jeda Chat"]           = disp["Label Jeda Chat"].replace("", "-")
 disp["Aksi Chat"]           = disp["Klasifikasi Chat"].apply(chip_aksi_chat)
 
-disp = disp.drop(columns=["Label Tampilan", "Chat Normal", "Label Jeda Chat", "Klasifikasi Chat"])
+disp = disp.drop(columns=["Label Tampilan", "Klasifikasi Chat"])
 
 disp = disp[
     [
         "Nama Bantuan", "Jumlah Bantuan (Rp)", "Tanggal Dibantu", "Tenggat",
-        "PIC", "No Hp Penerima", "Tahun", "Status",
-        "Chat", "Tanggal Chat", "Jeda Chat", "Aksi Chat"
+        "PIC", "No Hp Penerima", "Tahun", "Status", "Aksi Chat"
     ]
 ]
 
