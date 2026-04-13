@@ -226,6 +226,7 @@ div[data-baseweb="input"] > div {
 .chip-belum      { background: #fff4e0; color: var(--warning); border: 1px solid #f0d49a; }
 .chip-jatuh      { background: #fde8ec; color: var(--danger);  border: 1px solid #f0bfc9; }
 .chip-chat       { background: #eef4ff; color: var(--info); border: 1px solid #c7d7fe; }
+.chip-menunggu   { background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; }
 .chip-follow     { background: #fff7e6; color: #b36b00; border: 1px solid #f1d193; }
 .chip-blacklist  { background: #111827; color: #fff; border: 1px solid #374151; }
 .chip-muted      { background: #f5f5f5; color: #6b7280; border: 1px solid #d1d5db; }
@@ -353,25 +354,6 @@ def normalize_chat(val):
         return "Sudah di Chat"
     return "Belum di Chat"
 
-def normalize_status_chat(val):
-    v = str(val).strip().lower()
-    if v in ["1 minggu", "1minggu"]:
-        return "1 Minggu"
-    if v in ["2 minggu", "2minggu"]:
-        return "2 Minggu"
-    if v in ["3 minggu", "3minggu"]:
-        return "3 Minggu"
-    if v in ["1 bulan lebih", "1bulan lebih", "lebih dari 1 bulan"]:
-        return "1 Bulan Lebih"
-    return ""
-
-def klasifikasi_chat(status_chat):
-    if status_chat == "2 Minggu":
-        return "Follow Up"
-    if status_chat in ["3 Minggu", "1 Bulan Lebih"]:
-        return "BlackList"
-    return ""
-
 def chip_status(val):
     if val == "Lunas":
         return '<span class="chip chip-lunas">Lunas</span>'
@@ -385,8 +367,10 @@ def chip_chat(val):
     return '<span class="chip chip-muted">Belum di Chat</span>'
 
 def chip_aksi_chat(val):
-    if val == "Follow Up":
-        return '<span class="chip chip-follow">Follow Up</span>'
+    if val == "Menunggu LPJ":
+        return '<span class="chip chip-menunggu">Menunggu LPJ</span>'
+    if val == "Follow Up LPJ":
+        return '<span class="chip chip-follow">Follow Up LPJ</span>'
     if val == "BlackList":
         return '<span class="chip chip-blacklist">BlackList</span>'
     return '<span class="chip chip-muted">-</span>'
@@ -404,6 +388,34 @@ def df_to_html(df, max_height=360):
         f'<tbody>{rows}</tbody></table>'
         f'</div></div>'
     )
+
+def hitung_jeda_chat(tanggal_chat, chat_status, today):
+    if chat_status != "Sudah di Chat" or pd.isna(tanggal_chat):
+        return None
+    selisih = (today - tanggal_chat).days
+    return max(selisih, 0)
+
+def label_jeda_chat(hari):
+    if hari is None:
+        return ""
+    if 7 <= hari < 14:
+        return "1 Minggu"
+    if 14 <= hari < 21:
+        return "2 Minggu"
+    if hari >= 21:
+        return "3 Minggu"
+    return "< 1 Minggu"
+
+def klasifikasi_chat(hari):
+    if hari is None:
+        return ""
+    if 7 <= hari < 14:
+        return "Menunggu LPJ"
+    if 14 <= hari < 21:
+        return "Follow Up LPJ"
+    if hari >= 21:
+        return "BlackList"
+    return ""
 
 @st.cache_data(ttl=300)
 def load_data():
@@ -454,15 +466,17 @@ data["No Hp Penerima"]       = clean_phone(data["No Hp Penerima"])
 data["Status"]               = data["Status"].astype(str).str.strip()
 data["Chat"]                 = data["Chat"].astype(str).str.strip()
 data["Status Chat"]          = data["Status Chat"].astype(str).str.strip()
+
 data["Jumlah Bantuan (Rp)"]  = clean_currency(data["Jumlah Bantuan (Rp)"])
 data["Tanggal Dibantu"]      = pd.to_datetime(data["Tanggal Dibantu"], errors="coerce", dayfirst=True)
 data["Tenggat"]              = pd.to_datetime(data["Tenggat"], errors="coerce", dayfirst=True)
 
+# Status Chat sekarang adalah tanggal
+data["Tanggal Chat"]         = pd.to_datetime(data["Status Chat"], errors="coerce", dayfirst=True)
+
 data["Tahun"]                = data["Tanggal Dibantu"].dt.year
 data["Status Pembayaran"]    = data["Status"].apply(normalize_status)
-data["Status Chat Normal"]   = data["Status Chat"].apply(normalize_status_chat)
 data["Chat Normal"]          = data["Chat"].apply(normalize_chat)
-data["Klasifikasi Chat"]     = data["Status Chat Normal"].apply(klasifikasi_chat)
 
 today = pd.Timestamp.today().normalize()
 
@@ -476,6 +490,14 @@ data["Kondisi Tenggat"] = data.apply(
 data["Terlambat Hari"] = data["Tenggat"].apply(
     lambda x: (today - x).days if pd.notna(x) and x < today else 0
 )
+
+data["Hari Setelah Chat"] = data.apply(
+    lambda r: hitung_jeda_chat(r["Tanggal Chat"], r["Chat Normal"], today),
+    axis=1
+)
+
+data["Label Jeda Chat"] = data["Hari Setelah Chat"].apply(label_jeda_chat)
+data["Klasifikasi Chat"] = data["Hari Setelah Chat"].apply(klasifikasi_chat)
 
 data["Label Tampilan"] = data.apply(
     lambda r: "Lunas" if r["Status Pembayaran"] == "Lunas"
@@ -522,7 +544,7 @@ with f4:
     st.markdown('<div class="filter-label">STATUS CHAT</div>', unsafe_allow_html=True)
     selected_chat = st.selectbox(
         "Status Chat",
-        ["Semua", "Belum di Chat", "Sudah di Chat", "Follow Up", "BlackList"],
+        ["Semua", "Belum di Chat", "Sudah di Chat", "Menunggu LPJ", "Follow Up LPJ", "BlackList"],
         label_visibility="collapsed"
     )
 
@@ -545,8 +567,10 @@ if selected_chat == "Belum di Chat":
     filtered = filtered[filtered["Chat Normal"] == "Belum di Chat"]
 elif selected_chat == "Sudah di Chat":
     filtered = filtered[filtered["Chat Normal"] == "Sudah di Chat"]
-elif selected_chat == "Follow Up":
-    filtered = filtered[filtered["Klasifikasi Chat"] == "Follow Up"]
+elif selected_chat == "Menunggu LPJ":
+    filtered = filtered[filtered["Klasifikasi Chat"] == "Menunggu LPJ"]
+elif selected_chat == "Follow Up LPJ":
+    filtered = filtered[filtered["Klasifikasi Chat"] == "Follow Up LPJ"]
 elif selected_chat == "BlackList":
     filtered = filtered[filtered["Klasifikasi Chat"] == "BlackList"]
 
@@ -555,7 +579,8 @@ total_penerima    = len(filtered)
 total_lunas       = len(filtered[filtered["Status Pembayaran"] == "Lunas"])
 total_belum_lunas = len(filtered[filtered["Status Pembayaran"] == "Belum Lunas"])
 total_jatuh_tempo = len(filtered[filtered["Kondisi Tenggat"] == "Jatuh Tempo"])
-total_follow_up   = len(filtered[filtered["Klasifikasi Chat"] == "Follow Up"])
+total_menunggu    = len(filtered[filtered["Klasifikasi Chat"] == "Menunggu LPJ"])
+total_follow_up   = len(filtered[filtered["Klasifikasi Chat"] == "Follow Up LPJ"])
 total_blacklist   = len(filtered[filtered["Klasifikasi Chat"] == "BlackList"])
 
 k1, k2, k3, k4, k5, k6 = st.columns(6, gap="medium")
@@ -565,8 +590,8 @@ cards = [
     ("Sudah Lunas", str(total_lunas), "Selesai dikembalikan"),
     ("Belum Lunas", str(total_belum_lunas), "Belum selesai"),
     ("Jatuh Tempo", str(total_jatuh_tempo), "Perlu segera follow-up"),
-    ("Follow Up", str(total_follow_up), "Sudah 2 minggu setelah chat"),
-    ("BlackList", str(total_blacklist), "Sudah 3 minggu / 1 bulan lebih"),
+    ("Menunggu LPJ", str(total_menunggu), "Sudah 1 minggu setelah chat"),
+    ("Follow Up / BlackList", f"{total_follow_up} / {total_blacklist}", "2 minggu / 3 minggu ke atas"),
 ]
 
 for col, (label_txt, val, note) in zip([k1, k2, k3, k4, k5, k6], cards):
@@ -625,7 +650,7 @@ with c1:
 with c2:
     with st.container(border=True):
         st.markdown('<div class="panel-title">Distribusi Chat</div>', unsafe_allow_html=True)
-        st.markdown('<div class="panel-sub">Normal, follow up, dan blacklist</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-sub">Menunggu LPJ, follow up LPJ, dan blacklist</div>', unsafe_allow_html=True)
         if not chat_df.empty:
             fig2 = px.bar(chat_df, x="Kategori", y="Jumlah")
             fig2.update_layout(**PLOTLY_BASE, height=280, xaxis_title="", yaxis_title="Jumlah", showlegend=False)
@@ -644,7 +669,7 @@ with c3:
 
         for label_ms, value_ms in [
             ("Persentase Jatuh Tempo", f"{pct_jt}%"),
-            ("Persentase Follow Up", f"{pct_fu}%"),
+            ("Persentase Follow Up LPJ", f"{pct_fu}%"),
             ("Persentase BlackList", f"{pct_bl}%"),
         ]:
             st.markdown(f"""
@@ -656,6 +681,10 @@ with c3:
 
 st.markdown("""
 <div class="note-box">
+    <b>📌 Catatan:</b>
+    Jatuh Tempo adalah penerima bantuan yang masih <b>Belum Lunas</b> dan sudah melewati tenggat.
+    Klasifikasi chat dihitung otomatis dari <b>Tanggal Chat</b> terhadap <b>tanggal hari ini</b>:
+    <b>1 Minggu = Menunggu LPJ</b>, <b>2 Minggu = Follow Up LPJ</b>, dan <b>3 Minggu atau lebih = BlackList</b>.
 </div>
 """, unsafe_allow_html=True)
 
@@ -680,8 +709,8 @@ else:
     pv = prioritas[
         [
             "Nama Bantuan", "Jumlah Bantuan (Rp)", "Tanggal Dibantu", "Tenggat",
-            "PIC", "No Hp Penerima", "Chat Normal", "Status Chat Normal",
-            "Klasifikasi Chat", "Terlambat Hari"
+            "PIC", "No Hp Penerima", "Chat Normal", "Tanggal Chat",
+            "Label Jeda Chat", "Klasifikasi Chat", "Terlambat Hari"
         ]
     ].copy()
 
@@ -690,18 +719,19 @@ else:
     pv["Tenggat"]             = pv["Tenggat"].apply(fmt_tgl)
     pv["No Hp Penerima"]      = pv["No Hp Penerima"].replace("", "-")
     pv["Chat"]                = pv["Chat Normal"].apply(chip_chat)
-    pv["Waktu Setelah Chat"]  = pv["Status Chat Normal"].replace("", "-")
+    pv["Tanggal Chat"]        = pv["Tanggal Chat"].apply(fmt_tgl)
+    pv["Jeda Chat"]           = pv["Label Jeda Chat"].replace("", "-")
     pv["Aksi Chat"]           = pv["Klasifikasi Chat"].apply(chip_aksi_chat)
     pv["Terlambat Hari"]      = pv["Terlambat Hari"].apply(lambda x: f"{int(x)} hari")
     pv["Status"]              = '<span class="chip chip-jatuh">Jatuh Tempo</span>'
 
-    pv = pv.drop(columns=["Chat Normal", "Status Chat Normal", "Klasifikasi Chat"])
+    pv = pv.drop(columns=["Chat Normal", "Label Jeda Chat", "Klasifikasi Chat"])
 
     pv = pv[
         [
             "Nama Bantuan", "Jumlah Bantuan (Rp)", "Tanggal Dibantu", "Tenggat",
-            "PIC", "No Hp Penerima", "Chat", "Waktu Setelah Chat",
-            "Aksi Chat", "Terlambat Hari", "Status"
+            "PIC", "No Hp Penerima", "Chat", "Tanggal Chat",
+            "Jeda Chat", "Aksi Chat", "Terlambat Hari", "Status"
         ]
     ]
 
@@ -728,7 +758,7 @@ if search:
         table_df["No Hp Penerima"].astype(str).str.lower().str.contains(kw, na=False) |
         table_df["Label Tampilan"].astype(str).str.lower().str.contains(kw, na=False) |
         table_df["Chat Normal"].astype(str).str.lower().str.contains(kw, na=False) |
-        table_df["Status Chat Normal"].astype(str).str.lower().str.contains(kw, na=False) |
+        table_df["Label Jeda Chat"].astype(str).str.lower().str.contains(kw, na=False) |
         table_df["Klasifikasi Chat"].astype(str).str.lower().str.contains(kw, na=False)
     ]
 
@@ -738,7 +768,7 @@ disp = table_df[
     [
         "Nama Bantuan", "Jumlah Bantuan (Rp)", "Tanggal Dibantu", "Tenggat",
         "PIC", "No Hp Penerima", "Tahun", "Label Tampilan",
-        "Chat Normal", "Status Chat Normal", "Klasifikasi Chat"
+        "Chat Normal", "Tanggal Chat", "Label Jeda Chat", "Klasifikasi Chat"
     ]
 ].copy()
 
@@ -748,16 +778,17 @@ disp["Tenggat"]             = disp["Tenggat"].apply(fmt_tgl)
 disp["No Hp Penerima"]      = disp["No Hp Penerima"].replace("", "-")
 disp["Status"]              = disp["Label Tampilan"].apply(chip_status)
 disp["Chat"]                = disp["Chat Normal"].apply(chip_chat)
-disp["Waktu Setelah Chat"]  = disp["Status Chat Normal"].replace("", "-")
+disp["Tanggal Chat"]        = disp["Tanggal Chat"].apply(fmt_tgl)
+disp["Jeda Chat"]           = disp["Label Jeda Chat"].replace("", "-")
 disp["Aksi Chat"]           = disp["Klasifikasi Chat"].apply(chip_aksi_chat)
 
-disp = disp.drop(columns=["Label Tampilan", "Chat Normal", "Status Chat Normal", "Klasifikasi Chat"])
+disp = disp.drop(columns=["Label Tampilan", "Chat Normal", "Label Jeda Chat", "Klasifikasi Chat"])
 
 disp = disp[
     [
         "Nama Bantuan", "Jumlah Bantuan (Rp)", "Tanggal Dibantu", "Tenggat",
         "PIC", "No Hp Penerima", "Tahun", "Status",
-        "Chat", "Waktu Setelah Chat", "Aksi Chat"
+        "Chat", "Tanggal Chat", "Jeda Chat", "Aksi Chat"
     ]
 ]
 
@@ -771,7 +802,8 @@ st.markdown('<div class="section-head">⏳ Daftar Penerima Bantuan Belum Lunas</
 bl_df = filtered[filtered["Status Pembayaran"] == "Belum Lunas"][
     [
         "Nama Bantuan", "Jumlah Bantuan (Rp)", "PIC", "No Hp Penerima",
-        "Tenggat", "Label Tampilan", "Chat Normal", "Status Chat Normal", "Klasifikasi Chat"
+        "Tenggat", "Label Tampilan", "Chat Normal", "Tanggal Chat",
+        "Label Jeda Chat", "Klasifikasi Chat"
     ]
 ].copy()
 
@@ -780,15 +812,16 @@ bl_df["Tenggat"]             = bl_df["Tenggat"].apply(fmt_tgl)
 bl_df["No Hp Penerima"]      = bl_df["No Hp Penerima"].replace("", "-")
 bl_df["Status"]              = bl_df["Label Tampilan"].apply(chip_status)
 bl_df["Chat"]                = bl_df["Chat Normal"].apply(chip_chat)
-bl_df["Waktu Setelah Chat"]  = bl_df["Status Chat Normal"].replace("", "-")
+bl_df["Tanggal Chat"]        = bl_df["Tanggal Chat"].apply(fmt_tgl)
+bl_df["Jeda Chat"]           = bl_df["Label Jeda Chat"].replace("", "-")
 bl_df["Aksi Chat"]           = bl_df["Klasifikasi Chat"].apply(chip_aksi_chat)
 
-bl_df = bl_df.drop(columns=["Label Tampilan", "Chat Normal", "Status Chat Normal", "Klasifikasi Chat"])
+bl_df = bl_df.drop(columns=["Label Tampilan", "Chat Normal", "Label Jeda Chat", "Klasifikasi Chat"])
 
 bl_df = bl_df[
     [
         "Nama Bantuan", "Jumlah Bantuan (Rp)", "PIC", "No Hp Penerima",
-        "Tenggat", "Status", "Chat", "Waktu Setelah Chat", "Aksi Chat"
+        "Tenggat", "Status", "Chat", "Tanggal Chat", "Jeda Chat", "Aksi Chat"
     ]
 ]
 
