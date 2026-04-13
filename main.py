@@ -697,14 +697,6 @@ with c3:
             </div>
             """, unsafe_allow_html=True)
 
-st.markdown("""
-<div class="note-box">
-    <b>📌 Catatan:</b>
-    Jatuh Tempo adalah penerima bantuan yang masih <b>Belum Lunas</b> dan sudah melewati tenggat.
-    Klasifikasi chat dihitung otomatis dari <b>Tanggal Chat</b> terhadap <b>tanggal hari ini</b>:
-    <b>1 Minggu = Menunggu LPJ</b>, <b>2 Minggu = Follow Up LPJ</b>, dan <b>3 Minggu atau lebih = BlackList</b>.
-</div>
-""", unsafe_allow_html=True)
 
 st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
 
