@@ -605,29 +605,6 @@ with c3:
 
 st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
 
-# ── MONTHLY CHART ────────────────────────────────────────────────────────────
-with st.container(border=True):
-    st.markdown('<div class="panel-title">Nominal Bantuan Bulanan</div>', unsafe_allow_html=True)
-    st.markdown('<div class="panel-sub">Akumulasi nominal berdasarkan tanggal dibantu</div>', unsafe_allow_html=True)
-    if not monthly_df.empty:
-        fig3 = go.Figure()
-        fig3.add_trace(go.Bar(
-            x=monthly_df["Nama Bulan"], y=monthly_df["Jumlah Bantuan (Rp)"],
-            marker_color="#e0a8bc", name="Nominal Bantuan"
-        ))
-        fig3.add_trace(go.Scatter(
-            x=monthly_df["Nama Bulan"], y=monthly_df["Jumlah Bantuan (Rp)"],
-            mode="lines+markers", name="Trend",
-            line=dict(color="#7c1f3f", width=3),
-            marker=dict(size=8, color="#7c1f3f", line=dict(color="white", width=2))
-        ))
-        fig3.update_layout(**PLOTLY_BASE, height=300,
-                           xaxis_title="Bulan", yaxis_title="Nominal (Rp)",
-                           legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
-        fig3.update_yaxes(gridcolor="#f0e0e8")
-        st.plotly_chart(fig3, use_container_width=True, config={"displayModeBar": False})
-    else:
-        st.info("Data bulanan belum tersedia.")
 
 # ── NOTE ─────────────────────────────────────────────────────────────────────
 st.markdown("""
