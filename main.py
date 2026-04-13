@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import requests
 from io import StringIO
 
@@ -11,46 +12,47 @@ st.set_page_config(
 )
 
 # =========================
-# CUSTOM CSS - MAROON THEME
+# CUSTOM CSS - MAROON CLEAN LAYOUT
 # =========================
 st.markdown("""
 <style>
 :root {
-    --bg: #f7f3f4;
+    --bg: #f7f3f5;
     --panel: #ffffff;
-    --panel-soft: #fcf8f9;
-    --line: #ead9dd;
-    --text: #3b1f29;
-    --muted: #8b6b75;
-    --maroon: #7b1e3a;
-    --maroon-dark: #5f132c;
-    --maroon-soft: #f3e4e9;
-    --maroon-soft-2: #ead0d8;
-    --green-soft: #dff3e8;
-    --green-text: #18794e;
-    --amber-soft: #fff0d8;
-    --amber-text: #9a6700;
-    --red-soft: #fde7eb;
-    --red-text: #b42318;
-    --shadow: 0 10px 30px rgba(123, 30, 58, 0.08);
+    --panel-2: #fcf8f9;
+    --line: #ead8de;
+    --text: #34111c;
+    --muted: #8d6a76;
+    --maroon: #7a1f3d;
+    --maroon-2: #5e132d;
+    --maroon-3: #a24a68;
+    --maroon-soft: #f6e8ed;
+    --maroon-soft-2: #ecd4dc;
+    --success-bg: #e6f4ea;
+    --success-text: #1f7a4d;
+    --warning-bg: #fff2df;
+    --warning-text: #a56a00;
+    --danger-bg: #fde8ec;
+    --danger-text: #b42318;
+    --shadow: 0 10px 28px rgba(122, 31, 61, 0.08);
 }
 
-html, body, [class*="css"] {
+html, body, [class*="css"]  {
     font-family: "Inter", "Segoe UI", sans-serif;
+    color: var(--text);
 }
 
 .stApp {
     background:
-        radial-gradient(circle at top left, rgba(123,30,58,0.05), transparent 28%),
-        radial-gradient(circle at top right, rgba(123,30,58,0.04), transparent 24%),
-        linear-gradient(180deg, #fbf8f9 0%, #f5eff1 100%);
-    color: var(--text);
+        radial-gradient(circle at 0% 0%, rgba(122,31,61,0.05), transparent 18%),
+        radial-gradient(circle at 100% 0%, rgba(122,31,61,0.04), transparent 18%),
+        linear-gradient(180deg, #fbf8f9 0%, #f4eef1 100%);
 }
 
 .block-container {
-    padding-top: 1.2rem;
+    max-width: 1500px;
+    padding-top: 0.9rem;
     padding-bottom: 2rem;
-    max-width: 1480px;
 }
 
 header[data-testid="stHeader"] {
@@ -58,12 +60,20 @@ header[data-testid="stHeader"] {
 }
 
 section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #4d1024 0%, #6d1732 100%);
-    border-right: 1px solid rgba(255,255,255,0.08);
+    background: linear-gradient(180deg, var(--maroon-2) 0%, var(--maroon) 100%);
+    border-right: 1px solid rgba(255,255,255,0.06);
 }
 
 section[data-testid="stSidebar"] * {
-    color: #fff7f9 !important;
+    color: #fff7fa !important;
+}
+
+div[data-testid="stToolbar"] {
+    visibility: visible;
+}
+
+[data-testid="stVerticalBlock"] > [style*="flex-direction: column;"] > div:empty {
+    display: none;
 }
 
 div[data-baseweb="select"] > div,
@@ -71,7 +81,7 @@ div[data-baseweb="input"] > div {
     border-radius: 14px !important;
     border: 1px solid var(--line) !important;
     background: #ffffff !important;
-    min-height: 46px;
+    min-height: 44px;
     box-shadow: none !important;
 }
 
@@ -79,205 +89,252 @@ div[data-baseweb="input"] > div {
     border-radius: 14px !important;
 }
 
-.dashboard-hero {
-    background: linear-gradient(135deg, var(--maroon-dark) 0%, var(--maroon) 100%);
-    border-radius: 24px;
-    padding: 26px 28px;
+.top-strip {
+    display: grid;
+    grid-template-columns: 1.6fr 0.8fr 0.8fr;
+    gap: 14px;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.brand-box {
+    background: linear-gradient(135deg, #fffefe 0%, #fff7fa 100%);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow);
+    min-height: 78px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.brand-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, var(--maroon-2), var(--maroon));
     color: white;
-    box-shadow: 0 18px 40px rgba(95, 19, 44, 0.22);
-    margin-bottom: 18px;
-}
-
-.hero-top {
-    display: flex;
-    justify-content: space-between;
-    gap: 18px;
-    align-items: center;
-}
-
-.hero-brand {
-    display: flex;
-    gap: 16px;
-    align-items: center;
-}
-
-.hero-logo {
-    width: 58px;
-    height: 58px;
-    border-radius: 18px;
-    background: rgba(255,255,255,0.14);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 26px;
-}
-
-.hero-title {
-    font-size: 2rem;
+    font-size: 24px;
     font-weight: 800;
-    line-height: 1.1;
-    margin-bottom: 4px;
+    box-shadow: 0 10px 20px rgba(122,31,61,0.18);
 }
 
-.hero-subtitle {
-    font-size: 0.97rem;
-    opacity: 0.92;
+.brand-title {
+    font-size: 1.95rem;
+    font-weight: 900;
+    color: var(--maroon-2);
+    line-height: 1.05;
+    margin-bottom: 2px;
 }
 
-.hero-badge {
-    background: rgba(255,255,255,0.12);
-    border: 1px solid rgba(255,255,255,0.14);
-    padding: 12px 14px;
-    border-radius: 16px;
-    min-width: 220px;
-    text-align: right;
+.brand-subtitle {
     font-size: 0.92rem;
+    color: var(--muted);
 }
 
-.filter-wrap {
-    background: rgba(255,255,255,0.9);
+.filter-card {
+    background: linear-gradient(180deg, #fffefe 0%, #fff8fa 100%);
     border: 1px solid var(--line);
-    border-radius: 20px;
-    padding: 14px;
+    border-radius: 18px;
+    padding: 10px 12px 6px 12px;
     box-shadow: var(--shadow);
-    margin-bottom: 18px;
+    min-height: 78px;
 }
 
 .kpi-card {
     background: linear-gradient(180deg, #ffffff 0%, #fffafb 100%);
     border: 1px solid var(--line);
-    border-left: 5px solid var(--maroon);
     border-radius: 20px;
-    padding: 18px 18px 16px 18px;
+    padding: 16px 18px;
     box-shadow: var(--shadow);
-    min-height: 120px;
+    min-height: 108px;
+    position: relative;
+    overflow: hidden;
+}
+
+.kpi-card::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 6px;
+    height: 100%;
+    background: linear-gradient(180deg, var(--maroon) 0%, var(--maroon-3) 100%);
 }
 
 .kpi-label {
-    font-size: 0.92rem;
+    font-size: 0.9rem;
     color: var(--muted);
     font-weight: 700;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
 .kpi-value {
     font-size: 2rem;
-    font-weight: 800;
+    font-weight: 900;
     color: var(--text);
     line-height: 1.1;
 }
 
 .kpi-note {
-    margin-top: 10px;
+    margin-top: 8px;
     color: var(--muted);
-    font-size: 0.86rem;
+    font-size: 0.82rem;
 }
 
 .panel {
     background: linear-gradient(180deg, #ffffff 0%, #fffafb 100%);
     border: 1px solid var(--line);
     border-radius: 22px;
-    padding: 18px;
+    padding: 16px 16px 10px 16px;
     box-shadow: var(--shadow);
     height: 100%;
 }
 
 .panel-title {
-    font-size: 1.55rem;
-    font-weight: 800;
+    font-size: 1.45rem;
+    font-weight: 900;
     color: var(--text);
-    margin-bottom: 14px;
+    margin-bottom: 2px;
 }
 
 .panel-subtitle {
-    font-size: 0.92rem;
+    font-size: 0.88rem;
     color: var(--muted);
-    margin-top: -4px;
-    margin-bottom: 14px;
+    margin-bottom: 10px;
 }
 
 .note-box {
-    background: linear-gradient(180deg, #fff8fa 0%, #fff2f5 100%);
+    background: linear-gradient(180deg, #fff7f9 0%, #fff1f4 100%);
     border: 1px solid var(--maroon-soft-2);
     border-radius: 18px;
-    padding: 16px 18px;
-    color: var(--text);
-    margin-top: 8px;
+    padding: 14px 16px;
+    margin-top: 10px;
     margin-bottom: 16px;
+    color: var(--text);
 }
 
 .note-box b {
     color: var(--maroon);
 }
 
-.status-chip {
-    display: inline-block;
-    padding: 6px 12px;
-    border-radius: 999px;
-    font-size: 0.8rem;
-    font-weight: 800;
-    border: 1px solid transparent;
-}
-
-.chip-lunas {
-    background: var(--green-soft);
-    color: var(--green-text);
-    border-color: #b7e4c7;
-}
-
-.chip-belum {
-    background: var(--amber-soft);
-    color: var(--amber-text);
-    border-color: #f1d39b;
-}
-
-.chip-jatuh {
-    background: var(--red-soft);
-    color: var(--red-text);
-    border-color: #f1c0cb;
-}
-
-.small-stat {
-    background: var(--panel-soft);
+.mini-stat {
+    background: #fffafd;
     border: 1px solid var(--line);
     border-radius: 16px;
-    padding: 14px 16px;
-    margin-bottom: 12px;
+    padding: 14px 14px;
+    margin-bottom: 10px;
 }
 
-.small-stat-label {
+.mini-stat-label {
+    font-size: 0.84rem;
     color: var(--muted);
-    font-size: 0.9rem;
     margin-bottom: 4px;
 }
 
-.small-stat-value {
+.mini-stat-value {
+    font-size: 1.55rem;
+    font-weight: 900;
     color: var(--maroon);
-    font-size: 1.6rem;
-    font-weight: 800;
+}
+
+.section-head {
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: var(--text);
+    margin-top: 8px;
+    margin-bottom: 8px;
 }
 
 .table-caption {
     color: var(--muted);
+    font-size: 0.9rem;
     margin-bottom: 10px;
-    font-size: 0.92rem;
 }
 
-.stDataFrame, .stTable {
-    border-radius: 18px !important;
-    overflow: hidden !important;
-    border: 1px solid var(--line) !important;
+.status-chip {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    border: 1px solid transparent;
+    white-space: nowrap;
 }
 
-div[data-testid="stDataFrame"] {
-    border-radius: 18px !important;
-    overflow: hidden !important;
-    border: 1px solid var(--line);
+.chip-lunas {
+    background: var(--success-bg);
+    color: var(--success-text);
+    border-color: #bfe3ca;
+}
+
+.chip-belum {
+    background: var(--warning-bg);
+    color: var(--warning-text);
+    border-color: #f3d59d;
+}
+
+.chip-jatuh {
+    background: var(--danger-bg);
+    color: var(--danger-text);
+    border-color: #f0c3cf;
+}
+
+.custom-table-wrap {
     background: white;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
 }
 
-.section-gap {
-    height: 8px;
+.custom-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.custom-table th {
+    background: linear-gradient(180deg, #8b2847 0%, #6f1836 100%);
+    color: white;
+    text-align: left;
+    padding: 12px 14px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.custom-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #f0e1e6;
+    color: var(--text);
+    vertical-align: top;
+}
+
+.custom-table tr:nth-child(even) td {
+    background: #fffafc;
+}
+
+.custom-table tr:last-child td {
+    border-bottom: none;
+}
+
+.search-card {
+    background: linear-gradient(180deg, #ffffff 0%, #fffafb 100%);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 12px 14px 6px 14px;
+    box-shadow: var(--shadow);
+    margin-bottom: 12px;
+}
+
+.footer-note {
+    color: var(--muted);
+    font-size: 0.86rem;
+    margin-top: 12px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -347,6 +404,9 @@ def make_status_chip(value):
     if value == "Jatuh Tempo":
         return '<span class="status-chip chip-jatuh">Jatuh Tempo</span>'
     return '<span class="status-chip chip-belum">Belum Lunas</span>'
+
+def dataframe_to_html(df):
+    return df.to_html(index=False, escape=False, classes="custom-table")
 
 @st.cache_data(ttl=300)
 def load_data():
@@ -449,48 +509,41 @@ data["Label Tampilan"] = data.apply(get_label_tampilan, axis=1)
 # =========================
 with st.sidebar:
     st.markdown("## Dashboard Bantuan")
-    st.caption("Tema maroon • tampilan lebih rapih")
+    st.caption("Tema maroon • clean layout")
     st.markdown("---")
-    st.markdown("Gunakan filter di area utama untuk menyaring data.")
+    st.markdown("Filter utama ada di area atas dashboard.")
 
 # =========================
-# HEADER
+# TOP AREA MIRIP CONTOH
 # =========================
-st.markdown("""
-<div class="dashboard-hero">
-    <div class="hero-top">
-        <div class="hero-brand">
-            <div class="hero-logo">📊</div>
-            <div>
-                <div class="hero-title">Dashboard Penerima Bantuan</div>
-                <div class="hero-subtitle">
-                    Monitoring status bantuan, jatuh tempo, dan prioritas penerima bantuan yang perlu segera ditindaklanjuti.
-                </div>
-            </div>
-        </div>
-        <div class="hero-badge">
-            <div><b>Mode Tampilan</b></div>
-            <div>Maroon Clean Dashboard</div>
+top_left, top_mid, top_right = st.columns([1.8, 0.9, 0.9])
+
+with top_left:
+    st.markdown("""
+    <div class="brand-box">
+        <div class="brand-icon">📊</div>
+        <div>
+            <div class="brand-title">DASHBOARD BANTUAN</div>
+            <div class="brand-subtitle">Monitoring status bantuan dan prioritas tindak lanjut</div>
         </div>
     </div>
-</div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-# =========================
-# FILTER BAR
-# =========================
-st.markdown('<div class="filter-wrap">', unsafe_allow_html=True)
-f1, f2 = st.columns([1, 1])
+with top_mid:
+    st.markdown('<div class="filter-card">', unsafe_allow_html=True)
+    selected_tahun = st.selectbox("Tahun", ["Semua", 2023, 2024, 2025, 2026], label_visibility="collapsed")
+    st.caption("Semua Tahun" if selected_tahun == "Semua" else f"Tahun {selected_tahun}")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-with f1:
-    selected_tahun = st.selectbox("Pilih Tahun", ["Semua", 2023, 2024, 2025, 2026])
-
-with f2:
+with top_right:
+    st.markdown('<div class="filter-card">', unsafe_allow_html=True)
     selected_status = st.selectbox(
-        "Pilih Kondisi",
-        ["Semua", "Lunas", "Belum Lunas", "Jatuh Tempo"]
+        "Kondisi",
+        ["Semua", "Lunas", "Belum Lunas", "Jatuh Tempo"],
+        label_visibility="collapsed"
     )
-st.markdown('</div>', unsafe_allow_html=True)
+    st.caption("Semua Kondisi" if selected_status == "Semua" else selected_status)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 filtered = data.copy()
 
@@ -508,39 +561,41 @@ elif selected_status == "Jatuh Tempo":
     filtered = filtered[filtered["Kondisi Tenggat"] == "Jatuh Tempo"]
 
 # =========================
-# METRICS
+# KPI
 # =========================
 total_penerima = len(filtered)
 total_lunas = len(filtered[filtered["Status Pembayaran"] == "Lunas"])
 total_belum_lunas = len(filtered[filtered["Status Pembayaran"] == "Belum Lunas"])
 total_jatuh_tempo = len(filtered[filtered["Kondisi Tenggat"] == "Jatuh Tempo"])
 
+total_nominal = filtered["Jumlah Bantuan (Rp)"].fillna(0).sum()
+
 m1, m2, m3, m4 = st.columns(4)
 
 with m1:
     st.markdown(f"""
     <div class="kpi-card">
-        <div class="kpi-label">Total Penerima Bantuan</div>
-        <div class="kpi-value">{total_penerima}</div>
-        <div class="kpi-note">Jumlah data setelah filter diterapkan</div>
+        <div class="kpi-label">Total Nominal Bantuan</div>
+        <div class="kpi-value">{format_rupiah(total_nominal)}</div>
+        <div class="kpi-note">Akumulasi nominal data terfilter</div>
     </div>
     """, unsafe_allow_html=True)
 
 with m2:
     st.markdown(f"""
     <div class="kpi-card">
-        <div class="kpi-label">Lunas</div>
-        <div class="kpi-value">{total_lunas}</div>
-        <div class="kpi-note">Penerima bantuan dengan status lunas</div>
+        <div class="kpi-label">Total Penerima</div>
+        <div class="kpi-value">{total_penerima}</div>
+        <div class="kpi-note">Jumlah penerima bantuan</div>
     </div>
     """, unsafe_allow_html=True)
 
 with m3:
     st.markdown(f"""
     <div class="kpi-card">
-        <div class="kpi-label">Belum Lunas</div>
-        <div class="kpi-value">{total_belum_lunas}</div>
-        <div class="kpi-note">Masih menunggu penyelesaian</div>
+        <div class="kpi-label">Lunas</div>
+        <div class="kpi-value">{total_lunas}</div>
+        <div class="kpi-note">Sudah selesai</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -549,88 +604,180 @@ with m4:
     <div class="kpi-card">
         <div class="kpi-label">Jatuh Tempo</div>
         <div class="kpi-value">{total_jatuh_tempo}</div>
-        <div class="kpi-note">Perlu segera dihubungi</div>
+        <div class="kpi-note">Perlu prioritas follow-up</div>
     </div>
     """, unsafe_allow_html=True)
 
-st.markdown('<div class="section-gap"></div>', unsafe_allow_html=True)
-
 # =========================
-# CHART AREA
+# CHART ROW - 3 PANEL
 # =========================
-left_chart, right_chart = st.columns([1.5, 1])
-
 chart_df = filtered["Status Pembayaran"].value_counts().reset_index()
 chart_df.columns = ["Status", "Jumlah"]
 
-with left_chart:
+status_compare_df = (
+    filtered["Label Tampilan"]
+    .value_counts()
+    .reindex(["Lunas", "Belum Lunas", "Jatuh Tempo"], fill_value=0)
+    .reset_index()
+)
+status_compare_df.columns = ["Status", "Jumlah"]
+
+monthly_df = filtered.copy()
+monthly_df["Bulan"] = monthly_df["Tanggal Dibantu"].dt.month
+monthly_df = (
+    monthly_df.dropna(subset=["Bulan"])
+    .groupby("Bulan", as_index=False)["Jumlah Bantuan (Rp)"]
+    .sum()
+)
+month_map = {
+    1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "Mei", 6: "Jun",
+    7: "Jul", 8: "Agu", 9: "Sep", 10: "Okt", 11: "Nov", 12: "Des"
+}
+monthly_df["Nama Bulan"] = monthly_df["Bulan"].map(month_map)
+
+c1, c2, c3 = st.columns(3)
+
+with c1:
     st.markdown("""
     <div class="panel">
-        <div class="panel-title">Persentase Status Bantuan</div>
-        <div class="panel-subtitle">Perbandingan status utama penerima bantuan</div>
+        <div class="panel-title">Komposisi Status (%)</div>
+        <div class="panel-subtitle">Perbandingan status pembayaran utama</div>
     """, unsafe_allow_html=True)
 
     if not chart_df.empty:
-        fig = px.pie(
+        fig_donut = px.pie(
             chart_df,
             names="Status",
             values="Jumlah",
             hole=0.62,
             color="Status",
             color_discrete_map={
-                "Lunas": "#7b1e3a",
-                "Belum Lunas": "#d4a5b2",
+                "Lunas": "#7a1f3d",
+                "Belum Lunas": "#d7a6b5",
             }
         )
-        fig.update_traces(
+        fig_donut.update_traces(
             textposition="inside",
-            textinfo="percent+label",
+            textinfo="percent",
             marker=dict(line=dict(color="white", width=3))
         )
-        fig.update_layout(
+        fig_donut.update_layout(
             margin=dict(t=10, b=10, l=10, r=10),
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
-            legend_title_text=""
+            legend=dict(orientation="v", title="", font=dict(size=12))
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig_donut, use_container_width=True)
     else:
-        st.info("Tidak ada data untuk ditampilkan.")
+        st.info("Tidak ada data.")
 
     st.markdown("</div>", unsafe_allow_html=True)
 
-with right_chart:
-    jatuh_tempo_pct = round((total_jatuh_tempo / total_penerima) * 100, 1) if total_penerima else 0
+with c2:
+    st.markdown("""
+    <div class="panel">
+        <div class="panel-title">Perbandingan Status</div>
+        <div class="panel-subtitle">Lunas, belum lunas, dan jatuh tempo</div>
+    """, unsafe_allow_html=True)
+
+    fig_bar = px.bar(
+        status_compare_df,
+        x="Status",
+        y="Jumlah",
+        color="Status",
+        color_discrete_map={
+            "Lunas": "#7a1f3d",
+            "Belum Lunas": "#c77f96",
+            "Jatuh Tempo": "#e6b7c5",
+        }
+    )
+    fig_bar.update_layout(
+        margin=dict(t=10, b=10, l=10, r=10),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        xaxis_title="",
+        yaxis_title="Jumlah",
+        showlegend=False
+    )
+    fig_bar.update_traces(marker_line_width=0)
+    st.plotly_chart(fig_bar, use_container_width=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+with c3:
     lunas_pct = round((total_lunas / total_penerima) * 100, 1) if total_penerima else 0
     belum_lunas_pct = round((total_belum_lunas / total_penerima) * 100, 1) if total_penerima else 0
+    jatuh_tempo_pct = round((total_jatuh_tempo / total_penerima) * 100, 1) if total_penerima else 0
 
     st.markdown(f"""
     <div class="panel">
         <div class="panel-title">Ringkasan Cepat</div>
-        <div class="small-stat">
-            <div class="small-stat-label">Persentase Lunas</div>
-            <div class="small-stat-value">{lunas_pct}%</div>
+        <div class="panel-subtitle">Persentase dan prioritas saat ini</div>
+        <div class="mini-stat">
+            <div class="mini-stat-label">Persentase Lunas</div>
+            <div class="mini-stat-value">{lunas_pct}%</div>
         </div>
-        <div class="small-stat">
-            <div class="small-stat-label">Persentase Belum Lunas</div>
-            <div class="small-stat-value">{belum_lunas_pct}%</div>
+        <div class="mini-stat">
+            <div class="mini-stat-label">Persentase Belum Lunas</div>
+            <div class="mini-stat-value">{belum_lunas_pct}%</div>
         </div>
-        <div class="small-stat">
-            <div class="small-stat-label">Persentase Jatuh Tempo</div>
-            <div class="small-stat-value">{jatuh_tempo_pct}%</div>
+        <div class="mini-stat">
+            <div class="mini-stat-label">Persentase Jatuh Tempo</div>
+            <div class="mini-stat-value">{jatuh_tempo_pct}%</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
 # =========================
-# INFO BOX
+# COMBO CHART
 # =========================
-st.markdown(f"""
+st.markdown("""
+<div class="panel" style="margin-top:14px;">
+    <div class="panel-title">Nominal Bantuan Bulanan</div>
+    <div class="panel-subtitle">Akumulasi nominal berdasarkan tanggal dibantu</div>
+""", unsafe_allow_html=True)
+
+if not monthly_df.empty:
+    fig_monthly = go.Figure()
+    fig_monthly.add_trace(
+        go.Bar(
+            x=monthly_df["Nama Bulan"],
+            y=monthly_df["Jumlah Bantuan (Rp)"],
+            name="Nominal Bantuan",
+            marker_color="#d8a3b3"
+        )
+    )
+    fig_monthly.add_trace(
+        go.Scatter(
+            x=monthly_df["Nama Bulan"],
+            y=monthly_df["Jumlah Bantuan (Rp)"],
+            name="Trend",
+            mode="lines+markers",
+            line=dict(color="#7a1f3d", width=3),
+            marker=dict(size=8, color="#7a1f3d")
+        )
+    )
+    fig_monthly.update_layout(
+        margin=dict(t=10, b=10, l=10, r=10),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        xaxis_title="Bulan",
+        yaxis_title="Nominal",
+        legend_title_text=""
+    )
+    st.plotly_chart(fig_monthly, use_container_width=True)
+else:
+    st.info("Data bulanan belum tersedia.")
+
+st.markdown("</div>", unsafe_allow_html=True)
+
+# =========================
+# NOTE
+# =========================
+st.markdown("""
 <div class="note-box">
-    <b>Catatan:</b>
-    Status utama dibagi menjadi <b>Lunas</b> dan <b>Belum Lunas</b>.
-    Sementara <b>Jatuh Tempo</b> adalah penerima bantuan yang <b>Belum Lunas</b>
-    dan sudah melewati tenggat.
+    <b>Catatan:</b> Status utama dibagi menjadi <b>Lunas</b> dan <b>Belum Lunas</b>.
+    Label <b>Jatuh Tempo</b> dipakai untuk data yang belum lunas dan sudah melewati tenggat.
 </div>
 """, unsafe_allow_html=True)
 
@@ -647,9 +794,7 @@ prioritas = prioritas.sort_values(
     ascending=[False, True]
 )
 
-st.markdown("""
-<div class="panel-title" style="margin-top:8px;">Penerima Bantuan Jatuh Tempo - Segera Hubungi</div>
-""", unsafe_allow_html=True)
+st.markdown('<div class="section-head">Penerima Bantuan Jatuh Tempo - Segera Hubungi</div>', unsafe_allow_html=True)
 st.markdown(f'<div class="table-caption">{len(prioritas)} penerima bantuan perlu segera dihubungi</div>', unsafe_allow_html=True)
 
 if prioritas.empty:
@@ -671,18 +816,18 @@ else:
     prioritas_view["No Hp Penerima"] = prioritas_view["No Hp Penerima"].replace("", "-")
     prioritas_view["Terlambat Hari"] = prioritas_view["Terlambat Hari"].apply(lambda x: f"{int(x)} hari")
 
-    st.dataframe(prioritas_view, use_container_width=True, hide_index=True)
-
-st.markdown('<div class="section-gap"></div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="custom-table-wrap">{dataframe_to_html(prioritas_view)}</div>',
+        unsafe_allow_html=True
+    )
 
 # =========================
-# SEMUA DATA
+# SEARCH
 # =========================
-st.markdown("""
-<div class="panel-title">Data Semua Penerima Bantuan</div>
-""", unsafe_allow_html=True)
-
-search = st.text_input("Cari nama bantuan, PIC, nomor HP penerima, atau status...")
+st.markdown('<div class="section-head">Data Semua Penerima Bantuan</div>', unsafe_allow_html=True)
+st.markdown('<div class="search-card">', unsafe_allow_html=True)
+search = st.text_input("Cari nama bantuan, PIC, nomor HP penerima, atau status...", label_visibility="collapsed", placeholder="Cari nama bantuan, PIC, nomor HP penerima, atau status...")
+st.markdown('</div>', unsafe_allow_html=True)
 
 table_df = filtered.copy()
 
@@ -716,18 +861,14 @@ display_df["Status"] = display_df["Label Tampilan"].apply(make_status_chip)
 display_df = display_df.drop(columns=["Label Tampilan"])
 
 st.markdown(
-    display_df.to_html(escape=False, index=False),
+    f'<div class="custom-table-wrap">{dataframe_to_html(display_df)}</div>',
     unsafe_allow_html=True
 )
-
-st.markdown('<div class="section-gap"></div>', unsafe_allow_html=True)
 
 # =========================
 # BELUM LUNAS
 # =========================
-st.markdown("""
-<div class="panel-title">Daftar Penerima Bantuan Belum Lunas</div>
-""", unsafe_allow_html=True)
+st.markdown('<div class="section-head">Daftar Penerima Bantuan Belum Lunas</div>', unsafe_allow_html=True)
 
 belum_lunas_df = filtered[
     filtered["Status Pembayaran"] == "Belum Lunas"
@@ -747,6 +888,8 @@ belum_lunas_df["Status"] = belum_lunas_df["Label Tampilan"].apply(make_status_ch
 belum_lunas_df = belum_lunas_df.drop(columns=["Label Tampilan"])
 
 st.markdown(
-    belum_lunas_df.to_html(escape=False, index=False),
+    f'<div class="custom-table-wrap">{dataframe_to_html(belum_lunas_df)}</div>',
     unsafe_allow_html=True
 )
+
+st.markdown('<div class="footer-note">Versi ini dibuat lebih mendekati layout contoh: filter di atas, kartu KPI putih, panel chart terpisah, dan tema maroon yang lebih konsisten.</div>', unsafe_allow_html=True)
