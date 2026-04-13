@@ -300,12 +300,16 @@ def label_jeda_chat(hari):
     return "< 1 Minggu"
 
 def klasifikasi_chat(hari):
-    if hari is None: return ""
-    if 7 <= hari < 14: return "Menunggu LPJ"
-    if 14 <= hari < 21: return "Follow Up LPJ"
-    if hari >= 21: return "BlackList"
+    if hari is None:
+        return ""
+    if 0 <= hari < 14:
+        return "Menunggu LPJ"
+    if 14 <= hari < 21:
+        return "Follow Up LPJ"
+    if hari >= 21:
+        return "BlackList"
     return ""
-
+    
 @st.cache_data(ttl=300)
 def load_data():
     for url in [CSV_URL, GVIZ_URL]:
