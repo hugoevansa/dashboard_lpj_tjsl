@@ -260,7 +260,7 @@ def dismiss_btn_html(nama, sudah_dismiss=False):
     enc = urllib.parse.quote(nama)
     return f'<a href="?dismiss={enc}" target="_self" class="btn-dismiss">✅ Sudah Chat</a>'
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=30)
 def load_data():
     for url in [CSV_URL, GVIZ_URL]:
         try:
