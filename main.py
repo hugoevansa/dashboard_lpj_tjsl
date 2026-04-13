@@ -47,7 +47,6 @@ html, body, [class*="css"] {
     max-width: 1440px !important;
 }
 
-#MainMenu { visibility: hidden; }
 footer { visibility: hidden; }
 
 section[data-testid="stSidebar"] {
