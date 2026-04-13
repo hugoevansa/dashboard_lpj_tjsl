@@ -22,14 +22,12 @@ if "toast_shown" not in st.session_state:
 # ─── HANDLE QUERY PARAM ───────────────────────────────────────────────────────
 _qp = st.query_params
 
-# Navigasi ke halaman detail
 if "detail" in _qp:
     _nama = urllib.parse.unquote(_qp["detail"])
     st.session_state.detail_nama = _nama
     st.query_params.clear()
     st.switch_page("pages/database.py")
 
-# Dismiss notifikasi (klik "Sudah Chat" dari tabel)
 if "dismiss" in _qp:
     _dismiss_nama = urllib.parse.unquote(_qp["dismiss"])
     st.session_state.notif_dismissed.add(_dismiss_nama)
@@ -109,6 +107,41 @@ div[data-baseweb="input"] > div {
 }
 .page-header-title { color:#fff; font-size:1.7rem; font-weight:900; line-height:1.1; margin:0; }
 .page-header-sub   { color:rgba(255,255,255,0.75); font-size:0.9rem; margin-top:3px; }
+.page-header-right { margin-left:auto; }
+
+/* Notif Button di Header */
+.notif-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.18);
+    border: 1.5px solid rgba(255,255,255,0.35);
+    color: #fff;
+    font-size: 0.92rem;
+    font-weight: 800;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+}
+.notif-btn:hover { background: rgba(255,255,255,0.28); color:#fff; }
+
+.notif-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #e8192c;
+    color: #fff;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 900;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    line-height: 1;
+}
 
 .kpi-wrap {
     background: #fff;
@@ -261,7 +294,6 @@ def detail_btn_html(nama):
     )
 
 def dismiss_btn_html(nama, sudah_dismiss=False):
-    """Tombol 'Sudah Chat' di dalam tabel — menggunakan query param ?dismiss=NAMA"""
     if sudah_dismiss:
         return '<span class="chip chip-lunas">✓ Dicatat</span>'
     enc = urllib.parse.quote(nama)
@@ -357,19 +389,26 @@ data["Label Tampilan"]   = data.apply(
 )
 data = data.reset_index(drop=True)
 
-# ─── NOTIFIKASI ───────────────────────────────────────────────────────────────
-# Data jatuh tempo + belum di-chat + belum di-dismiss
-notif_df = data[
+# ─── HITUNG NOTIFIKASI (untuk badge) ─────────────────────────────────────────
+total_notif = len(data[
+    (data["Status Pembayaran"] == "Belum Lunas") &
+    (
+        (data["Kondisi Tenggat"] == "Jatuh Tempo") |
+        (data["Klasifikasi Chat"].isin(["BlackList", "Follow Up LPJ", "Menunggu LPJ"]))
+    ) &
+    (~data["Nama Bantuan"].isin(st.session_state.notif_dismissed))
+])
+
+# Toast sekali per session
+notif_kritis = data[
     (data["Status Pembayaran"] == "Belum Lunas") &
     (data["Kondisi Tenggat"] == "Jatuh Tempo") &
     (data["Chat Normal"] == "Belum di Chat") &
     (~data["Nama Bantuan"].isin(st.session_state.notif_dismissed))
-].copy()
-
-# Toast sekali per session
-if not notif_df.empty and not st.session_state.toast_shown:
+]
+if not notif_kritis.empty and not st.session_state.toast_shown:
     st.toast(
-        f"🔴 {len(notif_df)} penerima bantuan jatuh tempo belum dihubungi!",
+        f"🔴 {len(notif_kritis)} penerima bantuan jatuh tempo belum dihubungi!",
         icon="⚠️"
     )
     st.session_state.toast_shown = True
@@ -378,52 +417,26 @@ if not notif_df.empty and not st.session_state.toast_shown:
 #  LAYOUT
 # ═════════════════════════════════════════════════════════════════════════════
 
-st.markdown("""
+# ── PAGE HEADER (dengan tombol notifikasi) ───────────────────────────────────
+badge_html = f'<span class="notif-badge">{total_notif}</span>' if total_notif > 0 else ""
+notif_page = "pages/notifikasi.py"
+
+st.markdown(f"""
 <div class="page-header">
     <div class="page-header-icon">📊</div>
     <div>
         <div class="page-header-title">DASHBOARD BANTUAN</div>
         <div class="page-header-sub">Monitoring status bantuan, status chat, dan prioritas tindak lanjut</div>
     </div>
+    <div class="page-header-right">
+        <a href="{notif_page}" target="_self" class="notif-btn">
+            🔔 Notifikasi {badge_html}
+        </a>
+    </div>
 </div>
 """, unsafe_allow_html=True)
+
 st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
-
-# ── SIDEBAR NOTIFIKASI ────────────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown("### 🔔 Notifikasi")
-    if notif_df.empty:
-        st.success("✅ Tidak ada notifikasi baru.")
-    else:
-        st.error(f"⚠️ {len(notif_df)} belum dihubungi!")
-        st.markdown("---")
-        for _, nrow in notif_df.iterrows():
-            st.markdown(f"**{nrow['Nama Bantuan']}**")
-            st.caption(f"PIC: {nrow['PIC']} | Terlambat: {int(nrow['Terlambat Hari'])} hari")
-            if st.button("✅ Sudah Chat", key=f"sb_dismiss_{nrow.name}"):
-                st.session_state.notif_dismissed.add(nrow["Nama Bantuan"])
-                st.session_state.toast_shown = False
-                st.rerun()
-            st.markdown("---")
-
-# ── BANNER ALERT ──────────────────────────────────────────────────────────────
-if not notif_df.empty:
-    st.markdown(
-        f'''<div style="background:linear-gradient(135deg,#fde8ec,#fff5f7);
-            border:2px solid #f0bfc9;border-radius:14px;padding:12px 18px;
-            margin-bottom:12px;display:flex;align-items:center;gap:12px;">
-            <span style="font-size:1.5rem;">🔴</span>
-            <div>
-                <div style="font-weight:900;color:#b42318;font-size:0.95rem;">
-                    {len(notif_df)} penerima bantuan jatuh tempo belum dihubungi!
-                </div>
-                <div style="font-size:0.82rem;color:#8a6672;margin-top:2px;">
-                    Buka sidebar atau klik <b>✅ Sudah Chat</b> di tabel untuk menonaktifkan notifikasi.
-                </div>
-            </div>
-        </div>''',
-        unsafe_allow_html=True
-    )
 
 # ── FILTER ───────────────────────────────────────────────────────────────────
 f1, f2, f3, f4 = st.columns([2, 1, 1, 1], gap="medium")
@@ -595,7 +608,6 @@ else:
 
     col_kiri, col_kanan = st.columns(2, gap="large")
 
-    # ── KIRI: Belum di Chat ──────────────────────────────────────────────────
     with col_kiri:
         st.markdown('<div class="section-head">📩 Segera di Chat</div>', unsafe_allow_html=True)
         st.markdown(
@@ -613,7 +625,6 @@ else:
             pv_belum["Aksi Chat"]           = pv_belum.apply(
                 lambda r: chip_aksi_prioritas(r["Klasifikasi Chat"], r["Chat Normal"]), axis=1
             )
-            # Tombol "Sudah Chat" di dalam tabel untuk dismiss notif
             pv_belum["Sudah Chat"] = pv_belum["Nama Bantuan"].apply(
                 lambda n: dismiss_btn_html(n, sudah_dismiss=(n in st.session_state.notif_dismissed))
             )
@@ -623,7 +634,6 @@ else:
             ]]
             st.markdown(df_to_html(pv_belum, max_height=360), unsafe_allow_html=True)
 
-    # ── KANAN: Sudah di Chat ─────────────────────────────────────────────────
     with col_kanan:
         st.markdown('<div class="section-head">💬 Sudah di Chat</div>', unsafe_allow_html=True)
         st.markdown(
