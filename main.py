@@ -14,6 +14,15 @@ st.set_page_config(
 if "detail_nama" not in st.session_state:
     st.session_state.detail_nama = None
 
+# ─── HANDLE QUERY PARAM DARI TOMBOL DETAIL DI TABEL ──────────────────────────
+import urllib.parse
+_qp = st.query_params
+if "detail" in _qp:
+    _nama = urllib.parse.unquote(_qp["detail"])
+    st.session_state.detail_nama = _nama
+    st.query_params.clear()
+    st.switch_page("pages/database.py")
+
 # ─── CSS ──────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
@@ -349,6 +358,18 @@ def df_to_html(df, max_height=360):
         f'</div></div>'
     )
 
+def detail_btn_html(nama):
+    """Render tombol Detail sebagai link dengan query param ?detail=NAMA"""
+    import urllib.parse
+    encoded = urllib.parse.quote(nama)
+    return (
+        f'<a href="?detail={encoded}" target="_self" '
+        f'style="display:inline-block;padding:5px 13px;border-radius:8px;'
+        f'background:var(--maroon);color:#fff;font-size:12px;font-weight:700;'
+        f'text-decoration:none;border:none;cursor:pointer;white-space:nowrap;">'
+        f'🔍 Detail</a>'
+    )
+
 def hitung_jeda_chat(tanggal_chat, chat_status, today):
     if chat_status != "Sudah di Chat" or pd.isna(tanggal_chat): return None
     return max((today - tanggal_chat).days, 0)
@@ -655,26 +676,14 @@ else:
             pv_belum["Terlambat Hari"]      = pv_belum["Terlambat Hari"].apply(lambda x: f"{int(x)} hari")
             pv_belum["Status"]              = '<span class="chip chip-jatuh">Jatuh Tempo</span>'
             pv_belum = pv_belum.drop(columns=["Klasifikasi Chat"])
+            pv_belum["Detail"] = pv_belum["Nama Bantuan"].apply(
+                lambda n: detail_btn_html(n)
+            )
             pv_belum = pv_belum[[
                 "Nama Bantuan", "Jumlah Bantuan (Rp)", "Tanggal Dibantu", "Tenggat",
-                "PIC", "No Hp Penerima", "Aksi Chat", "Terlambat Hari", "Status"
+                "PIC", "No Hp Penerima", "Aksi Chat", "Terlambat Hari", "Status", "Detail"
             ]]
             st.markdown(df_to_html(pv_belum, max_height=360), unsafe_allow_html=True)
-
-            # ── Tombol Detail per baris (logic kodingan 1) ───────────────────
-            st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
-            for idx, row in prioritas_belum_chat.iterrows():
-                col_nama, col_btn = st.columns([5, 1])
-                with col_nama:
-                    st.markdown(
-                        f"<div style='font-size:13px;padding:4px 0;color:var(--muted)'>"
-                        f"→ <b>{row['Nama Bantuan']}</b></div>",
-                        unsafe_allow_html=True
-                    )
-                with col_btn:
-                    if st.button("🔍 Detail", key=f"belum_{idx}"):
-                        st.session_state.detail_nama = row["Nama Bantuan"]
-                        st.switch_page("pages/database.py")
 
     # ── KANAN: Sudah di Chat ─────────────────────────────────────────────────
     with col_kanan:
@@ -703,27 +712,15 @@ else:
             pv_sudah["Terlambat Hari"]      = pv_sudah["Terlambat Hari"].apply(lambda x: f"{int(x)} hari")
             pv_sudah["Status"]              = '<span class="chip chip-jatuh">Jatuh Tempo</span>'
             pv_sudah = pv_sudah.drop(columns=["Label Jeda Chat", "Klasifikasi Chat"])
+            pv_sudah["Detail"] = pv_sudah["Nama Bantuan"].apply(
+                lambda n: detail_btn_html(n)
+            )
             pv_sudah = pv_sudah[[
                 "Nama Bantuan", "Jumlah Bantuan (Rp)", "Tanggal Dibantu", "Tenggat",
                 "PIC", "No Hp Penerima", "Tanggal Chat", "Jeda Chat",
-                "Aksi Chat", "Terlambat Hari", "Status"
+                "Aksi Chat", "Terlambat Hari", "Status", "Detail"
             ]]
             st.markdown(df_to_html(pv_sudah, max_height=360), unsafe_allow_html=True)
-
-            # ── Tombol Detail per baris (logic kodingan 1) ───────────────────
-            st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
-            for idx, row in prioritas_sudah_chat.iterrows():
-                col_nama, col_btn = st.columns([5, 1])
-                with col_nama:
-                    st.markdown(
-                        f"<div style='font-size:13px;padding:4px 0;color:var(--muted)'>"
-                        f"→ <b>{row['Nama Bantuan']}</b></div>",
-                        unsafe_allow_html=True
-                    )
-                with col_btn:
-                    if st.button("🔍 Detail", key=f"sudah_{idx}"):
-                        st.session_state.detail_nama = row["Nama Bantuan"]
-                        st.switch_page("pages/database.py")
 
 st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
 
