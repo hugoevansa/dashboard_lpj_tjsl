@@ -521,7 +521,7 @@ st.markdown("""
 st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
 
 # ── FILTER ───────────────────────────────────────────────────────────────────
-f1, f2, f3, f4 = st.columns([2, 1, 1, 1], gap="medium")
+f1, f2, f3, f4 = st.columns([1, 1, 1, 1], gap="medium")
 
 with f2:
     st.markdown('<div class="filter-label">TAHUN</div>', unsafe_allow_html=True)
