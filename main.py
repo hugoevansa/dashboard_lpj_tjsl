@@ -523,27 +523,6 @@ st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
 # ── FILTER ───────────────────────────────────────────────────────────────────
 f1, f2, f3, f4 = st.columns([2, 1, 1, 1], gap="medium")
 
-with f1:
-    # Hitung nominal
-    total_nominal_semua = filtered["Jumlah Bantuan (Rp)"].fillna(0).sum()
-    total_nominal_lunas = filtered.loc[
-        filtered["Status Pembayaran"] == "Lunas",
-        "Jumlah Bantuan (Rp)"
-    ].fillna(0).sum()
-
-    st.markdown(f"""
-    <div class="kpi-wrap">
-        <div class="kpi-label">UANG LUNAS / TOTAL</div>
-        <div class="kpi-value">
-            {fmt_rupiah(total_nominal_lunas)}
-            <div style="font-size:0.95rem; color:#8a6672; font-weight:600; margin-top:4px;">
-                dari {fmt_rupiah(total_nominal_semua)}
-            </div>
-        </div>
-        <div class="kpi-note">Total nominal bantuan yang sudah lunas</div>
-    </div>
-    """, unsafe_allow_html=True)
-
 with f2:
     st.markdown('<div class="filter-label">TAHUN</div>', unsafe_allow_html=True)
     selected_tahun = st.selectbox(
@@ -567,6 +546,54 @@ with f4:
         ["Semua", "Belum di Chat", "Sudah di Chat", "Menunggu LPJ", "Follow Up LPJ", "BlackList"],
         label_visibility="collapsed"
     )
+
+# filtered HARUS dibuat setelah selectbox
+filtered = data.copy()
+
+if selected_tahun != "Semua":
+    filtered = filtered[filtered["Tahun"] == selected_tahun]
+
+if selected_status == "Lunas":
+    filtered = filtered[filtered["Status Pembayaran"] == "Lunas"]
+elif selected_status == "Belum Lunas":
+    filtered = filtered[
+        (filtered["Status Pembayaran"] == "Belum Lunas") &
+        (filtered["Kondisi Tenggat"] == "Belum Jatuh Tempo")
+    ]
+elif selected_status == "Jatuh Tempo":
+    filtered = filtered[filtered["Kondisi Tenggat"] == "Jatuh Tempo"]
+
+if selected_chat == "Belum di Chat":
+    filtered = filtered[filtered["Chat Normal"] == "Belum di Chat"]
+elif selected_chat == "Sudah di Chat":
+    filtered = filtered[filtered["Chat Normal"] == "Sudah di Chat"]
+elif selected_chat == "Menunggu LPJ":
+    filtered = filtered[filtered["Klasifikasi Chat"] == "Menunggu LPJ"]
+elif selected_chat == "Follow Up LPJ":
+    filtered = filtered[filtered["Klasifikasi Chat"] == "Follow Up LPJ"]
+elif selected_chat == "BlackList":
+    filtered = filtered[filtered["Klasifikasi Chat"] == "BlackList"]
+
+# KPI uang baru dihitung SETELAH filtered ada
+with f1:
+    total_nominal_semua = filtered["Jumlah Bantuan (Rp)"].fillna(0).sum()
+    total_nominal_lunas = filtered.loc[
+        filtered["Status Pembayaran"] == "Lunas",
+        "Jumlah Bantuan (Rp)"
+    ].fillna(0).sum()
+
+    st.markdown(f"""
+    <div class="kpi-wrap">
+        <div class="kpi-label">UANG LUNAS / TOTAL</div>
+        <div class="kpi-value">
+            {fmt_rupiah(total_nominal_lunas)}
+            <div style="font-size:0.95rem; color:#8a6672; font-weight:600; margin-top:4px;">
+                dari {fmt_rupiah(total_nominal_semua)}
+            </div>
+        </div>
+        <div class="kpi-note">Total nominal bantuan yang sudah lunas</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 filtered = data.copy()
 
