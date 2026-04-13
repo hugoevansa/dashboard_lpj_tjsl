@@ -70,6 +70,8 @@ html, body, [class*="css"] {
     max-width: 1440px !important;
 }
 
+footer { visibility: hidden; }
+
 section[data-testid="stSidebar"] {
     background: linear-gradient(180deg, var(--maroon-dark) 0%, var(--maroon) 100%) !important;
 }
@@ -105,83 +107,26 @@ div[data-baseweb="input"] > div {
 }
 .page-header-title { color:#fff; font-size:1.7rem; font-weight:900; line-height:1.1; margin:0; }
 .page-header-sub   { color:rgba(255,255,255,0.75); font-size:0.9rem; margin-top:3px; }
-.page-header-right { margin-left:auto; display:flex; gap:10px; align-items:center; }
+.page-header-right { margin-left:auto; }
 
-/* Tombol notif & refresh di dalam header — override Streamlit button style */
-.header-btn-wrap { display:flex; gap:8px; align-items:center; }
-
-div[data-testid="stHorizontalBlock"]:has(> div > div[data-testid="stVerticalBlock"] button#btn_notif),
-div[data-testid="stHorizontalBlock"]:has(button[kind="primary"]) { margin-top:0 !important; }
-
-/* Wrapper row header+tombol */
-.header-row {
-    display: flex;
-    align-items: stretch;
-    gap: 0;
-    margin-top: 14px;
-}
-.header-main {
-    flex: 1;
-    background: linear-gradient(135deg, var(--maroon-dark) 0%, var(--maroon) 60%, var(--maroon-mid) 100%);
-    border-radius: 22px 0 0 22px;
-    padding: 20px 24px;
-    display: flex;
+/* Notif Button di Header */
+.notif-btn {
+    display: inline-flex;
     align-items: center;
-    gap: 18px;
-    box-shadow: 0 8px 32px rgba(92,18,41,0.22);
-}
-.header-actions {
-    background: linear-gradient(135deg, var(--maroon) 60%, var(--maroon-mid) 100%);
-    border-radius: 0 22px 22px 0;
-    padding: 16px 20px;
-    display: flex;
-    flex-direction: column;
     gap: 8px;
-    justify-content: center;
-    align-items: stretch;
-    min-width: 170px;
-    box-shadow: 0 8px 32px rgba(92,18,41,0.22);
-    border-left: 1px solid rgba(255,255,255,0.12);
-}
-.ha-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 9px 16px;
-    border-radius: 11px;
-    font-size: 0.88rem;
-    font-weight: 800;
-    cursor: pointer;
-    text-decoration: none;
-    white-space: nowrap;
-    border: none;
-    transition: background 0.18s;
-}
-.ha-btn-notif {
+    padding: 10px 18px;
+    border-radius: 12px;
     background: rgba(255,255,255,0.18);
     border: 1.5px solid rgba(255,255,255,0.35);
     color: #fff;
+    font-size: 0.92rem;
+    font-weight: 800;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
 }
-.ha-btn-notif.has-notif {
-    background: #e8192c;
-    border-color: #e8192c;
-}
-.ha-btn-notif:hover { background: rgba(255,255,255,0.30); color:#fff; }
-.ha-btn-refresh {
-    background: rgba(255,255,255,0.10);
-    border: 1.5px solid rgba(255,255,255,0.20);
-    color: rgba(255,255,255,0.80);
-    font-size: 1rem;
-    padding: 7px 12px;
-}
-.ha-btn-refresh:hover { background: rgba(255,255,255,0.22); color:#fff; }
-.notif-badge {
-    display: inline-flex; align-items: center; justify-content: center;
-    background: #fff; color: #e8192c;
-    border-radius: 999px; font-size: 0.72rem; font-weight: 900;
-    min-width: 20px; height: 20px; padding: 0 5px; line-height: 1;
-}
+.notif-btn:hover { background: rgba(255,255,255,0.28); color:#fff; }
 
 .notif-badge {
     display: inline-flex;
@@ -473,85 +418,36 @@ if not notif_kritis.empty and not st.session_state.toast_shown:
 # ═════════════════════════════════════════════════════════════════════════════
 
 # ── PAGE HEADER ──────────────────────────────────────────────────────────────
-_badge = f'{total_notif}' if total_notif > 0 else ""
-_notif_label = f"&#x1F514;  Notifikasi  {_badge}" if total_notif > 0 else "&#x1F514;  Notifikasi"
+badge_html = f'<span class="notif-badge">{total_notif}</span>' if total_notif > 0 else ""
 
-# Kolom kiri = header box, kolom kanan = tombol-tombol
-_hdr_col, _btn_col = st.columns([3, 1], gap="small")
-
-with _hdr_col:
-    st.markdown(f"""
+# Header HTML (tanpa tombol refresh — pakai st.button di bawah)
+st.markdown(f"""
 <div class="page-header">
     <div class="page-header-icon">&#x1F4CA;</div>
     <div>
         <div class="page-header-title">DASHBOARD BANTUAN</div>
         <div class="page-header-sub">Monitoring status bantuan, status chat, dan prioritas tindak lanjut</div>
     </div>
-</div>""", unsafe_allow_html=True)
-
-with _btn_col:
-    # CSS agar kolom kanan menyerupai perpanjangan header
-    st.markdown("""
-<style>
-div[data-testid="stHorizontalBlock"]:has(div.page-header) {
-    gap: 0 !important;
-    align-items: stretch !important;
-}
-div[data-testid="stHorizontalBlock"]:has(div.page-header)
-  > div:last-child
-  > div[data-testid="stVerticalBlock"] {
-    background: linear-gradient(160deg, var(--maroon) 0%, var(--maroon-mid) 100%);
-    border-radius: 0 22px 22px 0;
-    padding: 14px 16px !important;
-    gap: 8px !important;
-    justify-content: center;
-    box-shadow: 0 8px 32px rgba(92,18,41,0.22);
-    margin-top: 14px;
-}
-/* Tombol notif */
-div[data-testid="stHorizontalBlock"]:has(div.page-header)
-  > div:last-child button {
-    background: rgba(255,255,255,0.15) !important;
-    border: 1.5px solid rgba(255,255,255,0.30) !important;
-    color: #fff !important;
-    font-weight: 800 !important;
-    border-radius: 11px !important;
-    transition: background 0.18s !important;
-}
-div[data-testid="stHorizontalBlock"]:has(div.page-header)
-  > div:last-child button:hover {
-    background: rgba(255,255,255,0.28) !important;
-}
-div[data-testid="stHorizontalBlock"]:has(div.page-header)
-  > div:last-child button[kind="primary"] {
-    background: #e8192c !important;
-    border-color: #e8192c !important;
-}
-div[data-testid="stHorizontalBlock"]:has(div.page-header)
-  > div:last-child div.page-header {
-    border-radius: 22px 0 0 22px !important;
-}
-</style>
+    <div class="page-header-right" style="display:flex;gap:10px;align-items:center;">
+        <span id="notif-placeholder"></span>
+    </div>
+</div>
 """, unsafe_allow_html=True)
 
-    _do_notif = st.button(
-        _notif_label,
+# Tombol-tombol di kanan header — pakai st.columns agar tetap rapi
+_spacer, _notif_col, _refresh_col = st.columns([7, 1.2, 0.5], gap="small")
+with _notif_col:
+    if st.button(
+        f"&#x1F514; Notifikasi {'  ' + str(total_notif) if total_notif > 0 else ''}",
         key="btn_notif",
         use_container_width=True,
         type="primary" if total_notif > 0 else "secondary",
-    )
-    _do_refresh = st.button(
-        "&#x21BA;  Refresh data",
-        key="btn_refresh",
-        use_container_width=True,
-        type="secondary",
-    )
-
-if _do_notif:
-    st.switch_page("pages/notifikasi.py")
-if _do_refresh:
-    st.cache_data.clear()
-    st.rerun()
+    ):
+        st.switch_page("pages/notifikasi.py")
+with _refresh_col:
+    if st.button("&#x21BA;", key="btn_refresh", use_container_width=True, help="Refresh data dari Google Sheets"):
+        st.cache_data.clear()
+        st.rerun()
 
 st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
 
