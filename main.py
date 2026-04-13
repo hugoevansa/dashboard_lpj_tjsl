@@ -3,6 +3,48 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 
+
+import streamlit as st
+
+st.set_page_config(layout="wide")
+
+# SIDEBAR
+with st.sidebar:
+    st.markdown("## 👤 John Doe")
+    st.markdown("---")
+
+    st.markdown("### GENERAL")
+    if st.button("🏠 Home"):
+        st.session_state.page = "home"
+
+    st.markdown("### DASHBOARD")
+    if st.button("📊 Dashboard 1"):
+        st.session_state.page = "d1"
+    if st.button("📊 Dashboard 2"):
+        st.session_state.page = "d2"
+    if st.button("📊 Dashboard 3"):
+        st.session_state.page = "d3"
+
+    st.markdown("### DATA")
+    if st.button("📁 Data"):
+        st.session_state.page = "data"
+
+# DEFAULT PAGE
+if "page" not in st.session_state:
+    st.session_state.page = "home"
+
+# MAIN CONTENT
+if st.session_state.page == "home":
+    st.title("🏠 Home")
+elif st.session_state.page == "d1":
+    st.title("📊 Dashboard 1")
+elif st.session_state.page == "d2":
+    st.title("📊 Dashboard 2")
+elif st.session_state.page == "d3":
+    st.title("📊 Dashboard 3")
+elif st.session_state.page == "data":
+    st.title("📁 Data")
+    
 # CONFIG
 st.set_page_config(page_title="Dashboard Debt Collector", layout="wide")
 
