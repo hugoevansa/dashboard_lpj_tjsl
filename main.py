@@ -346,6 +346,50 @@ div[data-baseweb="input"] > div {
     font-weight: 800;
     font-size: 0.88rem;
 }
+.detail-card {
+    background: linear-gradient(135deg, #fff8fa, #fdf0f4);
+    border: 1.5px solid #e8c8d4;
+    border-radius: 18px;
+    padding: 18px 20px;
+    margin: 12px 0 14px 0;
+    box-shadow: 0 4px 20px rgba(92,18,41,0.08);
+}
+
+.detail-title {
+    font-size: 1.02rem;
+    font-weight: 900;
+    color: var(--maroon-dark);
+    margin-bottom: 12px;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 8px 14px;
+    align-items: start;
+}
+
+.detail-label {
+    font-weight: 800;
+    color: var(--muted);
+}
+
+.detail-value {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.detail-link {
+    display: inline-block;
+    margin-top: 12px;
+    background: linear-gradient(180deg, var(--maroon) 0%, var(--maroon-dark) 100%);
+    color: white !important;
+    padding: 9px 14px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 0.88rem;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -461,6 +505,74 @@ def klasifikasi_chat(hari):
     if hari >= 21:
         return "BlackList"
     return ""
+
+DOKUMEN_BANTUAN_URL = "https://drive.google.com/drive/folders/1lK2DACKjYI4vLVDhlW-XtXyIal_cpmA4?usp=sharing"
+
+def nama_penerima_dari_row(row):
+    # sementara fallback ke PIC karena sheet belum punya kolom Nama Penerima
+    return row.get("PIC", "-") if pd.notna(row.get("PIC", None)) else "-"
+
+
+def prepare_prioritas_table(df, is_sudah_chat=False):
+    if df.empty:
+        return pd.DataFrame()
+
+    table = df.copy()
+
+    table["Informasi Nama"] = table["Nama Bantuan"].astype(str)
+    table["Jumlah"] = table["Jumlah Bantuan (Rp)"].apply(fmt_rupiah)
+    table["Aksi Chat"] = table["Klasifikasi Chat"].replace("", "-")
+
+    if is_sudah_chat:
+        table["Tanggal Chat"] = table["Tanggal Chat"].apply(
+            lambda x: fmt_tgl(x) if pd.notna(x) else "-"
+        )
+        table["Jeda Chat"] = table["Label Jeda Chat"].replace("", "-")
+        return table[["Informasi Nama", "Jumlah", "Aksi Chat", "Tanggal Chat", "Jeda Chat"]]
+
+    table["Tanggal Chat"] = "-"
+    table["Jeda Chat"] = "-"
+    return table[["Informasi Nama", "Jumlah", "Aksi Chat", "Tanggal Chat", "Jeda Chat"]]
+
+
+def render_detail_card(row):
+    aksi_chat = row.get("Klasifikasi Chat", "")
+    aksi_chip = chip_aksi_chat(aksi_chat)
+
+    st.markdown(f"""
+    <div class="detail-card">
+        <div class="detail-title">Detail Penerima Bantuan</div>
+        <div class="detail-grid">
+            <div class="detail-label">Nama Bantuan</div>
+            <div class="detail-value">{row.get("Nama Bantuan", "-")}</div>
+
+            <div class="detail-label">Jumlah Bantuan</div>
+            <div class="detail-value">{fmt_rupiah(row.get("Jumlah Bantuan (Rp)", None))}</div>
+
+            <div class="detail-label">Nama Penerima</div>
+            <div class="detail-value">{nama_penerima_dari_row(row)}</div>
+
+            <div class="detail-label">No HP</div>
+            <div class="detail-value">{row.get("No Hp Penerima", "-") if str(row.get("No Hp Penerima", "")).strip() else "-"}</div>
+
+            <div class="detail-label">Tanggal Di Bantu</div>
+            <div class="detail-value">{fmt_tgl(row.get("Tanggal Dibantu", pd.NaT)) if pd.notna(row.get("Tanggal Dibantu", pd.NaT)) else "-"}</div>
+
+            <div class="detail-label">Tenggat</div>
+            <div class="detail-value">{fmt_tgl(row.get("Tenggat", pd.NaT)) if pd.notna(row.get("Tenggat", pd.NaT)) else "-"}</div>
+
+            <div class="detail-label">Telat Berapa Hari</div>
+            <div class="detail-value">{int(row.get("Terlambat Hari", 0))} hari</div>
+
+            <div class="detail-label">Aksi Chat</div>
+            <div class="detail-value">{aksi_chip}</div>
+        </div>
+
+        <a class="detail-link" href="{DOKUMEN_BANTUAN_URL}" target="_blank">
+            📁 Link Dokumen Bantuan
+        </a>
+    </div>
+    """, unsafe_allow_html=True)
 
 DOKUMEN_BANTUAN_URL = "https://drive.google.com/drive/folders/1lK2DACKjYI4vLVDhlW-XtXyIal_cpmA4?usp=sharing"
 
@@ -831,8 +943,8 @@ st.markdown(f'<div class="section-sub">{len(prioritas)} penerima bantuan perlu s
 if prioritas.empty:
     st.success("✅ Tidak ada penerima bantuan yang jatuh tempo.")
 else:
-    prioritas_belum_chat = prioritas[prioritas["Chat Normal"] == "Belum di Chat"].copy()
-    prioritas_sudah_chat = prioritas[prioritas["Chat Normal"] == "Sudah di Chat"].copy()
+    prioritas_belum_chat = prioritas[prioritas["Chat Normal"] == "Belum di Chat"].copy().reset_index(drop=True)
+    prioritas_sudah_chat = prioritas[prioritas["Chat Normal"] == "Sudah di Chat"].copy().reset_index(drop=True)
 
     kiri, kanan = st.columns(2, gap="large")
 
@@ -842,7 +954,26 @@ else:
             f'<div class="section-sub">{len(prioritas_belum_chat)} penerima bantuan belum dihubungi</div>',
             unsafe_allow_html=True
         )
-        render_prioritas_interaktif(prioritas_belum_chat, title_key="belum_chat")
+
+        if prioritas_belum_chat.empty:
+            st.info("Tidak ada penerima bantuan di kategori ini.")
+        else:
+            table_belum = prepare_prioritas_table(prioritas_belum_chat, is_sudah_chat=False)
+
+            event_belum = st.dataframe(
+                table_belum,
+                use_container_width=True,
+                hide_index=True,
+                on_select="rerun",
+                selection_mode="single-row",
+                key="prioritas_belum_table"
+            )
+
+            selected_rows_belum = event_belum.selection.rows
+            if selected_rows_belum:
+                selected_idx = selected_rows_belum[0]
+                selected_row = prioritas_belum_chat.iloc[selected_idx]
+                render_detail_card(selected_row)
 
     with kanan:
         st.markdown('<div class="section-head">💬 Sudah di Chat</div>', unsafe_allow_html=True)
@@ -850,7 +981,26 @@ else:
             f'<div class="section-sub">{len(prioritas_sudah_chat)} penerima bantuan sudah dihubungi</div>',
             unsafe_allow_html=True
         )
-        render_prioritas_interaktif(prioritas_sudah_chat, title_key="sudah_chat")
+
+        if prioritas_sudah_chat.empty:
+            st.info("Tidak ada penerima bantuan di kategori ini.")
+        else:
+            table_sudah = prepare_prioritas_table(prioritas_sudah_chat, is_sudah_chat=True)
+
+            event_sudah = st.dataframe(
+                table_sudah,
+                use_container_width=True,
+                hide_index=True,
+                on_select="rerun",
+                selection_mode="single-row",
+                key="prioritas_sudah_table"
+            )
+
+            selected_rows_sudah = event_sudah.selection.rows
+            if selected_rows_sudah:
+                selected_idx = selected_rows_sudah[0]
+                selected_row = prioritas_sudah_chat.iloc[selected_idx]
+                render_detail_card(selected_row)
 
 st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
 
