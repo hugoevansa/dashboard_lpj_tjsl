@@ -267,16 +267,45 @@ div[data-testid="metric-container"] {
 /* Table */
 .tbl-wrap {
     border-radius: 16px;
-    overflow: hidden;
     border: 1.5px solid var(--line);
     box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.tbl-scroll {
+    max-height: 320px;
+    overflow-y: auto;
     overflow-x: auto;
+    border-radius: 0 0 14px 14px;
+}
+
+/* Custom scrollbar */
+.tbl-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.tbl-scroll::-webkit-scrollbar-track {
+    background: #f5eaef;
+    border-radius: 10px;
+}
+.tbl-scroll::-webkit-scrollbar-thumb {
+    background: var(--maroon-mid);
+    border-radius: 10px;
+}
+.tbl-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--maroon);
 }
 
 .tbl {
     width: 100%;
     border-collapse: collapse;
     font-size: 13.5px;
+}
+
+.tbl thead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
 }
 
 .tbl th {
@@ -294,6 +323,7 @@ div[data-testid="metric-container"] {
     border-bottom: 1px solid #f2e2e8;
     color: var(--text);
     vertical-align: middle;
+    white-space: nowrap;
 }
 
 .tbl tr:last-child td { border-bottom: none; }
@@ -346,13 +376,19 @@ def chip(val):
         return '<span class="chip chip-jatuh">Jatuh Tempo</span>'
     return '<span class="chip chip-belum">Belum Lunas</span>'
 
-def df_to_html(df):
+def df_to_html(df, max_height=320):
     rows = ""
     for _, r in df.iterrows():
         cells = "".join(f"<td>{v}</td>" for v in r)
         rows += f"<tr>{cells}</tr>"
     headers = "".join(f"<th>{c}</th>" for c in df.columns)
-    return f'<div class="tbl-wrap"><table class="tbl"><thead><tr>{headers}</tr></thead><tbody>{rows}</tbody></table></div>'
+    return (
+        f'<div class="tbl-wrap">'
+        f'<div class="tbl-scroll" style="max-height:{max_height}px">'
+        f'<table class="tbl"><thead><tr>{headers}</tr></thead>'
+        f'<tbody>{rows}</tbody></table>'
+        f'</div></div>'
+    )
 
 @st.cache_data(ttl=300)
 def load_data():
