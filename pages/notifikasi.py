@@ -403,114 +403,123 @@ st.markdown(
 )
 st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
 
-# ─── HELPER RENDER KARTU ─────────────────────────────────────────────────────
-def render_notif_card(row, card_class, icon, badge_html, show_dismiss=False):
-    nama   = row["Nama Bantuan"]
-    pic    = row.get("PIC", "-") or "-"
-    hp     = row.get("No Hp Penerima", "-") or "-"
-    jumlah = fmt_rupiah(row.get("Jumlah Bantuan (Rp)"))
-    tenggat = fmt_tgl(row.get("Tenggat")) if pd.notna(row.get("Tenggat")) else "-"
+# --- HELPER RENDER KARTU (return string HTML, bukan st.markdown) ---
+def card_html(row, card_class, icon_code, badge_html, show_dismiss=False):
+    nama      = str(row["Nama Bantuan"])
+    pic       = str(row.get("PIC", "-") or "-")
+    hp        = str(row.get("No Hp Penerima", "-") or "-")
+    jumlah    = fmt_rupiah(row.get("Jumlah Bantuan (Rp)"))
+    tenggat   = fmt_tgl(row.get("Tenggat")) if pd.notna(row.get("Tenggat")) else "-"
     terlambat = int(row.get("Terlambat Hari", 0)) if pd.notna(row.get("Terlambat Hari", 0)) else 0
-    jeda_chat = int(row.get("Hari Setelah Chat", 0)) if pd.notna(row.get("Hari Setelah Chat")) else None
+    jeda_raw  = row.get("Hari Setelah Chat")
+    jeda_chat = int(jeda_raw) if pd.notna(jeda_raw) else None
 
-    wa_url   = wa_link(hp)
-    wa_html  = f'<a href="{wa_url}" target="_blank" class="btn-wa">💬 WhatsApp</a>' if wa_url else ""
-    det_html = detail_btn_html(nama)
-    dis_html = dismiss_btn_html(nama, sudah_dismiss=(nama in st.session_state.notif_dismissed)) if show_dismiss else ""
-
-    jeda_html = ""
-    if jeda_chat is not None:
-        jeda_html = f'<span>⏱ {jeda_chat} hari sejak chat</span>'
-
-    st.markdown(f"""
-    <div class="notif-card {card_class}">
-        <div class="notif-icon">{icon}</div>
-        <div class="notif-body">
-            <div class="notif-name">{nama} &nbsp; {badge_html}</div>
-            <div class="notif-meta">
-                <span>👤 PIC: <b>{pic}</b></span>
-                <span>📱 {hp}</span>
-                <span>💰 {jumlah}</span>
-                <span>📅 Tenggat: {tenggat}</span>
-                {"<span>🔴 Terlambat " + str(terlambat) + " hari</span>" if terlambat > 0 else ""}
-                {jeda_html}
-            </div>
-        </div>
-        <div class="notif-actions">
-            {wa_html}
-            {det_html}
-            {dis_html}
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-
-# ─── GRUP 1: SEGERA DI CHAT ──────────────────────────────────────────────────
-if not belum_chat.empty:
-    st.markdown(f"""
-    <div class="group-divider">
-        <div class="group-divider-line"></div>
-        <div class="group-divider-label">🔴 Segera di Chat — {len(belum_chat)} orang</div>
-        <div class="group-divider-line"></div>
-    </div>
-    """, unsafe_allow_html=True)
-    st.markdown(
-        '<div class="section-sub">Penerima bantuan yang jatuh tempo dan <b>belum</b> dihubungi sama sekali.</div>',
-        unsafe_allow_html=True
+    wa_url  = wa_link(hp)
+    wa_html = (
+        f'<a href="{wa_url}" target="_blank" class="btn-wa">&#x1F4AC; WhatsApp</a>'
+        if wa_url else ""
     )
-    for _, row in belum_chat.iterrows():
-        badge = '<span class="badge-belum">Belum di Chat</span>'
-        render_notif_card(row, "notif-card-belum", "🔴", badge, show_dismiss=True)
 
-# ─── GRUP 2: BLACKLIST ────────────────────────────────────────────────────────
-if not blacklist.empty:
-    st.markdown(f"""
-    <div class="group-divider">
-        <div class="group-divider-line"></div>
-        <div class="group-divider-label">⚫ BlackList — {len(blacklist)} orang</div>
-        <div class="group-divider-line"></div>
-    </div>
-    """, unsafe_allow_html=True)
-    st.markdown(
-        '<div class="section-sub">Sudah dihubungi tapi tidak ada respons selama <b>21 hari atau lebih</b>.</div>',
-        unsafe_allow_html=True
-    )
-    for _, row in blacklist.iterrows():
-        badge = '<span class="badge-blacklist">BlackList</span>'
-        render_notif_card(row, "notif-card-blacklist", "⚫", badge, show_dismiss=False)
+    enc_nama = urllib.parse.quote(nama)
+    det_html = f'<a href="?detail={enc_nama}" target="_self" class="btn-detail">&#x1F50D; Detail</a>'
 
-# ─── GRUP 3: FOLLOW UP LPJ ───────────────────────────────────────────────────
-if not follow_up.empty:
-    st.markdown(f"""
-    <div class="group-divider">
-        <div class="group-divider-line"></div>
-        <div class="group-divider-label">🟡 Follow Up LPJ — {len(follow_up)} orang</div>
-        <div class="group-divider-line"></div>
-    </div>
-    """, unsafe_allow_html=True)
-    st.markdown(
-        '<div class="section-sub">Sudah dihubungi, belum ada LPJ selama <b>14–20 hari</b>. Perlu follow up segera.</div>',
-        unsafe_allow_html=True
-    )
-    for _, row in follow_up.iterrows():
-        badge = '<span class="badge-followup">Follow Up LPJ</span>'
-        render_notif_card(row, "notif-card-followup", "🟡", badge, show_dismiss=False)
+    if show_dismiss:
+        if nama in st.session_state.notif_dismissed:
+            dis_html = '<span class="btn-dismissed">&#x2713; Dicatat</span>'
+        else:
+            dis_html = (
+                f'<a href="?dismiss={enc_nama}" target="_self" class="btn-dismiss">'
+                f'&#x2705; Sudah Chat</a>'
+            )
+    else:
+        dis_html = ""
 
-# ─── GRUP 4: MENUNGGU LPJ ────────────────────────────────────────────────────
-if not menunggu.empty:
-    st.markdown(f"""
-    <div class="group-divider">
-        <div class="group-divider-line"></div>
-        <div class="group-divider-label">🔵 Menunggu LPJ — {len(menunggu)} orang</div>
-        <div class="group-divider-line"></div>
-    </div>
-    """, unsafe_allow_html=True)
-    st.markdown(
-        '<div class="section-sub">Sudah dihubungi dan masih dalam periode tunggu LPJ (<b>0–13 hari</b>).</div>',
-        unsafe_allow_html=True
+    terlambat_html = (
+        f'<span>&#x1F534; Terlambat {terlambat} hari</span>' if terlambat > 0 else ""
     )
-    for _, row in menunggu.iterrows():
-        badge = '<span class="chip chip-menunggu" style="display:inline-block;padding:4px 12px;border-radius:999px;font-size:0.78rem;font-weight:800;background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe;">Menunggu LPJ</span>'
-        render_notif_card(row, "notif-card-belum", "🔵", badge, show_dismiss=False)
+    jeda_html = (
+        f'<span>&#x23F1; {jeda_chat} hari sejak chat</span>' if jeda_chat is not None else ""
+    )
+
+    return (
+        f'<div class="notif-card {card_class}">'
+        f'<div class="notif-icon">{icon_code}</div>'
+        f'<div class="notif-body">'
+        f'<div class="notif-name">{nama} &nbsp; {badge_html}</div>'
+        f'<div class="notif-meta">'
+        f'<span>&#x1F464; PIC: <b>{pic}</b></span>'
+        f'<span>&#x1F4F1; {hp}</span>'
+        f'<span>&#x1F4B0; {jumlah}</span>'
+        f'<span>&#x1F4C5; Tenggat: {tenggat}</span>'
+        f'{terlambat_html}'
+        f'{jeda_html}'
+        f'</div></div>'
+        f'<div class="notif-actions">{wa_html}{det_html}{dis_html}</div>'
+        f'</div>'
+    )
+
+def render_grup(df, divider_label, sub_text, card_class, icon_code, badge_html, show_dismiss=False):
+    """Kumpulkan semua kartu jadi 1 string lalu render sekaligus."""
+    if df.empty:
+        return
+    cards = "".join(
+        card_html(row, card_class, icon_code, badge_html, show_dismiss)
+        for _, row in df.iterrows()
+    )
+    html = (
+        f'<div class="group-divider">'
+        f'<div class="group-divider-line"></div>'
+        f'<div class="group-divider-label">{divider_label}</div>'
+        f'<div class="group-divider-line"></div>'
+        f'</div>'
+        f'<div class="section-sub">{sub_text}</div>'
+        f'{cards}'
+    )
+    st.markdown(html, unsafe_allow_html=True)
+
+
+# --- GRUP 1: SEGERA DI CHAT ---
+render_grup(
+    belum_chat,
+    divider_label=f"&#x1F534; Segera di Chat &mdash; {len(belum_chat)} orang",
+    sub_text="Penerima bantuan yang jatuh tempo dan <b>belum</b> dihubungi sama sekali.",
+    card_class="notif-card-belum",
+    icon_code="&#x1F534;",
+    badge_html='<span class="badge-belum">Belum di Chat</span>',
+    show_dismiss=True,
+)
+
+# --- GRUP 2: BLACKLIST ---
+render_grup(
+    blacklist,
+    divider_label=f"&#x26AB; BlackList &mdash; {len(blacklist)} orang",
+    sub_text="Sudah dihubungi tapi tidak ada respons selama <b>21 hari atau lebih</b>.",
+    card_class="notif-card-blacklist",
+    icon_code="&#x26AB;",
+    badge_html='<span class="badge-blacklist">BlackList</span>',
+    show_dismiss=False,
+)
+
+# --- GRUP 3: FOLLOW UP LPJ ---
+render_grup(
+    follow_up,
+    divider_label=f"&#x1F7E1; Follow Up LPJ &mdash; {len(follow_up)} orang",
+    sub_text="Sudah dihubungi, belum ada LPJ selama <b>14&ndash;20 hari</b>. Perlu follow up segera.",
+    card_class="notif-card-followup",
+    icon_code="&#x1F7E1;",
+    badge_html='<span class="badge-followup">Follow Up LPJ</span>',
+    show_dismiss=False,
+)
+
+# --- GRUP 4: MENUNGGU LPJ ---
+render_grup(
+    menunggu,
+    divider_label=f"&#x1F535; Menunggu LPJ &mdash; {len(menunggu)} orang",
+    sub_text="Sudah dihubungi dan masih dalam periode tunggu LPJ (<b>0&ndash;13 hari</b>).",
+    card_class="notif-card-menunggu",
+    icon_code="&#x1F535;",
+    badge_html='<span class="badge-menunggu">Menunggu LPJ</span>',
+    show_dismiss=False,
+)
 
 st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
