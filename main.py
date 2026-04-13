@@ -417,33 +417,39 @@ if not notif_kritis.empty and not st.session_state.toast_shown:
 #  LAYOUT
 # ═════════════════════════════════════════════════════════════════════════════
 
-# ── PAGE HEADER (dengan tombol notifikasi + refresh) ─────────────────────────
+# ── PAGE HEADER ──────────────────────────────────────────────────────────────
 badge_html = f'<span class="notif-badge">{total_notif}</span>' if total_notif > 0 else ""
-notif_page = "pages/notifikasi.py"
 
-hdr_col, refresh_col = st.columns([6, 1], gap="small")
-with hdr_col:
-    st.markdown(f"""
+# Header HTML (tanpa tombol refresh — pakai st.button di bawah)
+st.markdown(f"""
 <div class="page-header">
     <div class="page-header-icon">&#x1F4CA;</div>
     <div>
         <div class="page-header-title">DASHBOARD BANTUAN</div>
         <div class="page-header-sub">Monitoring status bantuan, status chat, dan prioritas tindak lanjut</div>
     </div>
-    <div class="page-header-right">
-        <a href="{notif_page}" target="_self" class="notif-btn">
-            &#x1F514; Notifikasi {badge_html}
-        </a>
+    <div class="page-header-right" style="display:flex;gap:10px;align-items:center;">
+        <span id="notif-placeholder"></span>
     </div>
 </div>
 """, unsafe_allow_html=True)
-with refresh_col:
-    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
-    if st.button("&#x21BA; Refresh", key="btn_refresh", use_container_width=True, type="secondary"):
+
+# Tombol-tombol di kanan header — pakai st.columns agar tetap rapi
+_spacer, _notif_col, _refresh_col = st.columns([7, 1.2, 0.5], gap="small")
+with _notif_col:
+    if st.button(
+        f"&#x1F514; Notifikasi {'  ' + str(total_notif) if total_notif > 0 else ''}",
+        key="btn_notif",
+        use_container_width=True,
+        type="primary" if total_notif > 0 else "secondary",
+    ):
+        st.switch_page("pages/notifikasi.py")
+with _refresh_col:
+    if st.button("&#x21BA;", key="btn_refresh", use_container_width=True, help="Refresh data dari Google Sheets"):
         st.cache_data.clear()
         st.rerun()
 
-st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
+st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
 
 # ── FILTER ───────────────────────────────────────────────────────────────────
 f1, f2, f3, f4 = st.columns([2, 1, 1, 1], gap="medium")
