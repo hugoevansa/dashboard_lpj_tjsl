@@ -3,6 +3,12 @@ import pandas as pd
 import plotly.express as px
 from datetime import datetime
 
+st.set_page_config(
+    page_title="Dashboard Debt Collector",
+    layout="wide",
+    initial_sidebar_state="expanded"  # 🔥 ini penting
+)
+
 st.set_page_config(page_title="Dashboard Utama", layout="wide")
 
 st.title("📊 Dashboard Debt Collector (All Tahun)")
