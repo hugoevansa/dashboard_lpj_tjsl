@@ -807,36 +807,3 @@ disp = disp[
 st.markdown(df_to_html(disp), unsafe_allow_html=True)
 
 st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
-
-# ── BELUM LUNAS ──────────────────────────────────────────────────────────────
-st.markdown('<div class="section-head">⏳ Daftar Penerima Bantuan Belum Lunas</div>', unsafe_allow_html=True)
-
-bl_df = filtered[filtered["Status Pembayaran"] == "Belum Lunas"][
-    [
-        "Nama Bantuan", "Jumlah Bantuan (Rp)", "PIC", "No Hp Penerima",
-        "Tenggat", "Label Tampilan", "Chat Normal", "Tanggal Chat",
-        "Label Jeda Chat", "Klasifikasi Chat"
-    ]
-].copy()
-
-bl_df["Jumlah Bantuan (Rp)"] = bl_df["Jumlah Bantuan (Rp)"].apply(fmt_rupiah)
-bl_df["Tenggat"]             = bl_df["Tenggat"].apply(fmt_tgl)
-bl_df["No Hp Penerima"]      = bl_df["No Hp Penerima"].replace("", "-")
-bl_df["Status"]              = bl_df["Label Tampilan"].apply(chip_status)
-bl_df["Chat"]                = bl_df["Chat Normal"].apply(chip_chat)
-bl_df["Tanggal Chat"]        = bl_df["Tanggal Chat"].apply(fmt_tgl)
-bl_df["Jeda Chat"]           = bl_df["Label Jeda Chat"].replace("", "-")
-bl_df["Aksi Chat"]           = bl_df["Klasifikasi Chat"].apply(chip_aksi_chat)
-
-bl_df = bl_df.drop(columns=["Label Tampilan", "Chat Normal", "Label Jeda Chat", "Klasifikasi Chat"])
-
-bl_df = bl_df[
-    [
-        "Nama Bantuan", "Jumlah Bantuan (Rp)", "PIC", "No Hp Penerima",
-        "Tenggat", "Status", "Chat", "Tanggal Chat", "Jeda Chat", "Aksi Chat"
-    ]
-]
-
-st.markdown(df_to_html(bl_df), unsafe_allow_html=True)
-
-st.markdown('<div class="footer">Dashboard Bantuan • Data diambil langsung dari Google Sheets</div>', unsafe_allow_html=True)
