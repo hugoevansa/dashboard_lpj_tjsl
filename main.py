@@ -344,6 +344,18 @@ def chip_aksi_chat(val):
     if val == "BlackList":     return '<span class="chip chip-blacklist">BlackList</span>'
     return '<span class="chip chip-muted">-</span>'
 
+def chip_aksi_prioritas(val, chat_normal=None):
+    # khusus untuk tabel prioritas
+    if chat_normal == "Belum di Chat":
+        return '<span class="chip chip-jatuh">Segera di Chat</span>'
+    if val == "Menunggu LPJ":
+        return '<span class="chip chip-menunggu">Menunggu LPJ</span>'
+    if val == "Follow Up LPJ":
+        return '<span class="chip chip-follow">Follow Up LPJ</span>'
+    if val == "BlackList":
+        return '<span class="chip chip-blacklist">BlackList</span>'
+    return '<span class="chip chip-muted">-</span>'
+
 def df_to_html(df, max_height=360):
     rows = ""
     for _, r in df.iterrows():
@@ -382,10 +394,14 @@ def label_jeda_chat(hari):
     return "< 1 Minggu"
 
 def klasifikasi_chat(hari):
-    if hari is None: return ""
-    if 7 <= hari < 14:  return "Menunggu LPJ"
-    if 14 <= hari < 21: return "Follow Up LPJ"
-    if hari >= 21:      return "BlackList"
+    if hari is None:
+        return ""
+    if 0 <= hari < 14:
+        return "Menunggu LPJ"
+    if 14 <= hari < 21:
+        return "Follow Up LPJ"
+    if hari >= 21:
+        return "BlackList"
     return ""
 
 @st.cache_data(ttl=300)
@@ -654,37 +670,31 @@ else:
 
     # ── KIRI: Belum di Chat ──────────────────────────────────────────────────
     with col_kiri:
-        st.markdown('<div class="section-head">📩 Belum di Chat</div>', unsafe_allow_html=True)
+              st.markdown('<div class="section-head">📩 Segera di Chat</div>', unsafe_allow_html=True)
         st.markdown(
-            f'<div class="section-sub">{len(prioritas_belum_chat)} penerima bantuan belum dihubungi</div>',
+            f'<div class="section-sub">{len(prioritas_belum_chat)} penerima bantuan perlu segera dihubungi</div>',
             unsafe_allow_html=True
         )
         if prioritas_belum_chat.empty:
             st.info("Tidak ada penerima bantuan di kategori ini.")
         else:
             # ── Tabel (layout kodingan 2) ────────────────────────────────────
-            pv_belum = prioritas_belum_chat[[
-                "Nama Bantuan", "Jumlah Bantuan (Rp)", "Tanggal Dibantu", "Tenggat",
-                "PIC", "No Hp Penerima", "Klasifikasi Chat", "Terlambat Hari"
+                pv_belum = prioritas_belum_chat[[
+                "Nama Bantuan", "Jumlah Bantuan (Rp)", "No Hp Penerima", "Chat Normal", "Klasifikasi Chat"
             ]].copy()
-
+            
             pv_belum["Jumlah Bantuan (Rp)"] = pv_belum["Jumlah Bantuan (Rp)"].apply(fmt_rupiah)
-            pv_belum["Tanggal Dibantu"]     = pv_belum["Tanggal Dibantu"].apply(fmt_tgl)
-            pv_belum["Tenggat"]             = pv_belum["Tenggat"].apply(fmt_tgl)
             pv_belum["No Hp Penerima"]      = pv_belum["No Hp Penerima"].replace("", "-")
-            pv_belum["Aksi Chat"]           = pv_belum["Klasifikasi Chat"].apply(chip_aksi_chat)
-            pv_belum["Terlambat Hari"]      = pv_belum["Terlambat Hari"].apply(lambda x: f"{int(x)} hari")
-            pv_belum["Status"]              = '<span class="chip chip-jatuh">Jatuh Tempo</span>'
-            pv_belum = pv_belum.drop(columns=["Klasifikasi Chat"])
-            pv_belum["Detail"] = pv_belum["Nama Bantuan"].apply(
-                lambda n: detail_btn_html(n)
+            pv_belum["Aksi Chat"]           = pv_belum.apply(
+                lambda r: chip_aksi_prioritas(r["Klasifikasi Chat"], r["Chat Normal"]), axis=1
             )
+            pv_belum["Detail"] = pv_belum["Nama Bantuan"].apply(lambda n: detail_btn_html(n))
+            
             pv_belum = pv_belum[[
-                "Nama Bantuan", "Jumlah Bantuan (Rp)", "Tanggal Dibantu", "Tenggat",
-                "PIC", "No Hp Penerima", "Aksi Chat", "Terlambat Hari", "Status", "Detail"
+                "Nama Bantuan", "Jumlah Bantuan (Rp)", "No Hp Penerima", "Aksi Chat", "Detail"
             ]]
+            
             st.markdown(df_to_html(pv_belum, max_height=360), unsafe_allow_html=True)
-
     # ── KANAN: Sudah di Chat ─────────────────────────────────────────────────
     with col_kanan:
         st.markdown('<div class="section-head">💬 Sudah di Chat</div>', unsafe_allow_html=True)
@@ -696,30 +706,22 @@ else:
             st.info("Tidak ada penerima bantuan di kategori ini.")
         else:
             # ── Tabel (layout kodingan 2) ────────────────────────────────────
-            pv_sudah = prioritas_sudah_chat[[
-                "Nama Bantuan", "Jumlah Bantuan (Rp)", "Tanggal Dibantu", "Tenggat",
-                "PIC", "No Hp Penerima", "Tanggal Chat",
-                "Label Jeda Chat", "Klasifikasi Chat", "Terlambat Hari"
+                pv_sudah = prioritas_sudah_chat[[
+                "Nama Bantuan", "Jumlah Bantuan (Rp)", "No Hp Penerima",
+                "Chat Normal", "Klasifikasi Chat"
             ]].copy()
-
+            
             pv_sudah["Jumlah Bantuan (Rp)"] = pv_sudah["Jumlah Bantuan (Rp)"].apply(fmt_rupiah)
-            pv_sudah["Tanggal Dibantu"]     = pv_sudah["Tanggal Dibantu"].apply(fmt_tgl)
-            pv_sudah["Tenggat"]             = pv_sudah["Tenggat"].apply(fmt_tgl)
-            pv_sudah["Tanggal Chat"]        = pv_sudah["Tanggal Chat"].apply(fmt_tgl)
             pv_sudah["No Hp Penerima"]      = pv_sudah["No Hp Penerima"].replace("", "-")
-            pv_sudah["Jeda Chat"]           = pv_sudah["Label Jeda Chat"].replace("", "-")
-            pv_sudah["Aksi Chat"]           = pv_sudah["Klasifikasi Chat"].apply(chip_aksi_chat)
-            pv_sudah["Terlambat Hari"]      = pv_sudah["Terlambat Hari"].apply(lambda x: f"{int(x)} hari")
-            pv_sudah["Status"]              = '<span class="chip chip-jatuh">Jatuh Tempo</span>'
-            pv_sudah = pv_sudah.drop(columns=["Label Jeda Chat", "Klasifikasi Chat"])
-            pv_sudah["Detail"] = pv_sudah["Nama Bantuan"].apply(
-                lambda n: detail_btn_html(n)
+            pv_sudah["Aksi Chat"]           = pv_sudah.apply(
+                lambda r: chip_aksi_prioritas(r["Klasifikasi Chat"], r["Chat Normal"]), axis=1
             )
+            pv_sudah["Detail"] = pv_sudah["Nama Bantuan"].apply(lambda n: detail_btn_html(n))
+            
             pv_sudah = pv_sudah[[
-                "Nama Bantuan", "Jumlah Bantuan (Rp)", "Tanggal Dibantu", "Tenggat",
-                "PIC", "No Hp Penerima", "Tanggal Chat", "Jeda Chat",
-                "Aksi Chat", "Terlambat Hari", "Status", "Detail"
+                "Nama Bantuan", "Jumlah Bantuan (Rp)", "No Hp Penerima", "Aksi Chat", "Detail"
             ]]
+            
             st.markdown(df_to_html(pv_sudah, max_height=360), unsafe_allow_html=True)
 
 st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
