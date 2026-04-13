@@ -44,12 +44,11 @@ html, body, [class*="css"] {
 }
 
 .block-container {
-    padding: 1.5rem 2rem 2rem 2rem !important;
+    padding: 0.5rem 2rem 2rem 2rem !important;
     max-width: 1440px !important;
 }
 
-/* Hide streamlit chrome */
-header[data-testid="stHeader"] { display: none; }
+/* Jangan hide header — biarkan navbar pages Streamlit tampil */
 #MainMenu { visibility: hidden; }
 footer { visibility: hidden; }
 
