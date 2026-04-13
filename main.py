@@ -647,16 +647,17 @@ with c1:
         else:
             st.info("Tidak ada data.")
 
+# — Bar —
 with c2:
     with st.container(border=True):
-        st.markdown('<div class="panel-title">Distribusi Chat</div>', unsafe_allow_html=True)
-        st.markdown('<div class="panel-sub">Menunggu LPJ, follow up LPJ, dan blacklist</div>', unsafe_allow_html=True)
-        if not chat_df.empty:
-            fig2 = px.bar(chat_df, x="Kategori", y="Jumlah")
-            fig2.update_layout(**PLOTLY_BASE, height=280, xaxis_title="", yaxis_title="Jumlah", showlegend=False)
-            st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
-        else:
-            st.info("Tidak ada data.")
+        st.markdown('<div class="panel-title">Perbandingan Status</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-sub">Lunas, belum lunas, dan jatuh tempo</div>', unsafe_allow_html=True)
+        fig2 = px.bar(status_compare, x="Status", y="Jumlah",
+                      color="Status", color_discrete_map=MAROON_COLORS)
+        fig2.update_layout(**PLOTLY_BASE, height=280,
+                           xaxis_title="", yaxis_title="Jumlah", showlegend=False)
+        fig2.update_traces(marker_line_width=0, marker_line_color="rgba(0,0,0,0)")
+        st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
 
 with c3:
     with st.container(border=True):
