@@ -701,6 +701,7 @@ with c3:
 st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
 
 # ── TABEL PRIORITAS ──────────────────────────────────────────────────────────
+# ── TABEL PRIORITAS ──────────────────────────────────────────────────────────
 prioritas = (
     filtered[
         (filtered["Status Pembayaran"] == "Belum Lunas") &
@@ -716,36 +717,93 @@ st.markdown(f'<div class="section-sub">{len(prioritas)} penerima bantuan perlu s
 if prioritas.empty:
     st.success("✅ Tidak ada penerima bantuan yang jatuh tempo.")
 else:
-    pv = prioritas[
-        [
-            "Nama Bantuan", "Jumlah Bantuan (Rp)", "Tanggal Dibantu", "Tenggat",
-            "PIC", "No Hp Penerima", "Chat Normal", "Tanggal Chat",
-            "Label Jeda Chat", "Klasifikasi Chat", "Terlambat Hari"
-        ]
-    ].copy()
+    # Split data
+    prioritas_belum_chat = prioritas[prioritas["Chat Normal"] == "Belum di Chat"].copy()
+    prioritas_sudah_chat = prioritas[prioritas["Chat Normal"] == "Sudah di Chat"].copy()
 
-    pv["Jumlah Bantuan (Rp)"] = pv["Jumlah Bantuan (Rp)"].apply(fmt_rupiah)
-    pv["Tanggal Dibantu"]     = pv["Tanggal Dibantu"].apply(fmt_tgl)
-    pv["Tenggat"]             = pv["Tenggat"].apply(fmt_tgl)
-    pv["No Hp Penerima"]      = pv["No Hp Penerima"].replace("", "-")
-    pv["Chat"]                = pv["Chat Normal"].apply(chip_chat)
-    pv["Tanggal Chat"]        = pv["Tanggal Chat"].apply(fmt_tgl)
-    pv["Jeda Chat"]           = pv["Label Jeda Chat"].replace("", "-")
-    pv["Aksi Chat"]           = pv["Klasifikasi Chat"].apply(chip_aksi_chat)
-    pv["Terlambat Hari"]      = pv["Terlambat Hari"].apply(lambda x: f"{int(x)} hari")
-    pv["Status"]              = '<span class="chip chip-jatuh">Jatuh Tempo</span>'
+    col_kiri, col_kanan = st.columns(2, gap="large")
 
-    pv = pv.drop(columns=["Chat Normal", "Label Jeda Chat", "Klasifikasi Chat"])
+    # =========================
+    # KIRI — BELUM DI CHAT
+    # =========================
+    with col_kiri:
+        st.markdown('<div class="section-head">📩 Belum di Chat</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="section-sub">{len(prioritas_belum_chat)} penerima bantuan belum dihubungi</div>',
+            unsafe_allow_html=True
+        )
 
-    pv = pv[
-        [
-            "Nama Bantuan", "Jumlah Bantuan (Rp)", "Tanggal Dibantu", "Tenggat",
-            "PIC", "No Hp Penerima", "Chat", "Tanggal Chat",
-            "Jeda Chat", "Aksi Chat", "Terlambat Hari", "Status"
-        ]
-    ]
+        if prioritas_belum_chat.empty:
+            st.info("Tidak ada penerima bantuan di kategori ini.")
+        else:
+            pv_belum = prioritas_belum_chat[
+                [
+                    "Nama Bantuan", "Jumlah Bantuan (Rp)", "Tanggal Dibantu", "Tenggat",
+                    "PIC", "No Hp Penerima", "Klasifikasi Chat", "Terlambat Hari"
+                ]
+            ].copy()
 
-    st.markdown(df_to_html(pv), unsafe_allow_html=True)
+            pv_belum["Jumlah Bantuan (Rp)"] = pv_belum["Jumlah Bantuan (Rp)"].apply(fmt_rupiah)
+            pv_belum["Tanggal Dibantu"]     = pv_belum["Tanggal Dibantu"].apply(fmt_tgl)
+            pv_belum["Tenggat"]             = pv_belum["Tenggat"].apply(fmt_tgl)
+            pv_belum["No Hp Penerima"]      = pv_belum["No Hp Penerima"].replace("", "-")
+            pv_belum["Aksi Chat"]           = pv_belum["Klasifikasi Chat"].apply(chip_aksi_chat)
+            pv_belum["Terlambat Hari"]      = pv_belum["Terlambat Hari"].apply(lambda x: f"{int(x)} hari")
+            pv_belum["Status"]              = '<span class="chip chip-jatuh">Jatuh Tempo</span>'
+
+            pv_belum = pv_belum.drop(columns=["Klasifikasi Chat"])
+
+            pv_belum = pv_belum[
+                [
+                    "Nama Bantuan", "Jumlah Bantuan (Rp)", "Tanggal Dibantu", "Tenggat",
+                    "PIC", "No Hp Penerima", "Aksi Chat", "Terlambat Hari", "Status"
+                ]
+            ]
+
+            st.markdown(df_to_html(pv_belum, max_height=360), unsafe_allow_html=True)
+
+    # =========================
+    # KANAN — SUDAH DI CHAT
+    # =========================
+    with col_kanan:
+        st.markdown('<div class="section-head">💬 Sudah di Chat</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="section-sub">{len(prioritas_sudah_chat)} penerima bantuan sudah dihubungi</div>',
+            unsafe_allow_html=True
+        )
+
+        if prioritas_sudah_chat.empty:
+            st.info("Tidak ada penerima bantuan di kategori ini.")
+        else:
+            pv_sudah = prioritas_sudah_chat[
+                [
+                    "Nama Bantuan", "Jumlah Bantuan (Rp)", "Tanggal Dibantu", "Tenggat",
+                    "PIC", "No Hp Penerima", "Tanggal Chat",
+                    "Label Jeda Chat", "Klasifikasi Chat", "Terlambat Hari"
+                ]
+            ].copy()
+
+            pv_sudah["Jumlah Bantuan (Rp)"] = pv_sudah["Jumlah Bantuan (Rp)"].apply(fmt_rupiah)
+            pv_sudah["Tanggal Dibantu"]     = pv_sudah["Tanggal Dibantu"].apply(fmt_tgl)
+            pv_sudah["Tenggat"]             = pv_sudah["Tenggat"].apply(fmt_tgl)
+            pv_sudah["Tanggal Chat"]        = pv_sudah["Tanggal Chat"].apply(fmt_tgl)
+            pv_sudah["No Hp Penerima"]      = pv_sudah["No Hp Penerima"].replace("", "-")
+            pv_sudah["Jeda Chat"]           = pv_sudah["Label Jeda Chat"].replace("", "-")
+            pv_sudah["Aksi Chat"]           = pv_sudah["Klasifikasi Chat"].apply(chip_aksi_chat)
+            pv_sudah["Terlambat Hari"]      = pv_sudah["Terlambat Hari"].apply(lambda x: f"{int(x)} hari")
+            pv_sudah["Status"]              = '<span class="chip chip-jatuh">Jatuh Tempo</span>'
+
+            pv_sudah = pv_sudah.drop(columns=["Label Jeda Chat", "Klasifikasi Chat"])
+
+            pv_sudah = pv_sudah[
+                [
+                    "Nama Bantuan", "Jumlah Bantuan (Rp)", "Tanggal Dibantu", "Tenggat",
+                    "PIC", "No Hp Penerima", "Tanggal Chat", "Jeda Chat",
+                    "Aksi Chat", "Terlambat Hari", "Status"
+                ]
+            ]
+
+            st.markdown(df_to_html(pv_sudah, max_height=360), unsafe_allow_html=True)
 
 st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
 
