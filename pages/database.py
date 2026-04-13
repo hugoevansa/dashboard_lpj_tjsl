@@ -286,6 +286,18 @@ def chip_aksi_prioritas(val, chat_normal=None):
         return '<span class="chip chip-blacklist">BlackList</span>'
     return '<span class="chip chip-muted">-</span>'
 
+def chip_aksi_database(val, chat_normal=None):
+    # untuk halaman database/detail
+    if chat_normal == "Belum di Chat":
+        return '<span class="chip chip-jatuh">Segera di Chat</span>'
+    if val == "Menunggu LPJ":
+        return '<span class="chip chip-menunggu">Menunggu LPJ</span>'
+    if val == "Follow Up LPJ":
+        return '<span class="chip chip-follow">Follow Up LPJ</span>'
+    if val == "BlackList":
+        return '<span class="chip chip-blacklist">BlackList</span>'
+    return '<span class="chip chip-muted">-</span>'
+
 def df_to_html(df, max_height=480):
     rows = ""
     for _, r in df.iterrows():
@@ -453,7 +465,7 @@ if nama_filter and len(table_df) >= 1:
     tahun_str   = str(int(r["Tahun"])) if pd.notna(r["Tahun"]) else "—"
 
     chip_s  = chip_status(r["Label Tampilan"])
-    chip_ac = chip_aksi_chat(r["Klasifikasi Chat"])
+    chip_ac = chip_aksi_database(r["Klasifikasi Chat"], r["Chat Normal"])
 
     st.markdown(f"""
     <div class="detail-card">
@@ -546,7 +558,10 @@ disp["Tenggat"]             = disp["Tenggat"].apply(fmt_tgl)
 disp["Tanggal Chat"]        = disp["Tanggal Chat"].apply(fmt_tgl)
 disp["No Hp Penerima"]      = disp["No Hp Penerima"].replace("","-")
 disp["Status"]              = disp["Label Tampilan"].apply(chip_status)
-disp["Aksi Chat"]           = disp["Klasifikasi Chat"].apply(chip_aksi_chat)
+disp["Aksi Chat"] = table_df.apply(
+    lambda r: chip_aksi_database(r["Klasifikasi Chat"], r["Chat Normal"]),
+    axis=1
+)
 disp["Jeda Chat"]           = disp["Label Jeda Chat"].replace("","-")
 
 disp = disp.drop(columns=["Label Tampilan","Klasifikasi Chat","Label Jeda Chat"])
