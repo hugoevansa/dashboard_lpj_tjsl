@@ -1,281 +1,437 @@
-import random
+import tkinter as tk
+from tkinter import ttk, font
+import math
+import time
+import threading
 from datetime import datetime, timedelta
 
-import pandas as pd
-import plotly.express as px
-import streamlit as st
+# ─── COLOR PALETTE ───────────────────────────────────────────────────────────
+BG_MAIN     = "#EAF1FB"
+BG_CARD     = "#FFFFFF"
+BG_HEADER   = "#2563EB"
+BG_TABLE_H  = "#2563EB"
+BG_TABLE_R  = "#FFFFFF"
+BG_TABLE_A  = "#F0F4FF"
 
-st.set_page_config(
-    page_title="Dashboard Debt Collector",
-    page_icon="💳",
-    layout="wide",
-)
+GREEN       = "#22C55E"
+GREEN_LIGHT = "#DCFCE7"
+RED         = "#EF4444"
+RED_LIGHT   = "#FEE2E2"
+BLUE        = "#2563EB"
+BLUE_LIGHT  = "#DBEAFE"
+ORANGE      = "#F59E0B"
 
-# =========================
-# Dummy data generators
-# =========================
-TODAY = datetime.now()
-random.seed(42)
+TEXT_DARK   = "#1E293B"
+TEXT_MID    = "#475569"
+TEXT_LIGHT  = "#94A3B8"
+TEXT_WHITE  = "#FFFFFF"
 
+# ─── FONTS ───────────────────────────────────────────────────────────────────
+FONT_TITLE  = ("Segoe UI", 20, "bold")
+FONT_HEAD   = ("Segoe UI", 11, "bold")
+FONT_BODY   = ("Segoe UI", 10)
+FONT_BODY_B = ("Segoe UI", 10, "bold")
+FONT_SMALL  = ("Segoe UI", 9)
+FONT_BIG    = ("Segoe UI", 18, "bold")
+FONT_MED    = ("Segoe UI", 13, "bold")
+FONT_TIMER  = ("Courier New", 12, "bold")
 
-def format_rupiah(amount: int) -> str:
-    return f"Rp {amount:,.0f}".replace(",", ".")
-
-
-customers = [
-    "Budi Santoso", "Siti Aminah", "Andi Pratama", "Rina Marlina", "Yanto Wijaya",
-    "Dewi Lestari", "Rudi Hartono", "Nina Kurnia", "Fajar Nugroho", "Lukman Hakim",
-    "Tika Ramadhani", "Hendra Saputra", "Maya Sari", "Riko Setiawan", "Putri Ayu",
-    "Bagus Mahendra", "Intan Permata", "Asep Suhendar", "Rahmat Hidayat", "Desi Anggraini",
+# ─── DATA ─────────────────────────────────────────────────────────────────────
+DEBITUR_JATUH_TEMPO = [
+    {"nama": "Budi",  "nominal": "Rp 5.000.000", "tgl": "15 Apr 2024"},
+    {"nama": "Siti",  "nominal": "Rp 3.500.000", "tgl": "16 Apr 2024"},
+    {"nama": "Andi",  "nominal": "Rp 7.200.000", "tgl": "17 Apr 2024"},
 ]
 
-areas = ["Jakarta Timur", "Jakarta Barat", "Bekasi", "Depok", "Tangerang"]
-collectors = ["Aldi", "Bayu", "Citra", "Dimas"]
-statuses = ["Lunas", "Belum Lunas"]
+DEBITUR_DICHAT = [
+    {"nama": "Rina",  "janji": "18 Apr 2024", "sisa_h": 0,  "sisa_m": 2,  "sisa_s": 15},
+    {"nama": "Yanto", "janji": "19 Apr 2024", "sisa_h": 4,  "sisa_m": 30, "sisa_s": 12},
+    {"nama": "Dewi",  "janji": "20 Apr 2024", "sisa_h": 6,  "sisa_m": 28, "sisa_s": 45},
+]
 
-rows = []
-for i, name in enumerate(customers, start=1):
-    due_days = random.randint(-15, 10)
-    due_date = TODAY + timedelta(days=due_days)
-    loan_amount = random.randint(1_500_000, 15_000_000)
-    paid = random.choice([True, False, False])
-    status = "Lunas" if paid else "Belum Lunas"
-    contacted = random.choice([True, False]) if not paid else True
-    promised = random.choice([True, False]) if contacted and not paid else False
-    promised_date = TODAY + timedelta(days=random.randint(0, 5)) if promised else None
-    visit_deadline = TODAY + timedelta(hours=random.randint(2, 72)) if contacted and promised and not paid else None
+AKTIVITAS = [
+    {"icon": "💬", "text": "Mengirim chat ke Andi",          "waktu": "10 Menit Lalu"},
+    {"icon": "✅", "text": "Konfirmasi janji bayar Siti",    "waktu": "30 Menit Lalu"},
+    {"icon": "📋", "text": "Set Jadwal Kunjungan untuk Dewi","waktu": "1 Jam Lalu"},
+]
 
-    rows.append(
-        {
-            "id": i,
-            "nama": name,
-            "wilayah": random.choice(areas),
-            "collector": random.choice(collectors),
-            "nominal": loan_amount,
-            "jatuh_tempo": due_date,
-            "status": status,
-            "sudah_dichat": contacted,
-            "janji_bayar": promised,
-            "tanggal_janji_bayar": promised_date,
-            "deadline_samperin": visit_deadline,
-            "prioritas": random.choice(["Tinggi", "Sedang", "Rendah"]),
-            "skor_risiko": random.randint(45, 98),
-        }
-    )
+# ─── HELPERS ─────────────────────────────────────────────────────────────────
+def card(parent, row, col, rowspan=1, colspan=1, pad=8, sticky="nsew", bg=BG_CARD):
+    f = tk.Frame(parent, bg=bg, bd=0, relief="flat",
+                 highlightthickness=1, highlightbackground="#D1D5DB")
+    f.grid(row=row, column=col, rowspan=rowspan, columnspan=colspan,
+           padx=pad, pady=pad, sticky=sticky)
+    return f
+
+def label(parent, text, fg=TEXT_DARK, bg=BG_CARD, fnt=FONT_BODY, anchor="w", **kw):
+    return tk.Label(parent, text=text, fg=fg, bg=bg, font=fnt, anchor=anchor, **kw)
+
+def separator(parent, bg="#E2E8F0"):
+    tk.Frame(parent, bg=bg, height=1).pack(fill="x", pady=2)
 
 
-df = pd.DataFrame(rows)
+# ═══════════════════════════════════════════════════════════════════════════════
+class PieChart(tk.Canvas):
+    """Simple pie chart: lunas=65%, belum=35%"""
+    def __init__(self, parent, **kw):
+        super().__init__(parent, width=170, height=170,
+                         bg=BG_CARD, highlightthickness=0, **kw)
+        self._draw()
 
-# =========================
-# Derived data
-# =========================
-total_outstanding = int(df.loc[df["status"] == "Belum Lunas", "nominal"].sum())
-total_accounts = int(len(df))
-paid_accounts = int((df["status"] == "Lunas").sum())
-unpaid_accounts = int((df["status"] == "Belum Lunas").sum())
-contacted_today = int(df[(df["status"] == "Belum Lunas") & (df["sudah_dichat"])].shape[0])
-need_visit = int(df["deadline_samperin"].notna().sum())
+    def _draw(self):
+        cx, cy, r = 85, 85, 72
+        # Belum lunas (35%) => 0° to 126°
+        self._arc(cx, cy, r, -90, 126, RED)
+        # Lunas (65%) => 126° to 360°
+        self._arc(cx, cy, r, 36, 234, GREEN)
+        # Center labels
+        self.create_text(cx-18, cy, text="Belum\nLunas\n35%",
+                         fill=TEXT_WHITE, font=("Segoe UI", 8, "bold"),
+                         justify="center")
+        self.create_text(cx+28, cy, text="Lunas\n65%",
+                         fill=TEXT_WHITE, font=("Segoe UI", 9, "bold"),
+                         justify="center")
 
-paid_pct = round((paid_accounts / total_accounts) * 100, 1) if total_accounts else 0
-unpaid_pct = round((unpaid_accounts / total_accounts) * 100, 1) if total_accounts else 0
-
-jatuh_tempo_chat = df[
-    (df["status"] == "Belum Lunas")
-    & (df["sudah_dichat"] == False)
-    & (df["jatuh_tempo"] <= TODAY + timedelta(days=3))
-].copy()
-
-sudah_chat_visit = df[
-    (df["status"] == "Belum Lunas")
-    & (df["sudah_dichat"])
-    & (df["deadline_samperin"].notna())
-].copy()
-
-
-def countdown_text(target_time):
-    if pd.isna(target_time):
-        return "-"
-    delta = target_time - TODAY
-    seconds = int(delta.total_seconds())
-    if seconds <= 0:
-        return "Lewat deadline"
-    days, rem = divmod(seconds, 86400)
-    hours, rem = divmod(rem, 3600)
-    minutes, _ = divmod(rem, 60)
-    if days > 0:
-        return f"{days}h {hours}j {minutes}m"
-    return f"{hours}j {minutes}m"
+    def _arc(self, cx, cy, r, start, extent, color):
+        x0, y0 = cx - r, cy - r
+        x1, y1 = cx + r, cy + r
+        self.create_arc(x0, y0, x1, y1, start=start, extent=extent,
+                        fill=color, outline="white", width=2, style="pieslice")
 
 
-sudah_chat_visit["countdown_samperin"] = sudah_chat_visit["deadline_samperin"].apply(countdown_text)
+# ═══════════════════════════════════════════════════════════════════════════════
+class LineChart(tk.Canvas):
+    """Simple line/area chart"""
+    def __init__(self, parent, **kw):
+        super().__init__(parent, width=310, height=150,
+                         bg=BG_CARD, highlightthickness=0, **kw)
+        self._draw()
 
-collector_perf = (
-    df.groupby("collector", as_index=False)
-    .agg(
-        total_debitur=("id", "count"),
-        total_lunas=("status", lambda x: (x == "Lunas").sum()),
-        total_belum_lunas=("status", lambda x: (x == "Belum Lunas").sum()),
-        total_nominal=("nominal", "sum"),
-    )
-)
-collector_perf["success_rate"] = (
-    (collector_perf["total_lunas"] / collector_perf["total_debitur"]) * 100
-).round(1)
+    def _draw(self):
+        W, H = 310, 150
+        pad_l, pad_r, pad_t, pad_b = 40, 10, 15, 30
+        points_pct = [8, 10, 38, 40, 20]
+        n = len(points_pct)
+        xs = [pad_l + i * (W - pad_l - pad_r) / (n - 1) for i in range(n)]
+        ys = [pad_t + (1 - p/50) * (H - pad_t - pad_b) for p in points_pct]
 
-priority_breakdown = (
-    df[df["status"] == "Belum Lunas"]
-    .groupby("prioritas", as_index=False)
-    .agg(jumlah=("id", "count"))
-)
+        # Y-axis labels
+        for pct, y_frac in [(0, 1.0), (10, 0.8), (22, 0.56), (40, 0.2)]:
+            y = pad_t + y_frac * (H - pad_t - pad_b)
+            self.create_text(pad_l - 5, y, text=f"{pct}%",
+                             anchor="e", font=("Segoe UI", 7), fill=TEXT_LIGHT)
+            self.create_line(pad_l, y, W - pad_r, y,
+                             fill="#E2E8F0", dash=(3, 3))
 
-recent_activities = pd.DataFrame(
-    [
-        {"waktu": "10 menit lalu", "aktivitas": "Chat pengingat dikirim ke Andi Pratama"},
-        {"waktu": "25 menit lalu", "aktivitas": "Rina Marlina janji bayar besok"},
-        {"waktu": "45 menit lalu", "aktivitas": "Jadwal kunjungan dibuat untuk Yanto Wijaya"},
-        {"waktu": "1 jam lalu", "aktivitas": "Pembayaran masuk dari Budi Santoso"},
-        {"waktu": "2 jam lalu", "aktivitas": "Data kontak Dewi Lestari diperbarui"},
-    ]
-)
+        # Area fill
+        poly_pts = [pad_l, H - pad_b]
+        for x, y in zip(xs, ys):
+            poly_pts += [x, y]
+        poly_pts += [W - pad_r, H - pad_b]
+        self.create_polygon(poly_pts, fill="#BFDBFE", outline="")
 
-# =========================
-# UI
-# =========================
-st.title("💳 Dashboard Admin Debt Collector")
-st.caption("Versi dummy data untuk kebutuhan prototyping")
+        # Line
+        coords = []
+        for x, y in zip(xs, ys):
+            coords += [x, y]
+        self.create_line(coords, fill=BLUE, width=2, smooth=True)
 
-with st.sidebar:
-    st.header("Filter")
-    selected_area = st.multiselect("Wilayah", options=sorted(df["wilayah"].unique()), default=sorted(df["wilayah"].unique()))
-    selected_collector = st.multiselect("Collector", options=sorted(df["collector"].unique()), default=sorted(df["collector"].unique()))
-    selected_priority = st.multiselect("Prioritas", options=sorted(df["prioritas"].unique()), default=sorted(df["prioritas"].unique()))
+        # Dots
+        for x, y in zip(xs, ys):
+            self.create_oval(x-4, y-4, x+4, y+4, fill="white", outline=BLUE, width=2)
 
-filtered_df = df[
-    df["wilayah"].isin(selected_area)
-    & df["collector"].isin(selected_collector)
-    & df["prioritas"].isin(selected_priority)
-].copy()
 
-# Recalculate after filters
-ftotal_outstanding = int(filtered_df.loc[filtered_df["status"] == "Belum Lunas", "nominal"].sum())
-ftotal_accounts = int(len(filtered_df))
-ffully_paid = int((filtered_df["status"] == "Lunas").sum())
-funpaid = int((filtered_df["status"] == "Belum Lunas").sum())
-fpaid_pct = round((ffully_paid / ftotal_accounts) * 100, 1) if ftotal_accounts else 0
-funpaid_pct = round((funpaid / ftotal_accounts) * 100, 1) if ftotal_accounts else 0
-fcontacted = int(filtered_df[(filtered_df["status"] == "Belum Lunas") & (filtered_df["sudah_dichat"])].shape[0])
-fneed_visit = int(filtered_df["deadline_samperin"].notna().sum())
+# ═══════════════════════════════════════════════════════════════════════════════
+class CountdownLabel(tk.Label):
+    """Self-updating HH:MM:SS countdown label"""
+    def __init__(self, parent, hours, minutes, seconds, color="#22C55E", **kw):
+        super().__init__(parent, font=FONT_TIMER,
+                         fg=TEXT_WHITE, bg=color,
+                         padx=8, pady=3, relief="flat", **kw)
+        self._color = color
+        self._total = hours * 3600 + minutes * 60 + seconds
+        self._running = True
+        self._tick()
 
-fjatuh_tempo_chat = filtered_df[
-    (filtered_df["status"] == "Belum Lunas")
-    & (filtered_df["sudah_dichat"] == False)
-    & (filtered_df["jatuh_tempo"] <= TODAY + timedelta(days=3))
-].copy()
+    def _tick(self):
+        if not self._running:
+            return
+        h = self._total // 3600
+        m = (self._total % 3600) // 60
+        s = self._total % 60
+        self.config(text=f"{h:02d}:{m:02d}:{s:02d}")
+        if self._total > 0:
+            self._total -= 1
+        self.after(1000, self._tick)
 
-fsudah_chat_visit = filtered_df[
-    (filtered_df["status"] == "Belum Lunas")
-    & (filtered_df["sudah_dichat"])
-    & (filtered_df["deadline_samperin"].notna())
-].copy()
-fsudah_chat_visit["countdown_samperin"] = fsudah_chat_visit["deadline_samperin"].apply(countdown_text)
+    def stop(self):
+        self._running = False
 
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("Total Tunggakan", format_rupiah(ftotal_outstanding))
-col2.metric("Total Debitur", ftotal_accounts)
-col3.metric("Sudah Dichat", fcontacted)
-col4.metric("Perlu Disamperin", fneed_visit)
 
-left, right = st.columns([1, 1])
+# ═══════════════════════════════════════════════════════════════════════════════
+class NagihUtangApp(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("Nagih Utang Dashboard")
+        self.configure(bg=BG_MAIN)
+        self.geometry("1100x780")
+        self.resizable(True, True)
+        self._build()
 
-with left:
-    st.subheader("Persentase Pelunasan")
-    pie_df = pd.DataFrame(
-        {
-            "status": ["Lunas", "Belum Lunas"],
-            "jumlah": [ffully_paid, funpaid],
-        }
-    )
-    fig_pie = px.pie(
-        pie_df,
-        names="status",
-        values="jumlah",
-        hole=0.45,
-        title=None,
-    )
-    st.plotly_chart(fig_pie, use_container_width=True)
-    st.progress(int(fpaid_pct), text=f"Lunas {fpaid_pct}%")
-    st.progress(int(funpaid_pct), text=f"Belum Lunas {funpaid_pct}%")
+    # ── BUILD ─────────────────────────────────────────────────────────────────
+    def _build(self):
+        self._header()
+        self._kpi_row()
+        self._middle_section()
+        self._bottom_section()
 
-with right:
-    st.subheader("Distribusi Prioritas Debitur")
-    pr_df = (
-        filtered_df[filtered_df["status"] == "Belum Lunas"]
-        .groupby("prioritas", as_index=False)
-        .agg(jumlah=("id", "count"))
-    )
-    if not pr_df.empty:
-        fig_bar = px.bar(pr_df, x="prioritas", y="jumlah", text="jumlah")
-        st.plotly_chart(fig_bar, use_container_width=True)
-    else:
-        st.info("Tidak ada data prioritas untuk filter ini.")
+    # ── HEADER ────────────────────────────────────────────────────────────────
+    def _header(self):
+        hf = tk.Frame(self, bg=BG_HEADER, pady=14, padx=20)
+        hf.pack(fill="x")
 
-col_a, col_b = st.columns(2)
+        # Icon + title
+        left = tk.Frame(hf, bg=BG_HEADER)
+        left.pack(side="left")
+        tk.Label(left, text="☰", fg=TEXT_WHITE, bg=BG_HEADER,
+                 font=("Segoe UI", 16)).pack(side="left", padx=(0, 12))
+        tk.Label(left, text="Nagih Utang", fg=TEXT_WHITE, bg=BG_HEADER,
+                 font=("Segoe UI", 18, "bold")).pack(side="left")
+        tk.Label(left, text=" Dashboard", fg="#93C5FD", bg=BG_HEADER,
+                 font=("Segoe UI", 18)).pack(side="left")
 
-with col_a:
-    st.subheader("Tabel yang Harus Dichat (Jatuh Tempo)")
-    chat_table = fjatuh_tempo_chat[[
-        "nama", "wilayah", "collector", "nominal", "jatuh_tempo", "prioritas", "skor_risiko"
-    ]].copy()
-    if not chat_table.empty:
-        chat_table["nominal"] = chat_table["nominal"].apply(format_rupiah)
-        chat_table["jatuh_tempo"] = pd.to_datetime(chat_table["jatuh_tempo"]).dt.strftime("%d-%m-%Y")
-        st.dataframe(chat_table, use_container_width=True, hide_index=True)
-    else:
-        st.success("Tidak ada debitur jatuh tempo yang belum dichat.")
+        # Admin badge
+        right = tk.Frame(hf, bg=BG_HEADER)
+        right.pack(side="right")
+        tk.Label(right, text="👤", fg=TEXT_WHITE, bg=BG_HEADER,
+                 font=("Segoe UI", 16)).pack(side="left")
+        info = tk.Frame(right, bg=BG_HEADER)
+        info.pack(side="left", padx=(6, 0))
+        tk.Label(info, text="Admin", fg=TEXT_WHITE, bg=BG_HEADER,
+                 font=("Segoe UI", 11, "bold")).pack(anchor="w")
+        tk.Label(info, text="Collector", fg="#93C5FD", bg=BG_HEADER,
+                 font=("Segoe UI", 8)).pack(anchor="w")
 
-with col_b:
-    st.subheader("Tabel yang Sudah Dichat dan Countdown Disamperin")
-    visit_table = fsudah_chat_visit[[
-        "nama", "wilayah", "collector", "tanggal_janji_bayar", "countdown_samperin", "prioritas"
-    ]].copy()
-    if not visit_table.empty:
-        visit_table["tanggal_janji_bayar"] = pd.to_datetime(visit_table["tanggal_janji_bayar"]).dt.strftime("%d-%m-%Y")
-        st.dataframe(visit_table, use_container_width=True, hide_index=True)
-    else:
-        st.info("Belum ada data follow-up kunjungan.")
+    # ── KPI ROW ───────────────────────────────────────────────────────────────
+    def _kpi_row(self):
+        kf = tk.Frame(self, bg=BG_MAIN)
+        kf.pack(fill="x", padx=16, pady=(12, 0))
+        for i in range(4):
+            kf.columnconfigure(i, weight=1)
 
-bottom_left, bottom_right = st.columns([1.1, 0.9])
+        kpis = [
+            ("🎯", "Total Tunggakan",      "Rp 120.500.000", RED),
+            ("💵", "Pembayaran Bulan Ini", "Rp 25.750.000",  GREEN),
+            ("👤", "Debitur Aktif",        "87 Orang",       BLUE),
+            ("📊", "Target Minggu Ini",    "80 / 100 Tercapai", ORANGE),
+        ]
+        for i, (icon, lbl, val, color) in enumerate(kpis):
+            cf = tk.Frame(kf, bg=BG_CARD,
+                          highlightthickness=1, highlightbackground="#D1D5DB")
+            cf.grid(row=0, column=i, padx=6, pady=6, sticky="nsew")
+            inner = tk.Frame(cf, bg=BG_CARD, padx=14, pady=12)
+            inner.pack(fill="both", expand=True)
 
-with bottom_left:
-    st.subheader("Performa Collector")
-    cperf = (
-        filtered_df.groupby("collector", as_index=False)
-        .agg(
-            total_debitur=("id", "count"),
-            lunas=("status", lambda x: (x == "Lunas").sum()),
-            belum_lunas=("status", lambda x: (x == "Belum Lunas").sum()),
-            total_nominal=("nominal", "sum"),
-        )
-    )
-    if not cperf.empty:
-        cperf["success_rate"] = ((cperf["lunas"] / cperf["total_debitur"]) * 100).round(1)
-        cperf["total_nominal"] = cperf["total_nominal"].apply(format_rupiah)
-        st.dataframe(cperf, use_container_width=True, hide_index=True)
-    else:
-        st.info("Belum ada data collector.")
+            top = tk.Frame(inner, bg=BG_CARD)
+            top.pack(fill="x")
+            # Color dot icon
+            ic = tk.Label(top, text=icon, bg=BG_CARD, font=("Segoe UI", 18))
+            ic.pack(side="left")
+            tk.Label(top, text=lbl, fg=TEXT_MID, bg=BG_CARD,
+                     font=FONT_SMALL).pack(side="left", padx=(8, 0))
+            tk.Label(inner, text=val, fg=TEXT_DARK, bg=BG_CARD,
+                     font=("Segoe UI", 16, "bold"), anchor="w").pack(fill="x", pady=(4, 0))
 
-with bottom_right:
-    st.subheader("Aktivitas Terbaru")
-    st.dataframe(recent_activities, use_container_width=True, hide_index=True)
+    # ── MIDDLE ────────────────────────────────────────────────────────────────
+    def _middle_section(self):
+        mf = tk.Frame(self, bg=BG_MAIN)
+        mf.pack(fill="both", expand=True, padx=16, pady=8)
+        mf.columnconfigure(0, weight=2)
+        mf.columnconfigure(1, weight=3)
+        mf.columnconfigure(2, weight=2)
+        mf.rowconfigure(0, weight=1)
+        mf.rowconfigure(1, weight=1)
 
-st.markdown("---")
-st.subheader("Semua Data Debitur")
-all_table = filtered_df[[
-    "id", "nama", "wilayah", "collector", "nominal", "status", "jatuh_tempo",
-    "sudah_dichat", "janji_bayar", "prioritas", "skor_risiko"
-]].copy()
-all_table["nominal"] = all_table["nominal"].apply(format_rupiah)
-all_table["jatuh_tempo"] = pd.to_datetime(all_table["jatuh_tempo"]).dt.strftime("%d-%m-%Y")
-st.dataframe(all_table, use_container_width=True, hide_index=True)
+        self._pie_panel(mf)
+        self._line_chart_panel(mf)
+        self._statistik_panel(mf)
+        self._jatuh_tempo_panel(mf)
+        self._sudah_dichat_panel(mf)
 
-st.caption("Catatan: ini masih dummy data. Langkah berikutnya tinggal saya sambungkan ke database/API Anda.")
+    def _pie_panel(self, parent):
+        cf = card(parent, 0, 0, rowspan=2)
+        tk.Label(cf, text="Status Pelunasan", fg=TEXT_DARK, bg=BG_CARD,
+                 font=FONT_HEAD).pack(anchor="w", padx=14, pady=(12, 6))
+        separator(cf)
+
+        PieChart(cf).pack(pady=4)
+
+        # Legend bars
+        for lbl_txt, pct, color in [("Lunas", 65, GREEN), ("Belum Lunas", 35, RED)]:
+            row = tk.Frame(cf, bg=BG_CARD)
+            row.pack(fill="x", padx=14, pady=3)
+            tk.Label(row, text="●", fg=color, bg=BG_CARD,
+                     font=("Segoe UI", 12)).pack(side="left")
+            tk.Label(row, text=lbl_txt, fg=TEXT_DARK, bg=BG_CARD,
+                     font=FONT_BODY).pack(side="left", padx=(4, 8))
+            # Bar
+            bar_frame = tk.Frame(row, bg="#E2E8F0", height=10, width=100)
+            bar_frame.pack(side="left", padx=(0, 8))
+            bar_frame.pack_propagate(False)
+            fill_w = int(pct * 1.0)
+            tk.Frame(bar_frame, bg=color, height=10, width=fill_w).pack(side="left")
+            tk.Label(row, text=f"{pct}%", fg=color, bg=BG_CARD,
+                     font=FONT_BODY_B).pack(side="left")
+
+    def _line_chart_panel(self, parent):
+        cf = card(parent, 0, 1)
+        LineChart(cf).pack(fill="both", expand=True, padx=8, pady=8)
+
+    def _statistik_panel(self, parent):
+        cf = card(parent, 0, 2)
+        tk.Label(cf, text="Statistik", fg=TEXT_DARK, bg=BG_CARD,
+                 font=FONT_HEAD).pack(anchor="w", padx=14, pady=(12, 6))
+        separator(cf)
+
+        stats = [
+            ("Chat Terkirim Hari Ini", "25"),
+            ("Janji Bayar",            "18 Orang"),
+            ("Kunjungan Dijadwalkan",  "7 Debitur"),
+        ]
+        for i, (lbl_txt, val) in enumerate(stats):
+            row = tk.Frame(cf, bg=BG_CARD)
+            row.pack(fill="x", padx=14, pady=8)
+            tk.Label(row, text=lbl_txt, fg=TEXT_MID, bg=BG_CARD,
+                     font=FONT_BODY).pack(side="left")
+            tk.Label(row, text=val, fg=TEXT_DARK, bg=BG_CARD,
+                     font=("Segoe UI", 14, "bold")).pack(side="right")
+            if i < len(stats) - 1:
+                separator(cf)
+
+    def _jatuh_tempo_panel(self, parent):
+        cf = card(parent, 1, 1)
+        hdr = tk.Frame(cf, bg=BG_CARD)
+        hdr.pack(fill="x", padx=14, pady=(12, 4))
+        tk.Label(hdr, text="Jatuh Tempo", fg=TEXT_DARK, bg=BG_CARD,
+                 font=FONT_HEAD).pack(side="left")
+        tk.Label(hdr, text="– Harus Dichat", fg=RED, bg=BG_CARD,
+                 font=FONT_HEAD).pack(side="left")
+
+        # Table header
+        cols = ["Nama Debitur", "Nominal", "Tgl Jatuh Tempo"]
+        widths = [130, 130, 130]
+        th = tk.Frame(cf, bg=BG_TABLE_H)
+        th.pack(fill="x", padx=14)
+        for col, w in zip(cols, widths):
+            tk.Label(th, text=col, fg=TEXT_WHITE, bg=BG_TABLE_H,
+                     font=FONT_BODY_B, width=w//8, anchor="w",
+                     padx=8, pady=6).pack(side="left")
+
+        # Rows
+        for i, d in enumerate(DEBITUR_JATUH_TEMPO):
+            bg = BG_TABLE_A if i % 2 == 0 else BG_TABLE_R
+            row = tk.Frame(cf, bg=bg)
+            row.pack(fill="x", padx=14)
+            vals = [d["nama"], d["nominal"], d["tgl"]]
+            for v, w in zip(vals, widths):
+                tk.Label(row, text=v, fg=TEXT_DARK, bg=bg,
+                         font=FONT_BODY, width=w//8, anchor="w",
+                         padx=8, pady=5).pack(side="left")
+
+    def _sudah_dichat_panel(self, parent):
+        cf = card(parent, 1, 2)
+        hdr = tk.Frame(cf, bg=BG_CARD)
+        hdr.pack(fill="x", padx=14, pady=(12, 4))
+        tk.Label(hdr, text="Sudah Dichat", fg=TEXT_DARK, bg=BG_CARD,
+                 font=FONT_HEAD).pack(side="left")
+        tk.Label(hdr, text=" – Siap Disamperin", fg=GREEN, bg=BG_CARD,
+                 font=FONT_HEAD).pack(side="left")
+
+        # Table header
+        cols  = ["Nama Debitur", "Janji Bayar", "Countdown"]
+        widths = [110, 100, 90]
+        th = tk.Frame(cf, bg=BG_TABLE_H)
+        th.pack(fill="x", padx=14)
+        for col, w in zip(cols, widths):
+            tk.Label(th, text=col, fg=TEXT_WHITE, bg=BG_TABLE_H,
+                     font=FONT_BODY_B, width=w//8, anchor="w",
+                     padx=6, pady=6).pack(side="left")
+
+        # Rows with countdown
+        cd_colors = [GREEN, ORANGE, RED]
+        for i, (d, color) in enumerate(zip(DEBITUR_DICHAT, cd_colors)):
+            bg = BG_TABLE_A if i % 2 == 0 else BG_TABLE_R
+            row = tk.Frame(cf, bg=bg)
+            row.pack(fill="x", padx=14)
+
+            tk.Label(row, text=d["nama"], fg=TEXT_DARK, bg=bg,
+                     font=FONT_BODY, width=110//8, anchor="w",
+                     padx=6, pady=5).pack(side="left")
+            tk.Label(row, text=d["janji"], fg=TEXT_DARK, bg=bg,
+                     font=FONT_BODY, width=100//8, anchor="w",
+                     padx=6, pady=5).pack(side="left")
+            CountdownLabel(row,
+                           hours=d["sisa_h"],
+                           minutes=d["sisa_m"],
+                           seconds=d["sisa_s"],
+                           color=color).pack(side="left", padx=4, pady=3)
+
+    # ── BOTTOM ────────────────────────────────────────────────────────────────
+    def _bottom_section(self):
+        bf = tk.Frame(self, bg=BG_MAIN)
+        bf.pack(fill="x", padx=16, pady=(0, 12))
+        bf.columnconfigure(0, weight=1)
+        bf.columnconfigure(1, weight=2)
+
+        self._reminder_panel(bf)
+        self._aktivitas_panel(bf)
+
+    def _reminder_panel(self, parent):
+        cf = card(parent, 0, 0)
+        tk.Label(cf, text="Reminder Kunjungan", fg=TEXT_DARK, bg=BG_CARD,
+                 font=FONT_HEAD).pack(anchor="w", padx=14, pady=(12, 6))
+        separator(cf)
+
+        reminders = [
+            "Kunjungi Rina sebelum jam 3 sore",
+            "Siapkan berkas untuk Yanto",
+        ]
+        for r in reminders:
+            row = tk.Frame(cf, bg=BG_CARD)
+            row.pack(fill="x", padx=14, pady=6)
+            tk.Label(row, text="●", fg=BLUE, bg=BG_CARD,
+                     font=("Segoe UI", 12)).pack(side="left")
+            tk.Label(row, text=r, fg=TEXT_DARK, bg=BG_CARD,
+                     font=FONT_BODY).pack(side="left", padx=(6, 0))
+            separator(cf)
+
+    def _aktivitas_panel(self, parent):
+        cf = card(parent, 0, 1)
+        tk.Label(cf, text="Aktivitas Terbaru", fg=TEXT_DARK, bg=BG_CARD,
+                 font=FONT_HEAD).pack(anchor="w", padx=14, pady=(12, 6))
+        separator(cf)
+
+        for a in AKTIVITAS:
+            row = tk.Frame(cf, bg=BG_CARD)
+            row.pack(fill="x", padx=14, pady=6)
+
+            # Icon bubble
+            ib = tk.Label(row, text=a["icon"], bg=BLUE_LIGHT,
+                          font=("Segoe UI", 14), padx=4, pady=2)
+            ib.pack(side="left", padx=(0, 10))
+
+            # Bold last word in text
+            tk.Label(row, text=a["text"], fg=TEXT_DARK, bg=BG_CARD,
+                     font=FONT_BODY).pack(side="left")
+
+            tk.Label(row, text=a["waktu"], fg=TEXT_LIGHT, bg=BG_CARD,
+                     font=FONT_SMALL).pack(side="right", padx=(0, 8))
+            tk.Label(row, text="›", fg=TEXT_LIGHT, bg=BG_CARD,
+                     font=("Segoe UI", 14)).pack(side="right")
+            separator(cf)
+
+
+# ─── MAIN ─────────────────────────────────────────────────────────────────────
+if __name__ == "__main__":
+    app = NagihUtangApp()
+    app.mainloop()
