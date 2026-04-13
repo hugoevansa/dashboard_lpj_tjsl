@@ -12,6 +12,50 @@ st.set_page_config(
 
 # ─── CSS ──────────────────────────────────────────────────────────────────────
 st.markdown("""
+.detail-card {
+    background: linear-gradient(135deg, #fff8fa, #fdf0f4);
+    border: 1.5px solid #e8c8d4;
+    border-radius: 18px;
+    padding: 18px 20px;
+    margin: 8px 0 14px 0;
+    box-shadow: 0 4px 20px rgba(92,18,41,0.08);
+}
+
+.detail-title {
+    font-size: 1.02rem;
+    font-weight: 900;
+    color: var(--maroon-dark);
+    margin-bottom: 12px;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 8px 14px;
+    align-items: start;
+}
+
+.detail-label {
+    font-weight: 800;
+    color: var(--muted);
+}
+
+.detail-value {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.detail-link {
+    display: inline-block;
+    margin-top: 12px;
+    background: linear-gradient(180deg, var(--maroon) 0%, var(--maroon-dark) 100%);
+    color: white !important;
+    padding: 9px 14px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 0.88rem;
+}
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=DM+Mono:wght@500&display=swap');
 
@@ -429,6 +473,81 @@ def load_data():
             continue
     raise Exception("Gagal mengambil data dari Google Sheets.")
 
+DOKUMEN_BANTUAN_URL = "https://drive.google.com/drive/folders/1lK2DACKjYI4vLVDhlW-XtXyIal_cpmA4?usp=sharing"
+
+def nama_penerima_dari_row(row):
+    # Karena sheet belum punya kolom "Nama Penerima", sementara pakai PIC sebagai fallback
+    # Kalau nanti kamu tambahkan kolom "Nama Penerima", tinggal ganti fungsi ini.
+    return row.get("PIC", "-") if pd.notna(row.get("PIC", None)) else "-"
+
+
+def render_prioritas_interaktif(df, title_key="prioritas"):
+    if df.empty:
+        st.info("Tidak ada data.")
+        return
+
+    for idx, row in df.reset_index(drop=True).iterrows():
+        nama_bantuan = row.get("Nama Bantuan", "-")
+        jumlah = fmt_rupiah(row.get("Jumlah Bantuan (Rp)", None))
+        aksi_chat = row.get("Klasifikasi Chat", "")
+        tanggal_chat = fmt_tgl(row.get("Tanggal Chat", pd.NaT)) if pd.notna(row.get("Tanggal Chat", pd.NaT)) else "-"
+        jeda_chat = row.get("Label Jeda Chat", "")
+        if not jeda_chat:
+            jeda_chat = "-"
+
+        aksi_chip = chip_aksi_chat(aksi_chat)
+
+        judul = f"{nama_bantuan} | {jumlah}"
+
+        with st.expander(judul, expanded=False):
+            c1, c2, c3, c4, c5 = st.columns([3, 2, 2, 2, 2])
+
+            with c1:
+                st.markdown(f"**Informasi Nama**  \n{nama_bantuan}")
+            with c2:
+                st.markdown(f"**Jumlah**  \n{jumlah}")
+            with c3:
+                st.markdown(f"**Aksi Chat**  \n{aksi_chip}", unsafe_allow_html=True)
+            with c4:
+                st.markdown(f"**Tanggal Chat**  \n{tanggal_chat}")
+            with c5:
+                st.markdown(f"**Jeda Chat**  \n{jeda_chat}")
+
+            st.markdown(f"""
+            <div class="detail-card">
+                <div class="detail-title">Detail Penerima Bantuan</div>
+                <div class="detail-grid">
+                    <div class="detail-label">Nama Bantuan</div>
+                    <div class="detail-value">{nama_bantuan}</div>
+
+                    <div class="detail-label">Jumlah Bantuan</div>
+                    <div class="detail-value">{jumlah}</div>
+
+                    <div class="detail-label">Nama Penerima</div>
+                    <div class="detail-value">{nama_penerima_dari_row(row)}</div>
+
+                    <div class="detail-label">No HP</div>
+                    <div class="detail-value">{row.get("No Hp Penerima", "-") if row.get("No Hp Penerima", "") != "" else "-"}</div>
+
+                    <div class="detail-label">Tanggal Di Bantu</div>
+                    <div class="detail-value">{fmt_tgl(row.get("Tanggal Dibantu", pd.NaT)) if pd.notna(row.get("Tanggal Dibantu", pd.NaT)) else "-"}</div>
+
+                    <div class="detail-label">Tenggat</div>
+                    <div class="detail-value">{fmt_tgl(row.get("Tenggat", pd.NaT)) if pd.notna(row.get("Tenggat", pd.NaT)) else "-"}</div>
+
+                    <div class="detail-label">Telat Berapa Hari</div>
+                    <div class="detail-value">{int(row.get("Terlambat Hari", 0))} hari</div>
+
+                    <div class="detail-label">Aksi Chat</div>
+                    <div class="detail-value">{aksi_chip}</div>
+                </div>
+
+                <a class="detail-link" href="{DOKUMEN_BANTUAN_URL}" target="_blank">
+                    📁 Link Dokumen Bantuan
+                </a>
+            </div>
+            """, unsafe_allow_html=True)
+
 # ─── LOAD & PREPARE ──────────────────────────────────────────────────────────
 try:
     data = load_data()
@@ -716,51 +835,28 @@ st.markdown(f'<div class="section-sub">{len(prioritas)} penerima bantuan perlu s
 if prioritas.empty:
     st.success("✅ Tidak ada penerima bantuan yang jatuh tempo.")
 else:
-    # Split data
     prioritas_belum_chat = prioritas[prioritas["Chat Normal"] == "Belum di Chat"].copy()
     prioritas_sudah_chat = prioritas[prioritas["Chat Normal"] == "Sudah di Chat"].copy()
 
-    col_kiri, col_kanan = st.columns(2, gap="large")
+    kiri, kanan = st.columns(2, gap="large")
 
-    # =========================
-    # KIRI — BELUM DI CHAT
-    # =========================
-    with col_kiri:
+    with kiri:
         st.markdown('<div class="section-head">📩 Belum di Chat</div>', unsafe_allow_html=True)
         st.markdown(
             f'<div class="section-sub">{len(prioritas_belum_chat)} penerima bantuan belum dihubungi</div>',
             unsafe_allow_html=True
         )
+        render_prioritas_interaktif(prioritas_belum_chat, title_key="belum_chat")
 
-        if prioritas_belum_chat.empty:
-            st.info("Tidak ada penerima bantuan di kategori ini.")
-        else:
-            pv_belum = prioritas_belum_chat[
-                [
-                    "Nama Bantuan", "Jumlah Bantuan (Rp)", "Tanggal Dibantu", "Tenggat",
-                    "PIC", "No Hp Penerima", "Klasifikasi Chat", "Terlambat Hari"
-                ]
-            ].copy()
+    with kanan:
+        st.markdown('<div class="section-head">💬 Sudah di Chat</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="section-sub">{len(prioritas_sudah_chat)} penerima bantuan sudah dihubungi</div>',
+            unsafe_allow_html=True
+        )
+        render_prioritas_interaktif(prioritas_sudah_chat, title_key="sudah_chat")
 
-            pv_belum["Jumlah Bantuan (Rp)"] = pv_belum["Jumlah Bantuan (Rp)"].apply(fmt_rupiah)
-            pv_belum["Tanggal Dibantu"]     = pv_belum["Tanggal Dibantu"].apply(fmt_tgl)
-            pv_belum["Tenggat"]             = pv_belum["Tenggat"].apply(fmt_tgl)
-            pv_belum["No Hp Penerima"]      = pv_belum["No Hp Penerima"].replace("", "-")
-            pv_belum["Aksi Chat"]           = pv_belum["Klasifikasi Chat"].apply(chip_aksi_chat)
-            pv_belum["Terlambat Hari"]      = pv_belum["Terlambat Hari"].apply(lambda x: f"{int(x)} hari")
-            pv_belum["Status"]              = '<span class="chip chip-jatuh">Jatuh Tempo</span>'
-
-            pv_belum = pv_belum.drop(columns=["Klasifikasi Chat"])
-
-            pv_belum = pv_belum[
-                [
-                    "Nama Bantuan", "Jumlah Bantuan (Rp)", "Tanggal Dibantu", "Tenggat",
-                    "PIC", "No Hp Penerima", "Aksi Chat", "Terlambat Hari", "Status"
-                ]
-            ]
-
-            st.markdown(df_to_html(pv_belum, max_height=360), unsafe_allow_html=True)
-
+st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
     # =========================
     # KANAN — SUDAH DI CHAT
     # =========================
