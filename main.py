@@ -679,7 +679,7 @@ else:
             st.info("Tidak ada penerima bantuan di kategori ini.")
         else:
             # ── Tabel (layout kodingan 2) ────────────────────────────────────
-                pv_belum = prioritas_belum_chat[[
+            pv_belum = prioritas_belum_chat[[
                 "Nama Bantuan", "Jumlah Bantuan (Rp)", "No Hp Penerima", "Chat Normal", "Klasifikasi Chat"
             ]].copy()
             
@@ -706,7 +706,7 @@ else:
             st.info("Tidak ada penerima bantuan di kategori ini.")
         else:
             # ── Tabel (layout kodingan 2) ────────────────────────────────────
-                pv_sudah = prioritas_sudah_chat[[
+            pv_sudah = prioritas_sudah_chat[[
                 "Nama Bantuan", "Jumlah Bantuan (Rp)", "No Hp Penerima",
                 "Chat Normal", "Klasifikasi Chat"
             ]].copy()
