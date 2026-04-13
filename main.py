@@ -600,7 +600,7 @@ with f1:
     ].fillna(0).sum()
 
     st.markdown(f"""
-    <div class="kpi-wrap">
+    <div class="kpi-wrap kpi-small">
         <div class="kpi-label">UANG LUNAS / TOTAL</div>
         <div class="kpi-value">
             {fmt_rupiah(total_nominal_lunas)}
