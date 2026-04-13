@@ -1,9 +1,8 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-from io import StringIO
-from urllib.parse import quote
 import requests
+from io import StringIO
 
 st.set_page_config(
     page_title="Dashboard Penerima Bantuan",
@@ -14,7 +13,7 @@ st.set_page_config(
 st.title("📊 Dashboard Penerima Bantuan")
 
 # =========================
-# GOOGLE SHEET CONFIG
+# GOOGLE SHEETS CONFIG
 # =========================
 SHEET_ID = "1wi4id0XqYlTuw_KO89-cOLSPTFAQ6ODv_tH09LK_2Ao"
 GID = "0"
@@ -24,7 +23,7 @@ GVIZ_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:c
 
 
 # =========================
-# HELPER
+# HELPER FUNCTIONS
 # =========================
 def format_rupiah(x):
     if pd.isna(x):
@@ -36,77 +35,37 @@ def format_tanggal_indo(x):
     if pd.isna(x):
         return "-"
     bulan = {
-        1: "Januari", 2: "Februari", 3: "Maret", 4: "April",
-        5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus",
-        9: "September", 10: "Oktober", 11: "November", 12: "Desember"
+        1: "Januari",
+        2: "Februari",
+        3: "Maret",
+        4: "April",
+        5: "Mei",
+        6: "Juni",
+        7: "Juli",
+        8: "Agustus",
+        9: "September",
+        10: "Oktober",
+        11: "November",
+        12: "Desember",
     }
     return f"{x.day} {bulan[x.month]} {x.year}"
 
 
-def clean_numeric(series):
+def clean_currency(series):
     return pd.to_numeric(
         series.astype(str)
         .str.replace("Rp", "", regex=False)
         .str.replace(".", "", regex=False)
         .str.replace(",", "", regex=False)
-        .str.replace(" ", "", regex=False)
         .str.strip(),
         errors="coerce"
     )
 
 
-def normalize_columns(df):
-    df.columns = [str(col).strip() for col in df.columns]
-
-    aliases = {
-        "Nama": "Nama Penerima Bantuan",
-        "Penerima Bantuan": "Nama Penerima Bantuan",
-        "Nama_Penerima_Bantuan": "Nama Penerima Bantuan",
-        "Nama Nasabah": "Nama Penerima Bantuan",
-        "No HP": "Kontak",
-        "No_HP": "Kontak",
-        "Phone": "Kontak",
-        "Nominal": "Pinjaman",
-        "Total Pinjaman": "Pinjaman",
-        "Total": "Pinjaman",
-        "Sisa Pinjaman": "Sisa",
-        "Outstanding": "Sisa",
-        "Tahun Bantuan": "Tahun",
-        "Tanggal Jatuh Tempo": "Jatuh Tempo",
-        "Jatuh_Tempo": "Jatuh Tempo",
-        "Status Final": "Status"
-    }
-
-    df = df.rename(columns={k: v for k, v in aliases.items() if k in df.columns})
-
-    required_cols = [
-        "ID", "Nama Penerima Bantuan", "Email", "Tahun",
-        "Pinjaman", "Dibayar", "Sisa",
-        "Jatuh Tempo", "Status", "Kontak"
-    ]
-
-    for col in required_cols:
-        if col not in df.columns:
-            df[col] = None
-
-    return df
-
-
-def normalize_status(row):
-    status = str(row.get("Status", "")).strip().lower()
-    sisa = row.get("Sisa", 0)
-    jatuh_tempo = row.get("Jatuh Tempo", pd.NaT)
-    today = pd.Timestamp.today().normalize()
-
-    if pd.notna(sisa) and sisa <= 0:
-        return "Lunas"
-
+def normalize_status(status):
+    status = str(status).strip().lower()
     if status in ["lunas", "sudah lunas"]:
         return "Lunas"
-
-    if pd.notna(jatuh_tempo) and jatuh_tempo < today:
-        return "Jatuh Tempo"
-
     return "Belum Lunas"
 
 
@@ -114,7 +73,7 @@ def normalize_status(row):
 def load_data():
     errors = []
 
-    # Cara 1: export CSV langsung
+    # Cara 1: export csv
     try:
         r = requests.get(CSV_URL, timeout=20)
         r.raise_for_status()
@@ -124,7 +83,7 @@ def load_data():
     except Exception as e:
         errors.append(f"CSV export gagal: {e}")
 
-    # Cara 2: gviz fallback
+    # Cara 2: fallback gviz
     try:
         r = requests.get(GVIZ_URL, timeout=20)
         r.raise_for_status()
@@ -144,30 +103,49 @@ try:
     data = load_data()
 except Exception as e:
     st.error("Gagal mengambil data dari Google Sheets.")
-    st.code(
-        "Pastikan Google Sheets sudah di-set 'Anyone with the link can view' "
-        "atau 'Publish to web'.\n\nDetail error:\n" + str(e)
-    )
+    st.code(str(e))
     st.stop()
 
-data = normalize_columns(data)
+# Rapikan nama kolom
+data.columns = [str(col).strip() for col in data.columns]
 
-# Konversi tipe data
-data["Tahun"] = clean_numeric(data["Tahun"])
-data["Pinjaman"] = clean_numeric(data["Pinjaman"])
-data["Dibayar"] = clean_numeric(data["Dibayar"])
-data["Sisa"] = clean_numeric(data["Sisa"])
-data["Jatuh Tempo"] = pd.to_datetime(data["Jatuh Tempo"], errors="coerce", dayfirst=True)
+required_cols = [
+    "Nama Bantuan",
+    "Jumlah Bantuan (Rp)",
+    "Tanggal Dibantu",
+    "Tenggat",
+    "PIC",
+    "No Hp Penerima",
+    "Status",
+]
 
-if data.empty:
-    st.warning("Data Google Sheets kosong.")
-    st.stop()
+for col in required_cols:
+    if col not in data.columns:
+        data[col] = None
 
-# Status final
-data["Status Final"] = data.apply(normalize_status, axis=1)
+# Bersihkan data
+data["Jumlah Bantuan (Rp)"] = clean_currency(data["Jumlah Bantuan (Rp)"])
+data["Tanggal Dibantu"] = pd.to_datetime(data["Tanggal Dibantu"], errors="coerce", dayfirst=True)
+data["Tenggat"] = pd.to_datetime(data["Tenggat"], errors="coerce", dayfirst=True)
+data["Status Final"] = data["Status"].apply(normalize_status)
 
+# Ambil tahun dari Tanggal Dibantu
+data["Tahun"] = data["Tanggal Dibantu"].dt.year
+
+# Status jatuh tempo
 today = pd.Timestamp.today().normalize()
-data["Terlambat Hari"] = data["Jatuh Tempo"].apply(
+
+def get_status_final(row):
+    if row["Status Final"] == "Lunas":
+        return "Lunas"
+    if pd.notna(row["Tenggat"]) and row["Tenggat"] < today:
+        return "Jatuh Tempo"
+    return "Belum Lunas"
+
+data["Status Final"] = data.apply(get_status_final, axis=1)
+
+# Hitung keterlambatan
+data["Terlambat Hari"] = data["Tenggat"].apply(
     lambda x: (today - x).days if pd.notna(x) and x < today else 0
 )
 
@@ -179,13 +157,12 @@ st.markdown("## 🔎 Filter Data")
 f1, f2 = st.columns(2)
 
 with f1:
-    selected_tahun = st.selectbox("Pilih Tahun", ["Semua", 2023, 2024, 2025, 2026])
+    tahun_options = ["Semua", 2023, 2024, 2025, 2026]
+    selected_tahun = st.selectbox("Pilih Tahun", tahun_options)
 
 with f2:
-    selected_status = st.selectbox(
-        "Pilih Status",
-        ["Semua", "Lunas", "Belum Lunas", "Jatuh Tempo"]
-    )
+    status_options = ["Semua", "Lunas", "Belum Lunas", "Jatuh Tempo"]
+    selected_status = st.selectbox("Pilih Status", status_options)
 
 filtered = data.copy()
 
@@ -212,7 +189,7 @@ c4.metric("Jatuh Tempo", total_jatuh_tempo)
 # =========================
 # CHART
 # =========================
-st.markdown("## 📈 Persentase Status Pembayaran")
+st.markdown("## 📈 Persentase Status Bantuan")
 
 chart_df = filtered["Status Final"].value_counts().reset_index()
 chart_df.columns = ["Status", "Jumlah"]
@@ -226,7 +203,7 @@ else:
 # =========================
 # SEGERA HUBUNGI
 # =========================
-st.markdown("## 🚨 Penerima Bantuan Jatuh Tempo - Segera Hubungi")
+st.markdown("## 🚨 Penerima Bantuan - Segera Hubungi")
 
 prioritas = filtered[
     filtered["Status Final"].isin(["Belum Lunas", "Jatuh Tempo"])
@@ -238,7 +215,7 @@ prioritas["Urutan"] = prioritas["Status Final"].map({
 })
 
 prioritas = prioritas.sort_values(
-    by=["Urutan", "Terlambat Hari", "Jatuh Tempo"],
+    by=["Urutan", "Terlambat Hari", "Tenggat"],
     ascending=[True, False, True]
 )
 
@@ -247,66 +224,80 @@ st.caption(f"{len(prioritas)} penerima bantuan memerlukan tindak lanjut")
 if prioritas.empty:
     st.success("Tidak ada penerima bantuan yang perlu segera dihubungi.")
 else:
-    show_prioritas = prioritas[[
-        "ID", "Nama Penerima Bantuan", "Sisa", "Pinjaman",
-        "Jatuh Tempo", "Terlambat Hari", "Status Final", "Kontak"
+    prioritas_view = prioritas[[
+        "Nama Bantuan",
+        "Jumlah Bantuan (Rp)",
+        "Tanggal Dibantu",
+        "Tenggat",
+        "PIC",
+        "No Hp Penerima",
+        "Status Final",
+        "Terlambat Hari"
     ]].copy()
 
-    show_prioritas["Sisa"] = show_prioritas["Sisa"].apply(format_rupiah)
-    show_prioritas["Pinjaman"] = show_prioritas["Pinjaman"].apply(format_rupiah)
-    show_prioritas["Jatuh Tempo"] = show_prioritas["Jatuh Tempo"].apply(format_tanggal_indo)
-    show_prioritas["Terlambat Hari"] = show_prioritas["Terlambat Hari"].apply(
+    prioritas_view["Jumlah Bantuan (Rp)"] = prioritas_view["Jumlah Bantuan (Rp)"].apply(format_rupiah)
+    prioritas_view["Tanggal Dibantu"] = prioritas_view["Tanggal Dibantu"].apply(format_tanggal_indo)
+    prioritas_view["Tenggat"] = prioritas_view["Tenggat"].apply(format_tanggal_indo)
+    prioritas_view["Terlambat Hari"] = prioritas_view["Terlambat Hari"].apply(
         lambda x: f"{int(x)} hari" if x > 0 else "-"
     )
 
-    st.dataframe(show_prioritas, use_container_width=True, hide_index=True)
+    st.dataframe(prioritas_view, use_container_width=True, hide_index=True)
 
 # =========================
-# TABEL SEMUA PENERIMA BANTUAN
+# DATA SEMUA PENERIMA BANTUAN
 # =========================
 st.markdown("## 📋 Data Semua Penerima Bantuan")
 
-search = st.text_input("Cari nama, ID, email, atau kontak...")
+search = st.text_input("Cari nama bantuan, PIC, nomor HP penerima, atau status...")
 
 table_df = filtered.copy()
 
 if search:
     keyword = search.lower()
     table_df = table_df[
-        table_df["ID"].astype(str).str.lower().str.contains(keyword, na=False) |
-        table_df["Nama Penerima Bantuan"].astype(str).str.lower().str.contains(keyword, na=False) |
-        table_df["Email"].astype(str).str.lower().str.contains(keyword, na=False) |
-        table_df["Kontak"].astype(str).str.lower().str.contains(keyword, na=False)
+        table_df["Nama Bantuan"].astype(str).str.lower().str.contains(keyword, na=False) |
+        table_df["PIC"].astype(str).str.lower().str.contains(keyword, na=False) |
+        table_df["No Hp Penerima"].astype(str).str.lower().str.contains(keyword, na=False) |
+        table_df["Status Final"].astype(str).str.lower().str.contains(keyword, na=False)
     ]
 
 st.caption(f"Menampilkan {len(table_df)} dari {len(filtered)} penerima bantuan")
 
 display_df = table_df[[
-    "ID", "Nama Penerima Bantuan", "Email", "Tahun",
-    "Pinjaman", "Dibayar", "Sisa",
-    "Jatuh Tempo", "Status Final", "Kontak"
+    "Nama Bantuan",
+    "Jumlah Bantuan (Rp)",
+    "Tanggal Dibantu",
+    "Tenggat",
+    "PIC",
+    "No Hp Penerima",
+    "Tahun",
+    "Status Final"
 ]].copy()
 
-display_df["Pinjaman"] = display_df["Pinjaman"].apply(format_rupiah)
-display_df["Dibayar"] = display_df["Dibayar"].apply(format_rupiah)
-display_df["Sisa"] = display_df["Sisa"].apply(format_rupiah)
-display_df["Jatuh Tempo"] = display_df["Jatuh Tempo"].apply(format_tanggal_indo)
+display_df["Jumlah Bantuan (Rp)"] = display_df["Jumlah Bantuan (Rp)"].apply(format_rupiah)
+display_df["Tanggal Dibantu"] = display_df["Tanggal Dibantu"].apply(format_tanggal_indo)
+display_df["Tenggat"] = display_df["Tenggat"].apply(format_tanggal_indo)
 
 st.dataframe(display_df, use_container_width=True, hide_index=True)
 
 # =========================
-# DAFTAR BELUM LUNAS
+# KHUSUS BELUM LUNAS
 # =========================
 st.markdown("## 📞 Daftar Penerima Bantuan Belum Lunas")
 
 belum_lunas_df = filtered[
     filtered["Status Final"].isin(["Belum Lunas", "Jatuh Tempo"])
 ][[
-    "ID", "Nama Penerima Bantuan", "Tahun",
-    "Sisa", "Jatuh Tempo", "Status Final", "Kontak"
+    "Nama Bantuan",
+    "Jumlah Bantuan (Rp)",
+    "PIC",
+    "No Hp Penerima",
+    "Tenggat",
+    "Status Final"
 ]].copy()
 
-belum_lunas_df["Sisa"] = belum_lunas_df["Sisa"].apply(format_rupiah)
-belum_lunas_df["Jatuh Tempo"] = belum_lunas_df["Jatuh Tempo"].apply(format_tanggal_indo)
+belum_lunas_df["Jumlah Bantuan (Rp)"] = belum_lunas_df["Jumlah Bantuan (Rp)"].apply(format_rupiah)
+belum_lunas_df["Tenggat"] = belum_lunas_df["Tenggat"].apply(format_tanggal_indo)
 
 st.dataframe(belum_lunas_df, use_container_width=True, hide_index=True)
