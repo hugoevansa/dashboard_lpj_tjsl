@@ -6,905 +6,666 @@ import requests
 from io import StringIO
 
 st.set_page_config(
-    page_title="Dashboard Penerima Bantuan",
+    page_title="Dashboard Bantuan",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# =========================
-# CUSTOM CSS - RAPIIHAN FINAL
-# =========================
+# ─── CSS ──────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=DM+Mono:wght@500&display=swap');
+
 :root {
-    --bg: #f7f2f4;
-    --panel: #ffffff;
-    --panel-soft: #fff9fb;
-    --line: #ead7dd;
-    --text: #35131d;
-    --muted: #8a6672;
-    --maroon: #7c1f3f;
-    --maroon-dark: #5f132d;
-    --maroon-mid: #a14f6a;
-    --maroon-soft: #f3e4e9;
-    --success-bg: #e7f4ea;
-    --success-text: #1f7a4d;
-    --warning-bg: #fff2df;
-    --warning-text: #9a6700;
-    --danger-bg: #fde8ec;
-    --danger-text: #b42318;
-    --shadow: 0 10px 28px rgba(124, 31, 63, 0.08);
-    --radius-lg: 22px;
-    --radius-md: 18px;
-    --radius-sm: 14px;
+    --maroon:       #7c1f3f;
+    --maroon-dark:  #5a1229;
+    --maroon-mid:   #a14f6a;
+    --maroon-soft:  #f5e8ed;
+    --bg:           #f6eef2;
+    --card:         #ffffff;
+    --line:         #e8d0da;
+    --text:         #2a0d18;
+    --muted:        #8a6672;
+    --success:      #1b7a45;
+    --warning:      #92600a;
+    --danger:       #b42318;
+    --shadow:       0 4px 24px rgba(92,18,41,0.10);
+    --radius:       18px;
 }
 
 html, body, [class*="css"] {
-    font-family: "Inter", "Segoe UI", sans-serif;
+    font-family: 'DM Sans', sans-serif !important;
     color: var(--text);
 }
 
+/* Background */
 .stApp {
-    background:
-        radial-gradient(circle at top left, rgba(124,31,63,0.05), transparent 22%),
-        linear-gradient(180deg, #fbf8f9 0%, #f4edf0 100%);
+    background: var(--bg);
 }
 
 .block-container {
-    max-width: 1480px;
-    padding-top: 0.8rem;
-    padding-bottom: 1.5rem;
+    padding: 1.5rem 2rem 2rem 2rem !important;
+    max-width: 1440px !important;
 }
 
-header[data-testid="stHeader"] {
-    background: transparent;
-}
+/* Hide streamlit chrome */
+header[data-testid="stHeader"] { display: none; }
+#MainMenu { visibility: hidden; }
+footer { visibility: hidden; }
 
+/* Sidebar */
 section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, var(--maroon-dark) 0%, var(--maroon) 100%);
-    border-right: 1px solid rgba(255,255,255,0.06);
+    background: linear-gradient(180deg, var(--maroon-dark) 0%, var(--maroon) 100%) !important;
+}
+section[data-testid="stSidebar"] * { color: #fff !important; }
+
+/* ── Card via container border trick ── */
+div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] {
+    gap: 0 !important;
 }
 
-section[data-testid="stSidebar"] * {
-    color: #fff7fa !important;
+/* Plotly charts — remove extra margin */
+div[data-testid="stPlotlyChart"] {
+    border-radius: var(--radius);
+    overflow: hidden;
 }
 
-/* rapihin jarak default streamlit */
-div[data-testid="stVerticalBlock"] {
-    gap: 0.75rem;
+/* Selectbox & text input */
+div[data-baseweb="select"] > div {
+    border-radius: 12px !important;
+    border: 1.5px solid var(--line) !important;
+    background: #fff !important;
+    font-family: 'DM Sans', sans-serif !important;
 }
-
-div[data-baseweb="select"] > div,
 div[data-baseweb="input"] > div {
-    border-radius: 14px !important;
-    border: 1px solid var(--line) !important;
-    background: #ffffff !important;
-    min-height: 48px;
-    box-shadow: none !important;
+    border-radius: 12px !important;
+    border: 1.5px solid var(--line) !important;
+    background: #fff !important;
+    font-family: 'DM Sans', sans-serif !important;
 }
 
-.stSelectbox label,
-.stTextInput label {
-    color: var(--muted) !important;
-    font-weight: 600 !important;
-    font-size: 0.92rem !important;
-}
-
-.top-card {
-    background: linear-gradient(180deg, #fffefe 0%, #fff8fa 100%);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-lg);
+/* Metric-like overrides */
+div[data-testid="metric-container"] {
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 1.1rem 1.4rem;
+    border: 1.5px solid var(--line);
     box-shadow: var(--shadow);
 }
 
-.brand-card {
-    padding: 22px 24px;
-    min-height: 96px;
+/* ────────────── CUSTOM HTML COMPONENTS ────────────── */
+
+.page-header {
+    background: linear-gradient(135deg, var(--maroon-dark) 0%, var(--maroon) 60%, var(--maroon-mid) 100%);
+    border-radius: 22px;
+    padding: 22px 28px;
+    margin-bottom: 0;
     display: flex;
     align-items: center;
+    gap: 18px;
+    box-shadow: 0 8px 32px rgba(92,18,41,0.22);
 }
 
-.brand-wrap {
-    display: flex;
-    align-items: center;
-    gap: 16px;
+.page-header-icon {
+    font-size: 2.2rem;
+    background: rgba(255,255,255,0.15);
+    border-radius: 16px;
+    padding: 10px 14px;
 }
 
-.brand-icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 18px;
-    background: linear-gradient(135deg, var(--maroon-dark), var(--maroon));
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 26px;
-    box-shadow: 0 10px 20px rgba(124,31,63,0.18);
-    flex-shrink: 0;
-}
-
-.brand-title {
-    font-size: 1.85rem;
+.page-header-title {
+    color: #fff;
+    font-size: 1.7rem;
     font-weight: 900;
-    line-height: 1.05;
-    color: var(--maroon-dark);
+    line-height: 1.1;
     margin: 0;
 }
 
-.brand-subtitle {
-    margin-top: 4px;
-    color: var(--muted);
-    font-size: 0.98rem;
+.page-header-sub {
+    color: rgba(255,255,255,0.75);
+    font-size: 0.9rem;
+    margin-top: 3px;
 }
 
-.filter-card {
-    padding: 12px 14px 8px 14px;
-    min-height: 96px;
-}
-
-.filter-label {
-    font-size: 0.84rem;
-    color: var(--muted);
-    font-weight: 700;
-    margin-bottom: 8px;
-    letter-spacing: 0.02em;
-}
-
-.kpi-card {
-    background: linear-gradient(180deg, #ffffff 0%, #fffafb 100%);
-    border: 1px solid var(--line);
-    border-radius: 20px;
-    padding: 18px 20px;
+/* KPI Cards */
+.kpi-wrap {
+    background: #fff;
+    border-radius: var(--radius);
+    border: 1.5px solid var(--line);
     box-shadow: var(--shadow);
-    min-height: 122px;
+    padding: 18px 20px 14px 20px;
     position: relative;
     overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-
-.kpi-card::before {
-    content: "";
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: 6px;
-    background: linear-gradient(180deg, var(--maroon) 0%, var(--maroon-mid) 100%);
-}
-
-.kpi-label {
-    font-size: 0.92rem;
-    color: var(--muted);
-    font-weight: 700;
-    margin-bottom: 10px;
-}
-
-.kpi-value {
-    font-size: 1.95rem;
-    font-weight: 900;
-    line-height: 1.1;
-    color: var(--text);
-}
-
-.kpi-note {
-    margin-top: 8px;
-    font-size: 0.84rem;
-    color: var(--muted);
-}
-
-.panel {
-    background: linear-gradient(180deg, #ffffff 0%, #fffafb 100%);
-    border: 1px solid var(--line);
-    border-radius: 22px;
-    padding: 16px 16px 10px 16px;
-    box-shadow: var(--shadow);
     height: 100%;
 }
 
-.panel-fixed {
-    min-height: 380px;
+.kpi-wrap::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 5px;
+    background: linear-gradient(180deg, var(--maroon) 0%, var(--maroon-mid) 100%);
+    border-radius: 4px 0 0 4px;
+}
+
+.kpi-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+}
+
+.kpi-value {
+    font-size: 1.85rem;
+    font-weight: 900;
+    color: var(--text);
+    line-height: 1.1;
+}
+
+.kpi-note {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 6px;
+}
+
+/* Panel / Card */
+.panel {
+    background: #fff;
+    border-radius: var(--radius);
+    border: 1.5px solid var(--line);
+    box-shadow: var(--shadow);
+    padding: 18px 18px 10px 18px;
 }
 
 .panel-title {
-    font-size: 1.25rem;
+    font-size: 1.05rem;
     font-weight: 900;
     color: var(--text);
     margin-bottom: 2px;
 }
 
-.panel-subtitle {
-    font-size: 0.88rem;
+.panel-sub {
+    font-size: 0.82rem;
     color: var(--muted);
-    margin-bottom: 8px;
+    margin-bottom: 10px;
 }
 
+/* Mini stat inside panel */
 .mini-stat {
-    background: var(--panel-soft);
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    padding: 14px 14px;
+    background: var(--maroon-soft);
+    border: 1px solid #e2c4cf;
+    border-radius: 14px;
+    padding: 12px 14px;
     margin-bottom: 10px;
 }
 
 .mini-stat-label {
-    font-size: 0.84rem;
+    font-size: 0.8rem;
     color: var(--muted);
+    font-weight: 600;
     margin-bottom: 4px;
 }
 
 .mini-stat-value {
-    font-size: 1.45rem;
+    font-size: 1.55rem;
     font-weight: 900;
     color: var(--maroon);
 }
 
+/* Section heading */
 .section-head {
-    font-size: 1.28rem;
+    font-size: 1.15rem;
     font-weight: 900;
     color: var(--text);
-    margin-top: 4px;
-    margin-bottom: 2px;
+    margin: 0;
+    padding: 0;
 }
 
-.table-caption {
+.section-sub {
+    font-size: 0.86rem;
     color: var(--muted);
-    font-size: 0.9rem;
+    margin-top: 2px;
     margin-bottom: 10px;
 }
 
-.note-box {
-    background: linear-gradient(180deg, #fff8fa 0%, #fff1f4 100%);
-    border: 1px solid #edd4dc;
-    border-radius: 18px;
-    padding: 14px 16px;
-    color: var(--text);
-}
-
-.note-box b {
-    color: var(--maroon);
-}
-
-.search-card {
-    background: linear-gradient(180deg, #ffffff 0%, #fffafb 100%);
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    padding: 10px 14px 4px 14px;
-    box-shadow: var(--shadow);
-}
-
-.status-chip {
-    display: inline-block;
-    padding: 6px 12px;
-    border-radius: 999px;
+/* Filter label above selectbox */
+.filter-label {
     font-size: 0.78rem;
     font-weight: 800;
-    border: 1px solid transparent;
-    white-space: nowrap;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 4px;
 }
 
-.chip-lunas {
-    background: var(--success-bg);
-    color: var(--success-text);
-    border-color: #bfe3ca;
+/* Note box */
+.note-box {
+    background: linear-gradient(135deg, #fff8fa, #fdf0f4);
+    border: 1.5px solid #e8c8d4;
+    border-radius: 16px;
+    padding: 14px 18px;
+    font-size: 0.9rem;
+    color: var(--text);
 }
+.note-box b { color: var(--maroon); }
 
-.chip-belum {
-    background: var(--warning-bg);
-    color: var(--warning-text);
-    border-color: #efd49c;
-}
-
-.chip-jatuh {
-    background: var(--danger-bg);
-    color: var(--danger-text);
-    border-color: #efc1cd;
-}
-
-.custom-table-wrap {
-    background: white;
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    box-shadow: var(--shadow);
-}
-
-.custom-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 14px;
-}
-
-.custom-table th {
-    background: linear-gradient(180deg, #8a2747 0%, #6f1836 100%);
-    color: white;
-    text-align: left;
-    padding: 12px 14px;
+/* Status chips */
+.chip {
+    display: inline-block;
+    padding: 4px 11px;
+    border-radius: 999px;
+    font-size: 0.77rem;
     font-weight: 800;
     white-space: nowrap;
 }
+.chip-lunas    { background: #e6f5ec; color: var(--success); border: 1px solid #b0dfc0; }
+.chip-belum    { background: #fff4e0; color: var(--warning); border: 1px solid #f0d49a; }
+.chip-jatuh    { background: #fde8ec; color: var(--danger);  border: 1px solid #f0bfc9; }
 
-.custom-table td {
+/* Table */
+.tbl-wrap {
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1.5px solid var(--line);
+    box-shadow: var(--shadow);
+    overflow-x: auto;
+}
+
+.tbl {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+}
+
+.tbl th {
+    background: linear-gradient(180deg, var(--maroon) 0%, var(--maroon-dark) 100%);
+    color: #fff;
+    font-weight: 800;
     padding: 11px 14px;
-    border-bottom: 1px solid #f1e2e7;
+    text-align: left;
+    white-space: nowrap;
+    font-size: 13px;
+}
+
+.tbl td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f2e2e8;
     color: var(--text);
-    vertical-align: top;
+    vertical-align: middle;
 }
 
-.custom-table tr:nth-child(even) td {
-    background: #fffafc;
-}
+.tbl tr:last-child td { border-bottom: none; }
+.tbl tr:nth-child(even) td { background: #fffafc; }
+.tbl tr:hover td { background: #fff5f8; }
 
-.custom-table tr:last-child td {
-    border-bottom: none;
-}
+/* Divider */
+.divider { height: 1.5px; background: var(--line); margin: 18px 0; border-radius: 2px; }
 
-.footer-note {
-    color: var(--muted);
-    font-size: 0.85rem;
-    margin-top: 8px;
-}
+/* Footer */
+.footer { color: var(--muted); font-size: 0.82rem; text-align: center; margin-top: 10px; }
 </style>
 """, unsafe_allow_html=True)
 
-# =========================
-# GOOGLE SHEETS CONFIG
-# =========================
+# ─── GOOGLE SHEETS CONFIG ────────────────────────────────────────────────────
 SHEET_ID = "1wi4id0XqYlTuw_KO89-cOLSPTFAQ6ODv_tH09LK_2Ao"
-GID = "0"
-
-CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={GID}"
+GID      = "0"
+CSV_URL  = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={GID}"
 GVIZ_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&gid={GID}"
 
-# =========================
-# HELPERS
-# =========================
-def format_rupiah(x):
-    if pd.isna(x):
-        return "-"
-    return f"Rp {int(float(x)):,}".replace(",", ".")
+# ─── HELPERS ─────────────────────────────────────────────────────────────────
+def fmt_rupiah(x):
+    if pd.isna(x): return "-"
+    return "Rp {:,}".format(int(float(x))).replace(",", ".")
 
-def format_tanggal_indo(x):
-    if pd.isna(x):
-        return "-"
-    bulan = {
-        1: "Januari", 2: "Februari", 3: "Maret", 4: "April",
-        5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus",
-        9: "September", 10: "Oktober", 11: "November", 12: "Desember",
-    }
+def fmt_tgl(x):
+    if pd.isna(x): return "-"
+    bulan = {1:"Januari",2:"Februari",3:"Maret",4:"April",5:"Mei",6:"Juni",
+             7:"Juli",8:"Agustus",9:"September",10:"Oktober",11:"November",12:"Desember"}
     return f"{x.day} {bulan[x.month]} {x.year}"
 
-def clean_currency(series):
+def clean_currency(s):
     return pd.to_numeric(
-        series.astype(str)
-        .str.replace("Rp", "", regex=False)
-        .str.replace(".", "", regex=False)
-        .str.replace(",", "", regex=False)
-        .str.replace(" ", "", regex=False)
-        .str.strip(),
-        errors="coerce"
-    )
+        s.astype(str).str.replace("Rp","",regex=False).str.replace(".","",regex=False)
+         .str.replace(",","",regex=False).str.replace(" ","",regex=False).str.strip(),
+        errors="coerce")
 
-def clean_phone(series):
-    s = series.astype(str).str.strip()
-    s = s.replace(["nan", "NaN", "None", "<NA>"], "", regex=False)
-    s = s.str.replace(".0", "", regex=False)
-    return s
+def clean_phone(s):
+    s = s.astype(str).str.strip()
+    return s.replace(["nan","NaN","None","<NA>",".0"], "", regex=False).str.replace(".0","",regex=False)
 
-def normalize_status(status):
-    status = str(status).strip().lower()
-    if status in ["lunas", "sudah lunas"]:
-        return "Lunas"
-    return "Belum Lunas"
+def normalize_status(st_val):
+    v = str(st_val).strip().lower()
+    return "Lunas" if v in ["lunas","sudah lunas"] else "Belum Lunas"
 
-def make_status_chip(value):
-    if value == "Lunas":
-        return '<span class="status-chip chip-lunas">Lunas</span>'
-    if value == "Jatuh Tempo":
-        return '<span class="status-chip chip-jatuh">Jatuh Tempo</span>'
-    return '<span class="status-chip chip-belum">Belum Lunas</span>'
+def chip(val):
+    if val == "Lunas":
+        return '<span class="chip chip-lunas">Lunas</span>'
+    if val == "Jatuh Tempo":
+        return '<span class="chip chip-jatuh">Jatuh Tempo</span>'
+    return '<span class="chip chip-belum">Belum Lunas</span>'
 
-def dataframe_to_html(df):
-    return df.to_html(index=False, escape=False, classes="custom-table")
+def df_to_html(df):
+    rows = ""
+    for _, r in df.iterrows():
+        cells = "".join(f"<td>{v}</td>" for v in r)
+        rows += f"<tr>{cells}</tr>"
+    headers = "".join(f"<th>{c}</th>" for c in df.columns)
+    return f'<div class="tbl-wrap"><table class="tbl"><thead><tr>{headers}</tr></thead><tbody>{rows}</tbody></table></div>'
 
 @st.cache_data(ttl=300)
 def load_data():
-    errors = []
+    for url in [CSV_URL, GVIZ_URL]:
+        try:
+            r = requests.get(url, timeout=20)
+            r.raise_for_status()
+            df = pd.read_csv(StringIO(r.text), dtype=str)
+            if not df.empty:
+                return df
+        except Exception:
+            continue
+    raise Exception("Gagal mengambil data dari Google Sheets.")
 
-    try:
-        r = requests.get(CSV_URL, timeout=20)
-        r.raise_for_status()
-        df = pd.read_csv(StringIO(r.text), dtype=str)
-        if not df.empty:
-            return df
-    except Exception as e:
-        errors.append(f"CSV export gagal: {e}")
-
-    try:
-        r = requests.get(GVIZ_URL, timeout=20)
-        r.raise_for_status()
-        df = pd.read_csv(StringIO(r.text), dtype=str)
-        if not df.empty:
-            return df
-    except Exception as e:
-        errors.append(f"GVIZ gagal: {e}")
-
-    raise Exception("\\n".join(errors))
-
-# =========================
-# LOAD DATA
-# =========================
+# ─── LOAD & PREPARE ──────────────────────────────────────────────────────────
 try:
     data = load_data()
 except Exception as e:
-    st.error("Gagal mengambil data dari Google Sheets.")
-    st.code(str(e))
+    st.error(str(e))
     st.stop()
 
-data.columns = [str(col).strip() for col in data.columns]
-
-column_aliases = {
-    "No HP Penerima": "No Hp Penerima",
-    "No Hp": "No Hp Penerima",
-    "No HP": "No Hp Penerima",
-    "Nomor HP Penerima": "No Hp Penerima",
-    "jumlah Bantuan (Rp)": "Jumlah Bantuan (Rp)",
-    "Tanggal dibantu": "Tanggal Dibantu",
+data.columns = [str(c).strip() for c in data.columns]
+aliases = {
+    "No HP Penerima":"No Hp Penerima","No Hp":"No Hp Penerima","No HP":"No Hp Penerima",
+    "Nomor HP Penerima":"No Hp Penerima","jumlah Bantuan (Rp)":"Jumlah Bantuan (Rp)",
+    "Tanggal dibantu":"Tanggal Dibantu",
 }
-data = data.rename(columns={k: v for k, v in column_aliases.items() if k in data.columns})
+data = data.rename(columns={k:v for k,v in aliases.items() if k in data.columns})
 
-required_cols = [
-    "Nama Bantuan",
-    "Jumlah Bantuan (Rp)",
-    "Tanggal Dibantu",
-    "Tenggat",
-    "PIC",
-    "No Hp Penerima",
-    "Status",
-]
-for col in required_cols:
+for col in ["Nama Bantuan","Jumlah Bantuan (Rp)","Tanggal Dibantu","Tenggat","PIC","No Hp Penerima","Status"]:
     if col not in data.columns:
         data[col] = ""
 
-data["Nama Bantuan"] = data["Nama Bantuan"].astype(str).str.strip()
-data["PIC"] = data["PIC"].astype(str).str.strip()
-data["No Hp Penerima"] = clean_phone(data["No Hp Penerima"])
-data["Status"] = data["Status"].astype(str).str.strip()
-
+data["Nama Bantuan"]      = data["Nama Bantuan"].astype(str).str.strip()
+data["PIC"]               = data["PIC"].astype(str).str.strip()
+data["No Hp Penerima"]    = clean_phone(data["No Hp Penerima"])
 data["Jumlah Bantuan (Rp)"] = clean_currency(data["Jumlah Bantuan (Rp)"])
-data["Tanggal Dibantu"] = pd.to_datetime(data["Tanggal Dibantu"], errors="coerce", dayfirst=True)
-data["Tenggat"] = pd.to_datetime(data["Tenggat"], errors="coerce", dayfirst=True)
-data["Tahun"] = data["Tanggal Dibantu"].dt.year
-
-today = pd.Timestamp.today().normalize()
-
-# =========================
-# STATUS LOGIC
-# =========================
+data["Tanggal Dibantu"]   = pd.to_datetime(data["Tanggal Dibantu"], errors="coerce", dayfirst=True)
+data["Tenggat"]           = pd.to_datetime(data["Tenggat"], errors="coerce", dayfirst=True)
+data["Tahun"]             = data["Tanggal Dibantu"].dt.year
 data["Status Pembayaran"] = data["Status"].apply(normalize_status)
 
+today = pd.Timestamp.today().normalize()
 data["Kondisi Tenggat"] = data.apply(
-    lambda row: "Jatuh Tempo"
-    if row["Status Pembayaran"] == "Belum Lunas" and pd.notna(row["Tenggat"]) and row["Tenggat"] < today
-    else "Belum Jatuh Tempo",
-    axis=1
-)
-
+    lambda r: "Jatuh Tempo"
+    if r["Status Pembayaran"]=="Belum Lunas" and pd.notna(r["Tenggat"]) and r["Tenggat"]<today
+    else "Belum Jatuh Tempo", axis=1)
 data["Terlambat Hari"] = data["Tenggat"].apply(
-    lambda x: (today - x).days if pd.notna(x) and x < today else 0
-)
+    lambda x: (today-x).days if pd.notna(x) and x<today else 0)
+data["Label Tampilan"] = data.apply(
+    lambda r: "Lunas" if r["Status Pembayaran"]=="Lunas"
+    else ("Jatuh Tempo" if r["Kondisi Tenggat"]=="Jatuh Tempo" else "Belum Lunas"), axis=1)
 
-def get_label_tampilan(row):
-    if row["Status Pembayaran"] == "Lunas":
-        return "Lunas"
-    if row["Kondisi Tenggat"] == "Jatuh Tempo":
-        return "Jatuh Tempo"
-    return "Belum Lunas"
 
-data["Label Tampilan"] = data.apply(get_label_tampilan, axis=1)
+# ═════════════════════════════════════════════════════════════════════════════
+#  LAYOUT
+# ═════════════════════════════════════════════════════════════════════════════
 
-# =========================
-# SIDEBAR
-# =========================
-with st.sidebar:
-    st.markdown("## Dashboard Bantuan")
-    st.caption("Tema maroon • versi lebih rapi")
-
-# =========================
-# TOP ROW - TIDAK ADA BOX KOSONG
-# =========================
-top1, top2, top3 = st.columns([2.2, 1.05, 1.05], gap="medium")
-
-with top1:
-    st.markdown("""
-    <div class="top-card brand-card">
-        <div class="brand-wrap">
-            <div class="brand-icon">📊</div>
-            <div>
-                <div class="brand-title">DASHBOARD BANTUAN</div>
-                <div class="brand-subtitle">Monitoring status bantuan dan prioritas tindak lanjut</div>
-            </div>
-        </div>
+# ── HEADER ───────────────────────────────────────────────────────────────────
+st.markdown("""
+<div class="page-header">
+    <div class="page-header-icon">📊</div>
+    <div>
+        <div class="page-header-title">DASHBOARD BANTUAN</div>
+        <div class="page-header-sub">Monitoring status bantuan dan prioritas tindak lanjut</div>
     </div>
-    """, unsafe_allow_html=True)
+</div>
+""", unsafe_allow_html=True)
 
-with top2:
-    st.markdown('<div class="top-card filter-card"><div class="filter-label">TAHUN</div>', unsafe_allow_html=True)
-    selected_tahun = st.selectbox(
-        "Tahun",
-        ["Semua", 2023, 2024, 2025, 2026],
-        label_visibility="collapsed"
-    )
-    st.markdown('</div>', unsafe_allow_html=True)
+st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
 
-with top3:
-    st.markdown('<div class="top-card filter-card"><div class="filter-label">KONDISI</div>', unsafe_allow_html=True)
-    selected_status = st.selectbox(
-        "Kondisi",
-        ["Semua", "Lunas", "Belum Lunas", "Jatuh Tempo"],
-        label_visibility="collapsed"
-    )
-    st.markdown('</div>', unsafe_allow_html=True)
+# ── FILTER ROW ───────────────────────────────────────────────────────────────
+f1, f2, f3 = st.columns([3, 1, 1], gap="medium")
 
+with f2:
+    st.markdown('<div class="filter-label">TAHUN</div>', unsafe_allow_html=True)
+    selected_tahun = st.selectbox("Tahun", ["Semua", 2023, 2024, 2025, 2026],
+                                  label_visibility="collapsed", key="tahun")
+
+with f3:
+    st.markdown('<div class="filter-label">KONDISI</div>', unsafe_allow_html=True)
+    selected_status = st.selectbox("Kondisi", ["Semua", "Lunas", "Belum Lunas", "Jatuh Tempo"],
+                                   label_visibility="collapsed", key="kondisi")
+
+# Apply filter
 filtered = data.copy()
-
 if selected_tahun != "Semua":
     filtered = filtered[filtered["Tahun"] == selected_tahun]
-
 if selected_status == "Lunas":
     filtered = filtered[filtered["Status Pembayaran"] == "Lunas"]
 elif selected_status == "Belum Lunas":
-    filtered = filtered[
-        (filtered["Status Pembayaran"] == "Belum Lunas") &
-        (filtered["Kondisi Tenggat"] == "Belum Jatuh Tempo")
-    ]
+    filtered = filtered[(filtered["Status Pembayaran"]=="Belum Lunas") & (filtered["Kondisi Tenggat"]=="Belum Jatuh Tempo")]
 elif selected_status == "Jatuh Tempo":
     filtered = filtered[filtered["Kondisi Tenggat"] == "Jatuh Tempo"]
 
-# =========================
-# KPI
-# =========================
-total_penerima = len(filtered)
-total_lunas = len(filtered[filtered["Status Pembayaran"] == "Lunas"])
+st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+
+# ── KPI ──────────────────────────────────────────────────────────────────────
+total_penerima    = len(filtered)
+total_lunas       = len(filtered[filtered["Status Pembayaran"] == "Lunas"])
 total_belum_lunas = len(filtered[filtered["Status Pembayaran"] == "Belum Lunas"])
 total_jatuh_tempo = len(filtered[filtered["Kondisi Tenggat"] == "Jatuh Tempo"])
-total_nominal = filtered["Jumlah Bantuan (Rp)"].fillna(0).sum()
+total_nominal     = filtered["Jumlah Bantuan (Rp)"].fillna(0).sum()
 
-m1, m2, m3, m4 = st.columns(4, gap="medium")
+k1, k2, k3, k4 = st.columns(4, gap="medium")
 
-with m1:
-    st.markdown(f"""
-    <div class="kpi-card">
-        <div class="kpi-label">Total Nominal Bantuan</div>
-        <div class="kpi-value">{format_rupiah(total_nominal)}</div>
-        <div class="kpi-note">Akumulasi nominal data terfilter</div>
-    </div>
-    """, unsafe_allow_html=True)
+for col, label_txt, val, note in [
+    (k1, "Total Nominal Bantuan",  fmt_rupiah(total_nominal),  "Akumulasi nominal terfilter"),
+    (k2, "Total Penerima",         str(total_penerima),         "Jumlah penerima bantuan"),
+    (k3, "Sudah Lunas",            str(total_lunas),            "Selesai dikembalikan"),
+    (k4, "Jatuh Tempo",            str(total_jatuh_tempo),      "Perlu segera follow-up"),
+]:
+    with col:
+        st.markdown(f"""
+        <div class="kpi-wrap">
+            <div class="kpi-label">{label_txt}</div>
+            <div class="kpi-value">{val}</div>
+            <div class="kpi-note">{note}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-with m2:
-    st.markdown(f"""
-    <div class="kpi-card">
-        <div class="kpi-label">Total Penerima</div>
-        <div class="kpi-value">{total_penerima}</div>
-        <div class="kpi-note">Jumlah penerima bantuan</div>
-    </div>
-    """, unsafe_allow_html=True)
+st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
 
-with m3:
-    st.markdown(f"""
-    <div class="kpi-card">
-        <div class="kpi-label">Lunas</div>
-        <div class="kpi-value">{total_lunas}</div>
-        <div class="kpi-note">Sudah selesai</div>
-    </div>
-    """, unsafe_allow_html=True)
+# ── CHART ROW ────────────────────────────────────────────────────────────────
+# KUNCI: chart di dalam container Streamlit, bukan div HTML
+# HTML hanya bungkus judul panel, chart tetap pakai st.plotly_chart
 
-with m4:
-    st.markdown(f"""
-    <div class="kpi-card">
-        <div class="kpi-label">Jatuh Tempo</div>
-        <div class="kpi-value">{total_jatuh_tempo}</div>
-        <div class="kpi-note">Perlu prioritas follow-up</div>
-    </div>
-    """, unsafe_allow_html=True)
+MAROON_COLORS = {
+    "Lunas":       "#7c1f3f",
+    "Belum Lunas": "#c07090",
+    "Jatuh Tempo": "#e8c0cf",
+}
 
-# =========================
-# CHART DATA
-# =========================
 chart_df = filtered["Status Pembayaran"].value_counts().reset_index()
 chart_df.columns = ["Status", "Jumlah"]
 
-status_compare_df = (
-    filtered["Label Tampilan"]
-    .value_counts()
-    .reindex(["Lunas", "Belum Lunas", "Jatuh Tempo"], fill_value=0)
+status_compare = (
+    filtered["Label Tampilan"].value_counts()
+    .reindex(["Lunas","Belum Lunas","Jatuh Tempo"], fill_value=0)
     .reset_index()
 )
-status_compare_df.columns = ["Status", "Jumlah"]
+status_compare.columns = ["Status","Jumlah"]
 
 monthly_df = filtered.copy()
 monthly_df["Bulan"] = monthly_df["Tanggal Dibantu"].dt.month
 monthly_df = (
     monthly_df.dropna(subset=["Bulan"])
-    .groupby("Bulan", as_index=False)["Jumlah Bantuan (Rp)"]
-    .sum()
+    .groupby("Bulan", as_index=False)["Jumlah Bantuan (Rp)"].sum()
     .sort_values("Bulan")
 )
-month_map = {
-    1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "Mei", 6: "Jun",
-    7: "Jul", 8: "Agu", 9: "Sep", 10: "Okt", 11: "Nov", 12: "Des"
-}
-monthly_df["Nama Bulan"] = monthly_df["Bulan"].map(month_map)
+bulan_map = {1:"Jan",2:"Feb",3:"Mar",4:"Apr",5:"Mei",6:"Jun",
+             7:"Jul",8:"Agu",9:"Sep",10:"Okt",11:"Nov",12:"Des"}
+monthly_df["Nama Bulan"] = monthly_df["Bulan"].map(bulan_map)
 
-# =========================
-# CHART ROW
-# =========================
+PLOTLY_BASE = dict(
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)",
+    margin=dict(t=8, b=8, l=0, r=0),
+    font=dict(family="DM Sans, sans-serif", color="#2a0d18"),
+)
+
 c1, c2, c3 = st.columns(3, gap="medium")
 
+# — Donut —
 with c1:
-    st.markdown("""
-    <div class="panel panel-fixed">
-        <div class="panel-title">Komposisi Status (%)</div>
-        <div class="panel-subtitle">Perbandingan status pembayaran utama</div>
-    """, unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown('<div class="panel-title">Komposisi Status (%)</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-sub">Perbandingan status pembayaran utama</div>', unsafe_allow_html=True)
+        if not chart_df.empty:
+            fig = px.pie(chart_df, names="Status", values="Jumlah", hole=0.62,
+                         color="Status", color_discrete_map=MAROON_COLORS)
+            fig.update_traces(textposition="inside", textinfo="percent",
+                              marker=dict(line=dict(color="white", width=3)))
+            fig.update_layout(**PLOTLY_BASE, height=280,
+                              legend=dict(orientation="v", font=dict(size=12)))
+            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+        else:
+            st.info("Tidak ada data.")
 
-    if not chart_df.empty:
-        fig_donut = px.pie(
-            chart_df,
-            names="Status",
-            values="Jumlah",
-            hole=0.62,
-            color="Status",
-            color_discrete_map={
-                "Lunas": "#7c1f3f",
-                "Belum Lunas": "#ddb1bf",
-            }
-        )
-        fig_donut.update_traces(
-            textposition="inside",
-            textinfo="percent",
-            marker=dict(line=dict(color="white", width=3))
-        )
-        fig_donut.update_layout(
-            margin=dict(t=10, b=0, l=0, r=0),
-            height=290,
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            legend=dict(orientation="v", title="", font=dict(size=12))
-        )
-        st.plotly_chart(fig_donut, use_container_width=True, config={"displayModeBar": False})
-    else:
-        st.info("Tidak ada data.")
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
+# — Bar —
 with c2:
-    st.markdown("""
-    <div class="panel panel-fixed">
-        <div class="panel-title">Perbandingan Status</div>
-        <div class="panel-subtitle">Lunas, belum lunas, dan jatuh tempo</div>
-    """, unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown('<div class="panel-title">Perbandingan Status</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-sub">Lunas, belum lunas, dan jatuh tempo</div>', unsafe_allow_html=True)
+        fig2 = px.bar(status_compare, x="Status", y="Jumlah",
+                      color="Status", color_discrete_map=MAROON_COLORS)
+        fig2.update_layout(**PLOTLY_BASE, height=280,
+                           xaxis_title="", yaxis_title="Jumlah", showlegend=False)
+        fig2.update_traces(marker_line_width=0, marker_line_color="rgba(0,0,0,0)")
+        st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
 
-    fig_bar = px.bar(
-        status_compare_df,
-        x="Status",
-        y="Jumlah",
-        color="Status",
-        color_discrete_map={
-            "Lunas": "#7c1f3f",
-            "Belum Lunas": "#b86a84",
-            "Jatuh Tempo": "#e5bcc8",
-        }
-    )
-    fig_bar.update_layout(
-        margin=dict(t=10, b=10, l=0, r=0),
-        height=290,
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        xaxis_title="",
-        yaxis_title="Jumlah",
-        showlegend=False
-    )
-    fig_bar.update_traces(marker_line_width=0)
-    st.plotly_chart(fig_bar, use_container_width=True, config={"displayModeBar": False})
-
-    st.markdown("</div>", unsafe_allow_html=True)
-
+# — Quick stats —
 with c3:
-    lunas_pct = round((total_lunas / total_penerima) * 100, 1) if total_penerima else 0
-    belum_lunas_pct = round((total_belum_lunas / total_penerima) * 100, 1) if total_penerima else 0
-    jatuh_tempo_pct = round((total_jatuh_tempo / total_penerima) * 100, 1) if total_penerima else 0
+    with st.container(border=True):
+        st.markdown('<div class="panel-title">Ringkasan Cepat</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-sub">Persentase dan prioritas saat ini</div>', unsafe_allow_html=True)
+        st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
-    st.markdown(f"""
-    <div class="panel panel-fixed">
-        <div class="panel-title">Ringkasan Cepat</div>
-        <div class="panel-subtitle">Persentase dan prioritas saat ini</div>
-        <div class="mini-stat">
-            <div class="mini-stat-label">Persentase Lunas</div>
-            <div class="mini-stat-value">{lunas_pct}%</div>
-        </div>
-        <div class="mini-stat">
-            <div class="mini-stat-label">Persentase Belum Lunas</div>
-            <div class="mini-stat-value">{belum_lunas_pct}%</div>
-        </div>
-        <div class="mini-stat">
-            <div class="mini-stat-label">Persentase Jatuh Tempo</div>
-            <div class="mini-stat-value">{jatuh_tempo_pct}%</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+        pct_l  = round(total_lunas/total_penerima*100, 1) if total_penerima else 0
+        pct_bl = round(total_belum_lunas/total_penerima*100, 1) if total_penerima else 0
+        pct_jt = round(total_jatuh_tempo/total_penerima*100, 1) if total_penerima else 0
 
-# =========================
-# BULANAN
-# =========================
-st.markdown("""
-<div class="panel">
-    <div class="panel-title">Nominal Bantuan Bulanan</div>
-    <div class="panel-subtitle">Akumulasi nominal berdasarkan tanggal dibantu</div>
-""", unsafe_allow_html=True)
+        for label_ms, value_ms in [
+            ("Persentase Lunas", f"{pct_l}%"),
+            ("Persentase Belum Lunas", f"{pct_bl}%"),
+            ("Persentase Jatuh Tempo", f"{pct_jt}%"),
+        ]:
+            st.markdown(f"""
+            <div class="mini-stat">
+                <div class="mini-stat-label">{label_ms}</div>
+                <div class="mini-stat-value">{value_ms}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-if not monthly_df.empty:
-    fig_monthly = go.Figure()
-    fig_monthly.add_trace(
-        go.Bar(
-            x=monthly_df["Nama Bulan"],
-            y=monthly_df["Jumlah Bantuan (Rp)"],
-            name="Nominal Bantuan",
-            marker_color="#d9a7b7"
-        )
-    )
-    fig_monthly.add_trace(
-        go.Scatter(
-            x=monthly_df["Nama Bulan"],
-            y=monthly_df["Jumlah Bantuan (Rp)"],
-            name="Trend",
-            mode="lines+markers",
+st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+
+# ── MONTHLY CHART ────────────────────────────────────────────────────────────
+with st.container(border=True):
+    st.markdown('<div class="panel-title">Nominal Bantuan Bulanan</div>', unsafe_allow_html=True)
+    st.markdown('<div class="panel-sub">Akumulasi nominal berdasarkan tanggal dibantu</div>', unsafe_allow_html=True)
+    if not monthly_df.empty:
+        fig3 = go.Figure()
+        fig3.add_trace(go.Bar(
+            x=monthly_df["Nama Bulan"], y=monthly_df["Jumlah Bantuan (Rp)"],
+            marker_color="#e0a8bc", name="Nominal Bantuan"
+        ))
+        fig3.add_trace(go.Scatter(
+            x=monthly_df["Nama Bulan"], y=monthly_df["Jumlah Bantuan (Rp)"],
+            mode="lines+markers", name="Trend",
             line=dict(color="#7c1f3f", width=3),
-            marker=dict(size=7, color="#7c1f3f")
-        )
-    )
-    fig_monthly.update_layout(
-        margin=dict(t=10, b=10, l=0, r=0),
-        height=330,
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        xaxis_title="Bulan",
-        yaxis_title="Nominal",
-        legend_title_text=""
-    )
-    st.plotly_chart(fig_monthly, use_container_width=True, config={"displayModeBar": False})
-else:
-    st.info("Data bulanan belum tersedia.")
+            marker=dict(size=8, color="#7c1f3f", line=dict(color="white", width=2))
+        ))
+        fig3.update_layout(**PLOTLY_BASE, height=300,
+                           xaxis_title="Bulan", yaxis_title="Nominal (Rp)",
+                           legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+        fig3.update_yaxes(gridcolor="#f0e0e8")
+        st.plotly_chart(fig3, use_container_width=True, config={"displayModeBar": False})
+    else:
+        st.info("Data bulanan belum tersedia.")
 
-st.markdown("</div>", unsafe_allow_html=True)
-
-# =========================
-# NOTE
-# =========================
+# ── NOTE ─────────────────────────────────────────────────────────────────────
 st.markdown("""
 <div class="note-box">
-    <b>Catatan:</b> Status utama dibagi menjadi <b>Lunas</b> dan <b>Belum Lunas</b>.
-    Label <b>Jatuh Tempo</b> dipakai untuk data yang belum lunas dan sudah melewati tenggat.
+    <b>📌 Catatan:</b> Status dibagi menjadi <b>Lunas</b> dan <b>Belum Lunas</b>.
+    Label <b>Jatuh Tempo</b> digunakan untuk data belum lunas yang sudah melewati tenggat waktu.
 </div>
 """, unsafe_allow_html=True)
 
-# =========================
-# PRIORITAS
-# =========================
-prioritas = filtered[
-    (filtered["Status Pembayaran"] == "Belum Lunas") &
-    (filtered["Kondisi Tenggat"] == "Jatuh Tempo")
-].copy()
+st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
-prioritas = prioritas.sort_values(
-    by=["Terlambat Hari", "Tenggat"],
-    ascending=[False, True]
+# ── TABEL JATUH TEMPO ────────────────────────────────────────────────────────
+prioritas = (
+    filtered[(filtered["Status Pembayaran"]=="Belum Lunas") & (filtered["Kondisi Tenggat"]=="Jatuh Tempo")]
+    .copy()
+    .sort_values(["Terlambat Hari","Tenggat"], ascending=[False,True])
 )
 
-st.markdown('<div class="section-head">Penerima Bantuan Jatuh Tempo - Segera Hubungi</div>', unsafe_allow_html=True)
-st.markdown(f'<div class="table-caption">{len(prioritas)} penerima bantuan perlu segera dihubungi</div>', unsafe_allow_html=True)
+st.markdown('<div class="section-head">🔴 Penerima Bantuan Jatuh Tempo — Segera Hubungi</div>', unsafe_allow_html=True)
+st.markdown(f'<div class="section-sub">{len(prioritas)} penerima bantuan perlu segera dihubungi</div>', unsafe_allow_html=True)
 
 if prioritas.empty:
-    st.success("Tidak ada penerima bantuan yang jatuh tempo.")
+    st.success("✅ Tidak ada penerima bantuan yang jatuh tempo.")
 else:
-    prioritas_view = prioritas[[
-        "Nama Bantuan",
-        "Jumlah Bantuan (Rp)",
-        "Tanggal Dibantu",
-        "Tenggat",
-        "PIC",
-        "No Hp Penerima",
-        "Terlambat Hari"
-    ]].copy()
+    pv = prioritas[["Nama Bantuan","Jumlah Bantuan (Rp)","Tanggal Dibantu","Tenggat","PIC","No Hp Penerima","Terlambat Hari"]].copy()
+    pv["Jumlah Bantuan (Rp)"] = pv["Jumlah Bantuan (Rp)"].apply(fmt_rupiah)
+    pv["Tanggal Dibantu"]     = pv["Tanggal Dibantu"].apply(fmt_tgl)
+    pv["Tenggat"]             = pv["Tenggat"].apply(fmt_tgl)
+    pv["No Hp Penerima"]      = pv["No Hp Penerima"].replace("", "-")
+    pv["Terlambat Hari"]      = pv["Terlambat Hari"].apply(lambda x: f"{int(x)} hari")
+    pv["Status"]              = '<span class="chip chip-jatuh">Jatuh Tempo</span>'
+    st.markdown(df_to_html(pv), unsafe_allow_html=True)
 
-    prioritas_view["Jumlah Bantuan (Rp)"] = prioritas_view["Jumlah Bantuan (Rp)"].apply(format_rupiah)
-    prioritas_view["Tanggal Dibantu"] = prioritas_view["Tanggal Dibantu"].apply(format_tanggal_indo)
-    prioritas_view["Tenggat"] = prioritas_view["Tenggat"].apply(format_tanggal_indo)
-    prioritas_view["No Hp Penerima"] = prioritas_view["No Hp Penerima"].replace("", "-")
-    prioritas_view["Terlambat Hari"] = prioritas_view["Terlambat Hari"].apply(lambda x: f"{int(x)} hari")
+st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
-    st.markdown(
-        f'<div class="custom-table-wrap">{dataframe_to_html(prioritas_view)}</div>',
-        unsafe_allow_html=True
-    )
-
-# =========================
-# SEARCH + ALL DATA
-# =========================
-st.markdown('<div class="section-head">Data Semua Penerima Bantuan</div>', unsafe_allow_html=True)
-st.markdown('<div class="search-card">', unsafe_allow_html=True)
-search = st.text_input(
-    "Cari nama bantuan, PIC, nomor HP penerima, atau status...",
-    label_visibility="collapsed",
-    placeholder="Cari nama bantuan, PIC, nomor HP penerima, atau status..."
-)
-st.markdown('</div>', unsafe_allow_html=True)
+# ── SEARCH + SEMUA DATA ──────────────────────────────────────────────────────
+st.markdown('<div class="section-head">📋 Data Semua Penerima Bantuan</div>', unsafe_allow_html=True)
+search = st.text_input("Cari...", label_visibility="collapsed",
+                        placeholder="🔍  Cari nama bantuan, PIC, nomor HP, atau status...")
 
 table_df = filtered.copy()
-
 if search:
-    keyword = search.lower()
+    kw = search.lower()
     table_df = table_df[
-        table_df["Nama Bantuan"].astype(str).str.lower().str.contains(keyword, na=False) |
-        table_df["PIC"].astype(str).str.lower().str.contains(keyword, na=False) |
-        table_df["No Hp Penerima"].astype(str).str.lower().str.contains(keyword, na=False) |
-        table_df["Label Tampilan"].astype(str).str.lower().str.contains(keyword, na=False)
+        table_df["Nama Bantuan"].str.lower().str.contains(kw, na=False) |
+        table_df["PIC"].str.lower().str.contains(kw, na=False) |
+        table_df["No Hp Penerima"].str.lower().str.contains(kw, na=False) |
+        table_df["Label Tampilan"].str.lower().str.contains(kw, na=False)
     ]
 
-st.markdown(f'<div class="table-caption">Menampilkan {len(table_df)} dari {len(filtered)} penerima bantuan</div>', unsafe_allow_html=True)
+st.markdown(f'<div class="section-sub">Menampilkan {len(table_df)} dari {len(filtered)} penerima bantuan</div>', unsafe_allow_html=True)
 
-display_df = table_df[[
-    "Nama Bantuan",
-    "Jumlah Bantuan (Rp)",
-    "Tanggal Dibantu",
-    "Tenggat",
-    "PIC",
-    "No Hp Penerima",
-    "Tahun",
-    "Label Tampilan"
-]].copy()
+disp = table_df[["Nama Bantuan","Jumlah Bantuan (Rp)","Tanggal Dibantu","Tenggat","PIC","No Hp Penerima","Tahun","Label Tampilan"]].copy()
+disp["Jumlah Bantuan (Rp)"] = disp["Jumlah Bantuan (Rp)"].apply(fmt_rupiah)
+disp["Tanggal Dibantu"]     = disp["Tanggal Dibantu"].apply(fmt_tgl)
+disp["Tenggat"]             = disp["Tenggat"].apply(fmt_tgl)
+disp["No Hp Penerima"]      = disp["No Hp Penerima"].replace("", "-")
+disp["Status"]              = disp["Label Tampilan"].apply(chip)
+disp = disp.drop(columns=["Label Tampilan"])
+st.markdown(df_to_html(disp), unsafe_allow_html=True)
 
-display_df["Jumlah Bantuan (Rp)"] = display_df["Jumlah Bantuan (Rp)"].apply(format_rupiah)
-display_df["Tanggal Dibantu"] = display_df["Tanggal Dibantu"].apply(format_tanggal_indo)
-display_df["Tenggat"] = display_df["Tenggat"].apply(format_tanggal_indo)
-display_df["No Hp Penerima"] = display_df["No Hp Penerima"].replace("", "-")
-display_df["Status"] = display_df["Label Tampilan"].apply(make_status_chip)
-display_df = display_df.drop(columns=["Label Tampilan"])
+st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
-st.markdown(
-    f'<div class="custom-table-wrap">{dataframe_to_html(display_df)}</div>',
-    unsafe_allow_html=True
-)
+# ── BELUM LUNAS ──────────────────────────────────────────────────────────────
+st.markdown('<div class="section-head">⏳ Daftar Penerima Bantuan Belum Lunas</div>', unsafe_allow_html=True)
 
-# =========================
-# BELUM LUNAS
-# =========================
-st.markdown('<div class="section-head">Daftar Penerima Bantuan Belum Lunas</div>', unsafe_allow_html=True)
+bl_df = filtered[filtered["Status Pembayaran"]=="Belum Lunas"][
+    ["Nama Bantuan","Jumlah Bantuan (Rp)","PIC","No Hp Penerima","Tenggat","Label Tampilan"]
+].copy()
+bl_df["Jumlah Bantuan (Rp)"] = bl_df["Jumlah Bantuan (Rp)"].apply(fmt_rupiah)
+bl_df["Tenggat"]             = bl_df["Tenggat"].apply(fmt_tgl)
+bl_df["No Hp Penerima"]      = bl_df["No Hp Penerima"].replace("", "-")
+bl_df["Status"]              = bl_df["Label Tampilan"].apply(chip)
+bl_df = bl_df.drop(columns=["Label Tampilan"])
+st.markdown(df_to_html(bl_df), unsafe_allow_html=True)
 
-belum_lunas_df = filtered[
-    filtered["Status Pembayaran"] == "Belum Lunas"
-][[
-    "Nama Bantuan",
-    "Jumlah Bantuan (Rp)",
-    "PIC",
-    "No Hp Penerima",
-    "Tenggat",
-    "Label Tampilan"
-]].copy()
-
-belum_lunas_df["Jumlah Bantuan (Rp)"] = belum_lunas_df["Jumlah Bantuan (Rp)"].apply(format_rupiah)
-belum_lunas_df["Tenggat"] = belum_lunas_df["Tenggat"].apply(format_tanggal_indo)
-belum_lunas_df["No Hp Penerima"] = belum_lunas_df["No Hp Penerima"].replace("", "-")
-belum_lunas_df["Status"] = belum_lunas_df["Label Tampilan"].apply(make_status_chip)
-belum_lunas_df = belum_lunas_df.drop(columns=["Label Tampilan"])
-
-st.markdown(
-    f'<div class="custom-table-wrap">{dataframe_to_html(belum_lunas_df)}</div>',
-    unsafe_allow_html=True
-)
-
-st.markdown(
-    '<div class="footer-note">Versi ini dirapikan lagi: top bar lebih stabil, filter tidak bikin box kosong, tinggi panel disamakan, dan spacing dipadatkan.</div>',
-    unsafe_allow_html=True
-)
+st.markdown('<div class="footer">Dashboard Bantuan • Data diambil langsung dari Google Sheets</div>', unsafe_allow_html=True)
