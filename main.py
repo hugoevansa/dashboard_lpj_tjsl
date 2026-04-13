@@ -656,9 +656,6 @@ with c3:
 
 st.markdown("""
 <div class="note-box">
-    <b>📌 Catatan:</b> 
-    <b>Jatuh Tempo</b> adalah penerima bantuan yang masih <b>Belum Lunas</b> dan sudah melewati tenggat.
-    Untuk chat: <b>2 Minggu = Follow Up</b>, sedangkan <b>3 Minggu</b> dan <b>1 Bulan Lebih = BlackList</b>.
 </div>
 """, unsafe_allow_html=True)
 
