@@ -574,6 +574,7 @@ elif selected_chat == "BlackList":
     filtered = filtered[filtered["Klasifikasi Chat"] == "BlackList"]
 
 # ── KPI ──────────────────────────────────────────────────────────────────────
+# ── KPI ──────────────────────────────────────────────────────────────────────
 total_penerima    = len(filtered)
 total_lunas       = len(filtered[filtered["Status Pembayaran"] == "Lunas"])
 total_belum_lunas = len(filtered[filtered["Status Pembayaran"] == "Belum Lunas"])
@@ -582,9 +583,21 @@ total_menunggu    = len(filtered[filtered["Klasifikasi Chat"] == "Menunggu LPJ"]
 total_follow_up   = len(filtered[filtered["Klasifikasi Chat"] == "Follow Up LPJ"])
 total_blacklist   = len(filtered[filtered["Klasifikasi Chat"] == "BlackList"])
 
-k1, k2, k3, k4, k5, k6 = st.columns(6, gap="medium")
+# KPI nominal uang
+total_nominal_semua = filtered["Jumlah Bantuan (Rp)"].fillna(0).sum()
+total_nominal_lunas = filtered.loc[
+    filtered["Status Pembayaran"] == "Lunas",
+    "Jumlah Bantuan (Rp)"
+].fillna(0).sum()
+
+k1, k2, k3, k4, k5, k6, k7 = st.columns(7, gap="medium")
 
 cards = [
+    (
+        "Uang Lunas / Total Uang",
+        f"{fmt_rupiah(total_nominal_lunas)} / {fmt_rupiah(total_nominal_semua)}",
+        "Nominal bantuan yang sudah lunas dibanding total nominal"
+    ),
     ("Total Penerima", str(total_penerima), "Jumlah penerima bantuan"),
     ("Sudah Lunas", str(total_lunas), "Selesai dikembalikan"),
     ("Belum Lunas", str(total_belum_lunas), "Belum selesai"),
@@ -593,7 +606,7 @@ cards = [
     ("Follow Up / BlackList", f"{total_follow_up} / {total_blacklist}", "2 minggu / 3 minggu ke atas"),
 ]
 
-for col, (label_txt, val, note) in zip([k1, k2, k3, k4, k5, k6], cards):
+for col, (label_txt, val, note) in zip([k1, k2, k3, k4, k5, k6, k7], cards):
     with col:
         st.markdown(f"""
         <div class="kpi-wrap">
@@ -602,8 +615,6 @@ for col, (label_txt, val, note) in zip([k1, k2, k3, k4, k5, k6], cards):
             <div class="kpi-note">{note}</div>
         </div>
         """, unsafe_allow_html=True)
-
-st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
 
 # ── CHART ────────────────────────────────────────────────────────────────────
 MAROON_COLORS = {
