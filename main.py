@@ -670,7 +670,7 @@ else:
 
     # ── KIRI: Belum di Chat ──────────────────────────────────────────────────
     with col_kiri:
-              st.markdown('<div class="section-head">📩 Segera di Chat</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-head">📩 Segera di Chat</div>', unsafe_allow_html=True)
         st.markdown(
             f'<div class="section-sub">{len(prioritas_belum_chat)} penerima bantuan perlu segera dihubungi</div>',
             unsafe_allow_html=True
