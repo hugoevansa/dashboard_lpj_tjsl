@@ -322,7 +322,7 @@ def klasifikasi_chat(hari):
     if hari >= 21:      return "BlackList"
     return ""
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=60)
 def load_data():
     for url in [CSV_URL, GVIZ_URL]:
         try:
@@ -417,24 +417,31 @@ if not notif_kritis.empty and not st.session_state.toast_shown:
 #  LAYOUT
 # ═════════════════════════════════════════════════════════════════════════════
 
-# ── PAGE HEADER (dengan tombol notifikasi) ───────────────────────────────────
+# ── PAGE HEADER (dengan tombol notifikasi + refresh) ─────────────────────────
 badge_html = f'<span class="notif-badge">{total_notif}</span>' if total_notif > 0 else ""
 notif_page = "pages/notifikasi.py"
 
-st.markdown(f"""
+hdr_col, refresh_col = st.columns([6, 1], gap="small")
+with hdr_col:
+    st.markdown(f"""
 <div class="page-header">
-    <div class="page-header-icon">📊</div>
+    <div class="page-header-icon">&#x1F4CA;</div>
     <div>
         <div class="page-header-title">DASHBOARD BANTUAN</div>
         <div class="page-header-sub">Monitoring status bantuan, status chat, dan prioritas tindak lanjut</div>
     </div>
     <div class="page-header-right">
         <a href="{notif_page}" target="_self" class="notif-btn">
-            🔔 Notifikasi {badge_html}
+            &#x1F514; Notifikasi {badge_html}
         </a>
     </div>
 </div>
 """, unsafe_allow_html=True)
+with refresh_col:
+    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+    if st.button("&#x21BA; Refresh", key="btn_refresh", use_container_width=True, type="secondary"):
+        st.cache_data.clear()
+        st.rerun()
 
 st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
 
@@ -625,12 +632,9 @@ else:
             pv_belum["Aksi Chat"]           = pv_belum.apply(
                 lambda r: chip_aksi_prioritas(r["Klasifikasi Chat"], r["Chat Normal"]), axis=1
             )
-            pv_belum["Sudah Chat"] = pv_belum["Nama Bantuan"].apply(
-                lambda n: dismiss_btn_html(n, sudah_dismiss=(n in st.session_state.notif_dismissed))
-            )
             pv_belum["Detail"] = pv_belum["Nama Bantuan"].apply(detail_btn_html)
             pv_belum = pv_belum[[
-                "Nama Bantuan","Jumlah Bantuan (Rp)","No Hp Penerima","Aksi Chat","Sudah Chat","Detail"
+                "Nama Bantuan","Jumlah Bantuan (Rp)","No Hp Penerima","Aksi Chat","Detail"
             ]]
             st.markdown(df_to_html(pv_belum, max_height=360), unsafe_allow_html=True)
 
