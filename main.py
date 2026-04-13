@@ -12,55 +12,56 @@ st.set_page_config(
 )
 
 # =========================
-# CUSTOM CSS - MAROON CLEAN LAYOUT
+# CUSTOM CSS - RAPIIHAN FINAL
 # =========================
 st.markdown("""
 <style>
 :root {
-    --bg: #f7f3f5;
+    --bg: #f7f2f4;
     --panel: #ffffff;
-    --panel-2: #fcf8f9;
-    --line: #ead8de;
-    --text: #34111c;
-    --muted: #8d6a76;
-    --maroon: #7a1f3d;
-    --maroon-2: #5e132d;
-    --maroon-3: #a24a68;
-    --maroon-soft: #f6e8ed;
-    --maroon-soft-2: #ecd4dc;
-    --success-bg: #e6f4ea;
+    --panel-soft: #fff9fb;
+    --line: #ead7dd;
+    --text: #35131d;
+    --muted: #8a6672;
+    --maroon: #7c1f3f;
+    --maroon-dark: #5f132d;
+    --maroon-mid: #a14f6a;
+    --maroon-soft: #f3e4e9;
+    --success-bg: #e7f4ea;
     --success-text: #1f7a4d;
     --warning-bg: #fff2df;
-    --warning-text: #a56a00;
+    --warning-text: #9a6700;
     --danger-bg: #fde8ec;
     --danger-text: #b42318;
-    --shadow: 0 10px 28px rgba(122, 31, 61, 0.08);
+    --shadow: 0 10px 28px rgba(124, 31, 63, 0.08);
+    --radius-lg: 22px;
+    --radius-md: 18px;
+    --radius-sm: 14px;
 }
 
-html, body, [class*="css"]  {
+html, body, [class*="css"] {
     font-family: "Inter", "Segoe UI", sans-serif;
     color: var(--text);
 }
 
 .stApp {
     background:
-        radial-gradient(circle at 0% 0%, rgba(122,31,61,0.05), transparent 18%),
-        radial-gradient(circle at 100% 0%, rgba(122,31,61,0.04), transparent 18%),
-        linear-gradient(180deg, #fbf8f9 0%, #f4eef1 100%);
+        radial-gradient(circle at top left, rgba(124,31,63,0.05), transparent 22%),
+        linear-gradient(180deg, #fbf8f9 0%, #f4edf0 100%);
 }
 
 .block-container {
-    max-width: 1500px;
-    padding-top: 0.9rem;
-    padding-bottom: 2rem;
+    max-width: 1480px;
+    padding-top: 0.8rem;
+    padding-bottom: 1.5rem;
 }
 
 header[data-testid="stHeader"] {
-    background: rgba(255,255,255,0);
+    background: transparent;
 }
 
 section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, var(--maroon-2) 0%, var(--maroon) 100%);
+    background: linear-gradient(180deg, var(--maroon-dark) 0%, var(--maroon) 100%);
     border-right: 1px solid rgba(255,255,255,0.06);
 }
 
@@ -68,12 +69,9 @@ section[data-testid="stSidebar"] * {
     color: #fff7fa !important;
 }
 
-div[data-testid="stToolbar"] {
-    visibility: visible;
-}
-
-[data-testid="stVerticalBlock"] > [style*="flex-direction: column;"] > div:empty {
-    display: none;
+/* rapihin jarak default streamlit */
+div[data-testid="stVerticalBlock"] {
+    gap: 0.75rem;
 }
 
 div[data-baseweb="select"] > div,
@@ -81,109 +79,118 @@ div[data-baseweb="input"] > div {
     border-radius: 14px !important;
     border: 1px solid var(--line) !important;
     background: #ffffff !important;
-    min-height: 44px;
+    min-height: 48px;
     box-shadow: none !important;
 }
 
-.stTextInput input {
-    border-radius: 14px !important;
+.stSelectbox label,
+.stTextInput label {
+    color: var(--muted) !important;
+    font-weight: 600 !important;
+    font-size: 0.92rem !important;
 }
 
-.top-strip {
-    display: grid;
-    grid-template-columns: 1.6fr 0.8fr 0.8fr;
-    gap: 14px;
-    align-items: center;
-    margin-bottom: 14px;
-}
-
-.brand-box {
-    background: linear-gradient(135deg, #fffefe 0%, #fff7fa 100%);
+.top-card {
+    background: linear-gradient(180deg, #fffefe 0%, #fff8fa 100%);
     border: 1px solid var(--line);
-    border-radius: 22px;
-    padding: 16px 18px;
+    border-radius: var(--radius-lg);
     box-shadow: var(--shadow);
-    min-height: 78px;
+}
+
+.brand-card {
+    padding: 22px 24px;
+    min-height: 96px;
     display: flex;
     align-items: center;
-    gap: 14px;
+}
+
+.brand-wrap {
+    display: flex;
+    align-items: center;
+    gap: 16px;
 }
 
 .brand-icon {
-    width: 52px;
-    height: 52px;
-    border-radius: 16px;
-    background: linear-gradient(135deg, var(--maroon-2), var(--maroon));
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, var(--maroon-dark), var(--maroon));
     color: white;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
-    font-weight: 800;
-    box-shadow: 0 10px 20px rgba(122,31,61,0.18);
+    font-size: 26px;
+    box-shadow: 0 10px 20px rgba(124,31,63,0.18);
+    flex-shrink: 0;
 }
 
 .brand-title {
-    font-size: 1.95rem;
+    font-size: 1.85rem;
     font-weight: 900;
-    color: var(--maroon-2);
     line-height: 1.05;
-    margin-bottom: 2px;
+    color: var(--maroon-dark);
+    margin: 0;
 }
 
 .brand-subtitle {
-    font-size: 0.92rem;
+    margin-top: 4px;
     color: var(--muted);
+    font-size: 0.98rem;
 }
 
 .filter-card {
-    background: linear-gradient(180deg, #fffefe 0%, #fff8fa 100%);
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    padding: 10px 12px 6px 12px;
-    box-shadow: var(--shadow);
-    min-height: 78px;
+    padding: 12px 14px 8px 14px;
+    min-height: 96px;
+}
+
+.filter-label {
+    font-size: 0.84rem;
+    color: var(--muted);
+    font-weight: 700;
+    margin-bottom: 8px;
+    letter-spacing: 0.02em;
 }
 
 .kpi-card {
     background: linear-gradient(180deg, #ffffff 0%, #fffafb 100%);
     border: 1px solid var(--line);
     border-radius: 20px;
-    padding: 16px 18px;
+    padding: 18px 20px;
     box-shadow: var(--shadow);
-    min-height: 108px;
+    min-height: 122px;
     position: relative;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .kpi-card::before {
     content: "";
     position: absolute;
-    left: 0;
-    top: 0;
+    inset: 0 auto 0 0;
     width: 6px;
-    height: 100%;
-    background: linear-gradient(180deg, var(--maroon) 0%, var(--maroon-3) 100%);
+    background: linear-gradient(180deg, var(--maroon) 0%, var(--maroon-mid) 100%);
 }
 
 .kpi-label {
-    font-size: 0.9rem;
+    font-size: 0.92rem;
     color: var(--muted);
     font-weight: 700;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
 }
 
 .kpi-value {
-    font-size: 2rem;
+    font-size: 1.95rem;
     font-weight: 900;
-    color: var(--text);
     line-height: 1.1;
+    color: var(--text);
 }
 
 .kpi-note {
     margin-top: 8px;
+    font-size: 0.84rem;
     color: var(--muted);
-    font-size: 0.82rem;
 }
 
 .panel {
@@ -195,8 +202,12 @@ div[data-baseweb="input"] > div {
     height: 100%;
 }
 
+.panel-fixed {
+    min-height: 380px;
+}
+
 .panel-title {
-    font-size: 1.45rem;
+    font-size: 1.25rem;
     font-weight: 900;
     color: var(--text);
     margin-bottom: 2px;
@@ -205,25 +216,11 @@ div[data-baseweb="input"] > div {
 .panel-subtitle {
     font-size: 0.88rem;
     color: var(--muted);
-    margin-bottom: 10px;
-}
-
-.note-box {
-    background: linear-gradient(180deg, #fff7f9 0%, #fff1f4 100%);
-    border: 1px solid var(--maroon-soft-2);
-    border-radius: 18px;
-    padding: 14px 16px;
-    margin-top: 10px;
-    margin-bottom: 16px;
-    color: var(--text);
-}
-
-.note-box b {
-    color: var(--maroon);
+    margin-bottom: 8px;
 }
 
 .mini-stat {
-    background: #fffafd;
+    background: var(--panel-soft);
     border: 1px solid var(--line);
     border-radius: 16px;
     padding: 14px 14px;
@@ -237,23 +234,43 @@ div[data-baseweb="input"] > div {
 }
 
 .mini-stat-value {
-    font-size: 1.55rem;
+    font-size: 1.45rem;
     font-weight: 900;
     color: var(--maroon);
 }
 
 .section-head {
-    font-size: 1.4rem;
+    font-size: 1.28rem;
     font-weight: 900;
     color: var(--text);
-    margin-top: 8px;
-    margin-bottom: 8px;
+    margin-top: 4px;
+    margin-bottom: 2px;
 }
 
 .table-caption {
     color: var(--muted);
     font-size: 0.9rem;
     margin-bottom: 10px;
+}
+
+.note-box {
+    background: linear-gradient(180deg, #fff8fa 0%, #fff1f4 100%);
+    border: 1px solid #edd4dc;
+    border-radius: 18px;
+    padding: 14px 16px;
+    color: var(--text);
+}
+
+.note-box b {
+    color: var(--maroon);
+}
+
+.search-card {
+    background: linear-gradient(180deg, #ffffff 0%, #fffafb 100%);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 10px 14px 4px 14px;
+    box-shadow: var(--shadow);
 }
 
 .status-chip {
@@ -275,20 +292,21 @@ div[data-baseweb="input"] > div {
 .chip-belum {
     background: var(--warning-bg);
     color: var(--warning-text);
-    border-color: #f3d59d;
+    border-color: #efd49c;
 }
 
 .chip-jatuh {
     background: var(--danger-bg);
     color: var(--danger-text);
-    border-color: #f0c3cf;
+    border-color: #efc1cd;
 }
 
 .custom-table-wrap {
     background: white;
     border: 1px solid var(--line);
     border-radius: 18px;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
     box-shadow: var(--shadow);
 }
 
@@ -299,7 +317,7 @@ div[data-baseweb="input"] > div {
 }
 
 .custom-table th {
-    background: linear-gradient(180deg, #8b2847 0%, #6f1836 100%);
+    background: linear-gradient(180deg, #8a2747 0%, #6f1836 100%);
     color: white;
     text-align: left;
     padding: 12px 14px;
@@ -308,8 +326,8 @@ div[data-baseweb="input"] > div {
 }
 
 .custom-table td {
-    padding: 12px 14px;
-    border-bottom: 1px solid #f0e1e6;
+    padding: 11px 14px;
+    border-bottom: 1px solid #f1e2e7;
     color: var(--text);
     vertical-align: top;
 }
@@ -322,19 +340,10 @@ div[data-baseweb="input"] > div {
     border-bottom: none;
 }
 
-.search-card {
-    background: linear-gradient(180deg, #ffffff 0%, #fffafb 100%);
-    border: 1px solid var(--line);
-    border-radius: 18px;
-    padding: 12px 14px 6px 14px;
-    box-shadow: var(--shadow);
-    margin-bottom: 12px;
-}
-
 .footer-note {
     color: var(--muted);
-    font-size: 0.86rem;
-    margin-top: 12px;
+    font-size: 0.85rem;
+    margin-top: 8px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -360,18 +369,9 @@ def format_tanggal_indo(x):
     if pd.isna(x):
         return "-"
     bulan = {
-        1: "Januari",
-        2: "Februari",
-        3: "Maret",
-        4: "April",
-        5: "Mei",
-        6: "Juni",
-        7: "Juli",
-        8: "Agustus",
-        9: "September",
-        10: "Oktober",
-        11: "November",
-        12: "Desember",
+        1: "Januari", 2: "Februari", 3: "Maret", 4: "April",
+        5: "Mei", 6: "Juni", 7: "Juli", 8: "Agustus",
+        9: "September", 10: "Oktober", 11: "November", 12: "Desember",
     }
     return f"{x.day} {bulan[x.month]} {x.year}"
 
@@ -475,12 +475,12 @@ data["Status"] = data["Status"].astype(str).str.strip()
 data["Jumlah Bantuan (Rp)"] = clean_currency(data["Jumlah Bantuan (Rp)"])
 data["Tanggal Dibantu"] = pd.to_datetime(data["Tanggal Dibantu"], errors="coerce", dayfirst=True)
 data["Tenggat"] = pd.to_datetime(data["Tenggat"], errors="coerce", dayfirst=True)
-
 data["Tahun"] = data["Tanggal Dibantu"].dt.year
+
 today = pd.Timestamp.today().normalize()
 
 # =========================
-# LOGIKA STATUS
+# STATUS LOGIC
 # =========================
 data["Status Pembayaran"] = data["Status"].apply(normalize_status)
 
@@ -509,40 +509,42 @@ data["Label Tampilan"] = data.apply(get_label_tampilan, axis=1)
 # =========================
 with st.sidebar:
     st.markdown("## Dashboard Bantuan")
-    st.caption("Tema maroon • clean layout")
-    st.markdown("---")
-    st.markdown("Filter utama ada di area atas dashboard.")
+    st.caption("Tema maroon • versi lebih rapi")
 
 # =========================
-# TOP AREA MIRIP CONTOH
+# TOP ROW - TIDAK ADA BOX KOSONG
 # =========================
-top_left, top_mid, top_right = st.columns([1.8, 0.9, 0.9])
+top1, top2, top3 = st.columns([2.2, 1.05, 1.05], gap="medium")
 
-with top_left:
+with top1:
     st.markdown("""
-    <div class="brand-box">
-        <div class="brand-icon">📊</div>
-        <div>
-            <div class="brand-title">DASHBOARD BANTUAN</div>
-            <div class="brand-subtitle">Monitoring status bantuan dan prioritas tindak lanjut</div>
+    <div class="top-card brand-card">
+        <div class="brand-wrap">
+            <div class="brand-icon">📊</div>
+            <div>
+                <div class="brand-title">DASHBOARD BANTUAN</div>
+                <div class="brand-subtitle">Monitoring status bantuan dan prioritas tindak lanjut</div>
+            </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-with top_mid:
-    st.markdown('<div class="filter-card">', unsafe_allow_html=True)
-    selected_tahun = st.selectbox("Tahun", ["Semua", 2023, 2024, 2025, 2026], label_visibility="collapsed")
-    st.caption("Semua Tahun" if selected_tahun == "Semua" else f"Tahun {selected_tahun}")
+with top2:
+    st.markdown('<div class="top-card filter-card"><div class="filter-label">TAHUN</div>', unsafe_allow_html=True)
+    selected_tahun = st.selectbox(
+        "Tahun",
+        ["Semua", 2023, 2024, 2025, 2026],
+        label_visibility="collapsed"
+    )
     st.markdown('</div>', unsafe_allow_html=True)
 
-with top_right:
-    st.markdown('<div class="filter-card">', unsafe_allow_html=True)
+with top3:
+    st.markdown('<div class="top-card filter-card"><div class="filter-label">KONDISI</div>', unsafe_allow_html=True)
     selected_status = st.selectbox(
         "Kondisi",
         ["Semua", "Lunas", "Belum Lunas", "Jatuh Tempo"],
         label_visibility="collapsed"
     )
-    st.caption("Semua Kondisi" if selected_status == "Semua" else selected_status)
     st.markdown('</div>', unsafe_allow_html=True)
 
 filtered = data.copy()
@@ -567,10 +569,9 @@ total_penerima = len(filtered)
 total_lunas = len(filtered[filtered["Status Pembayaran"] == "Lunas"])
 total_belum_lunas = len(filtered[filtered["Status Pembayaran"] == "Belum Lunas"])
 total_jatuh_tempo = len(filtered[filtered["Kondisi Tenggat"] == "Jatuh Tempo"])
-
 total_nominal = filtered["Jumlah Bantuan (Rp)"].fillna(0).sum()
 
-m1, m2, m3, m4 = st.columns(4)
+m1, m2, m3, m4 = st.columns(4, gap="medium")
 
 with m1:
     st.markdown(f"""
@@ -609,7 +610,7 @@ with m4:
     """, unsafe_allow_html=True)
 
 # =========================
-# CHART ROW - 3 PANEL
+# CHART DATA
 # =========================
 chart_df = filtered["Status Pembayaran"].value_counts().reset_index()
 chart_df.columns = ["Status", "Jumlah"]
@@ -628,6 +629,7 @@ monthly_df = (
     monthly_df.dropna(subset=["Bulan"])
     .groupby("Bulan", as_index=False)["Jumlah Bantuan (Rp)"]
     .sum()
+    .sort_values("Bulan")
 )
 month_map = {
     1: "Jan", 2: "Feb", 3: "Mar", 4: "Apr", 5: "Mei", 6: "Jun",
@@ -635,11 +637,14 @@ month_map = {
 }
 monthly_df["Nama Bulan"] = monthly_df["Bulan"].map(month_map)
 
-c1, c2, c3 = st.columns(3)
+# =========================
+# CHART ROW
+# =========================
+c1, c2, c3 = st.columns(3, gap="medium")
 
 with c1:
     st.markdown("""
-    <div class="panel">
+    <div class="panel panel-fixed">
         <div class="panel-title">Komposisi Status (%)</div>
         <div class="panel-subtitle">Perbandingan status pembayaran utama</div>
     """, unsafe_allow_html=True)
@@ -652,8 +657,8 @@ with c1:
             hole=0.62,
             color="Status",
             color_discrete_map={
-                "Lunas": "#7a1f3d",
-                "Belum Lunas": "#d7a6b5",
+                "Lunas": "#7c1f3f",
+                "Belum Lunas": "#ddb1bf",
             }
         )
         fig_donut.update_traces(
@@ -662,12 +667,13 @@ with c1:
             marker=dict(line=dict(color="white", width=3))
         )
         fig_donut.update_layout(
-            margin=dict(t=10, b=10, l=10, r=10),
+            margin=dict(t=10, b=0, l=0, r=0),
+            height=290,
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(0,0,0,0)",
             legend=dict(orientation="v", title="", font=dict(size=12))
         )
-        st.plotly_chart(fig_donut, use_container_width=True)
+        st.plotly_chart(fig_donut, use_container_width=True, config={"displayModeBar": False})
     else:
         st.info("Tidak ada data.")
 
@@ -675,7 +681,7 @@ with c1:
 
 with c2:
     st.markdown("""
-    <div class="panel">
+    <div class="panel panel-fixed">
         <div class="panel-title">Perbandingan Status</div>
         <div class="panel-subtitle">Lunas, belum lunas, dan jatuh tempo</div>
     """, unsafe_allow_html=True)
@@ -686,13 +692,14 @@ with c2:
         y="Jumlah",
         color="Status",
         color_discrete_map={
-            "Lunas": "#7a1f3d",
-            "Belum Lunas": "#c77f96",
-            "Jatuh Tempo": "#e6b7c5",
+            "Lunas": "#7c1f3f",
+            "Belum Lunas": "#b86a84",
+            "Jatuh Tempo": "#e5bcc8",
         }
     )
     fig_bar.update_layout(
-        margin=dict(t=10, b=10, l=10, r=10),
+        margin=dict(t=10, b=10, l=0, r=0),
+        height=290,
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         xaxis_title="",
@@ -700,7 +707,7 @@ with c2:
         showlegend=False
     )
     fig_bar.update_traces(marker_line_width=0)
-    st.plotly_chart(fig_bar, use_container_width=True)
+    st.plotly_chart(fig_bar, use_container_width=True, config={"displayModeBar": False})
 
     st.markdown("</div>", unsafe_allow_html=True)
 
@@ -710,7 +717,7 @@ with c3:
     jatuh_tempo_pct = round((total_jatuh_tempo / total_penerima) * 100, 1) if total_penerima else 0
 
     st.markdown(f"""
-    <div class="panel">
+    <div class="panel panel-fixed">
         <div class="panel-title">Ringkasan Cepat</div>
         <div class="panel-subtitle">Persentase dan prioritas saat ini</div>
         <div class="mini-stat">
@@ -729,10 +736,10 @@ with c3:
     """, unsafe_allow_html=True)
 
 # =========================
-# COMBO CHART
+# BULANAN
 # =========================
 st.markdown("""
-<div class="panel" style="margin-top:14px;">
+<div class="panel">
     <div class="panel-title">Nominal Bantuan Bulanan</div>
     <div class="panel-subtitle">Akumulasi nominal berdasarkan tanggal dibantu</div>
 """, unsafe_allow_html=True)
@@ -744,7 +751,7 @@ if not monthly_df.empty:
             x=monthly_df["Nama Bulan"],
             y=monthly_df["Jumlah Bantuan (Rp)"],
             name="Nominal Bantuan",
-            marker_color="#d8a3b3"
+            marker_color="#d9a7b7"
         )
     )
     fig_monthly.add_trace(
@@ -753,19 +760,20 @@ if not monthly_df.empty:
             y=monthly_df["Jumlah Bantuan (Rp)"],
             name="Trend",
             mode="lines+markers",
-            line=dict(color="#7a1f3d", width=3),
-            marker=dict(size=8, color="#7a1f3d")
+            line=dict(color="#7c1f3f", width=3),
+            marker=dict(size=7, color="#7c1f3f")
         )
     )
     fig_monthly.update_layout(
-        margin=dict(t=10, b=10, l=10, r=10),
+        margin=dict(t=10, b=10, l=0, r=0),
+        height=330,
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         xaxis_title="Bulan",
         yaxis_title="Nominal",
         legend_title_text=""
     )
-    st.plotly_chart(fig_monthly, use_container_width=True)
+    st.plotly_chart(fig_monthly, use_container_width=True, config={"displayModeBar": False})
 else:
     st.info("Data bulanan belum tersedia.")
 
@@ -822,11 +830,15 @@ else:
     )
 
 # =========================
-# SEARCH
+# SEARCH + ALL DATA
 # =========================
 st.markdown('<div class="section-head">Data Semua Penerima Bantuan</div>', unsafe_allow_html=True)
 st.markdown('<div class="search-card">', unsafe_allow_html=True)
-search = st.text_input("Cari nama bantuan, PIC, nomor HP penerima, atau status...", label_visibility="collapsed", placeholder="Cari nama bantuan, PIC, nomor HP penerima, atau status...")
+search = st.text_input(
+    "Cari nama bantuan, PIC, nomor HP penerima, atau status...",
+    label_visibility="collapsed",
+    placeholder="Cari nama bantuan, PIC, nomor HP penerima, atau status..."
+)
 st.markdown('</div>', unsafe_allow_html=True)
 
 table_df = filtered.copy()
@@ -892,4 +904,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.markdown('<div class="footer-note">Versi ini dibuat lebih mendekati layout contoh: filter di atas, kartu KPI putih, panel chart terpisah, dan tema maroon yang lebih konsisten.</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="footer-note">Versi ini dirapikan lagi: top bar lebih stabil, filter tidak bikin box kosong, tinggi panel disamakan, dan spacing dipadatkan.</div>',
+    unsafe_allow_html=True
+)
