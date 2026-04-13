@@ -274,6 +274,18 @@ def chip_aksi_chat(val):
     if val == "BlackList":     return '<span class="chip chip-blacklist">BlackList</span>'
     return '<span class="chip chip-muted">-</span>'
 
+def chip_aksi_prioritas(val, chat_normal=None):
+    # khusus untuk tabel prioritas
+    if chat_normal == "Belum di Chat":
+        return '<span class="chip chip-jatuh">Segera di Chat</span>'
+    if val == "Menunggu LPJ":
+        return '<span class="chip chip-menunggu">Menunggu LPJ</span>'
+    if val == "Follow Up LPJ":
+        return '<span class="chip chip-follow">Follow Up LPJ</span>'
+    if val == "BlackList":
+        return '<span class="chip chip-blacklist">BlackList</span>'
+    return '<span class="chip chip-muted">-</span>'
+
 def df_to_html(df, max_height=480):
     rows = ""
     for _, r in df.iterrows():
