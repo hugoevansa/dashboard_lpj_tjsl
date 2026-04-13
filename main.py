@@ -330,7 +330,7 @@ def label_jeda_chat(hari):
 
 def klasifikasi_chat(hari):
     if hari is None: return ""
-    if 7 <= hari < 14: return "Menunggu LPJ"
+    if 1 <= hari < 14: return "Menunggu LPJ"
     if 14 <= hari < 21: return "Follow Up LPJ"
     if hari >= 21: return "BlackList"
     return ""
