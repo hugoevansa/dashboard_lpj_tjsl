@@ -322,7 +322,7 @@ def klasifikasi_chat(hari):
     if hari >= 21:      return "BlackList"
     return ""
 
-@st.cache_data(ttl=300)
+@st.cache_data(ttl=30)
 def load_data():
     for url in [CSV_URL, GVIZ_URL]:
         try:
