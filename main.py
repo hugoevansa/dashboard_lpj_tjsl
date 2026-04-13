@@ -145,23 +145,6 @@ div[data-baseweb="input"] > div {
     margin-top: 6px;
 }
 
-.kpi-small {
-    padding: 12px 14px !important;
-    border-radius: 14px !important;
-}
-
-.kpi-small .kpi-label {
-    font-size: 0.7rem !important;
-}
-
-.kpi-small .kpi-value {
-    font-size: 1.2rem !important;
-}
-
-.kpi-small .kpi-note {
-    font-size: 0.7rem !important;
-}
-
 .panel-title {
     font-size: 1.05rem;
     font-weight: 900;
@@ -600,7 +583,7 @@ with f1:
     ].fillna(0).sum()
 
     st.markdown(f"""
-    <div class="kpi-wrap kpi-small">
+    <div class="kpi-wrap">
         <div class="kpi-label">UANG LUNAS / TOTAL</div>
         <div class="kpi-value">
             {fmt_rupiah(total_nominal_lunas)}
