@@ -794,14 +794,13 @@ disp["Tanggal Dibantu"]     = disp["Tanggal Dibantu"].apply(fmt_tgl)
 disp["Tenggat"]             = disp["Tenggat"].apply(fmt_tgl)
 disp["No Hp Penerima"]      = disp["No Hp Penerima"].replace("", "-")
 disp["Status"]              = disp["Label Tampilan"].apply(chip_status)
-disp["Aksi Chat"]           = disp["Klasifikasi Chat"].apply(chip_aksi_chat)
 
 disp = disp.drop(columns=["Label Tampilan", "Klasifikasi Chat"])
 
 disp = disp[
     [
         "Nama Bantuan", "Jumlah Bantuan (Rp)", "Tanggal Dibantu", "Tenggat",
-        "PIC", "No Hp Penerima", "Tahun", "Status", "Aksi Chat"
+        "PIC", "No Hp Penerima", "Tahun", "Status"
     ]
 ]
 
