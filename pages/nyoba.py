@@ -5,14 +5,307 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-st.set_page_config(page_title="Nagih Utang Dashboard", page_icon="💳", layout="wide")
+st.set_page_config(
+    page_title="Nagih Utang Dashboard",
+    page_icon="💳",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+# =========================
+# CSS PALING ATAS
+# =========================
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background: linear-gradient(180deg, #edf2f8 0%, #e7edf5 100%);
+    }
+
+    .block-container {
+        padding-top: 1.1rem;
+        padding-bottom: 2rem;
+        max-width: 1450px;
+    }
+
+    header[data-testid="stHeader"] {
+        background: transparent;
+    }
+
+    div[data-testid="stToolbar"] {
+        visibility: visible;
+    }
+
+    section[data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #071425 0%, #0b1c31 100%);
+        border-right: 1px solid rgba(255,255,255,0.06);
+    }
+
+    section[data-testid="stSidebar"] * {
+        color: #dbe7f5;
+    }
+
+    .topbar {
+        background: linear-gradient(90deg, #1f5daa 0%, #2f73c7 100%);
+        padding: 18px 24px;
+        border-radius: 22px;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 14px 34px rgba(20, 63, 125, 0.18);
+        margin-bottom: 20px;
+    }
+
+    .topbar-left {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .logo-box {
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        background: rgba(255,255,255,0.18);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+    }
+
+    .topbar-title {
+        font-size: 24px;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+
+    .topbar-sub {
+        font-size: 13px;
+        opacity: 0.9;
+    }
+
+    .admin-box {
+        text-align: right;
+        font-size: 15px;
+        line-height: 1.15;
+    }
+
+    .admin-box span {
+        display: block;
+        font-size: 12px;
+        opacity: 0.88;
+        margin-top: 4px;
+    }
+
+    .kpi-card {
+        background: #ffffff;
+        border: 1px solid #d8e0ea;
+        border-radius: 18px;
+        padding: 18px 18px 16px 18px;
+        box-shadow: 0 6px 18px rgba(64, 90, 122, 0.08);
+        min-height: 116px;
+    }
+
+    .kpi-label {
+        color: #4b6078;
+        font-weight: 700;
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+
+    .kpi-value {
+        color: #143e73;
+        font-size: 22px;
+        font-weight: 800;
+        line-height: 1.2;
+    }
+
+    .kpi-note {
+        margin-top: 8px;
+        font-size: 12px;
+        color: #6d7f95;
+    }
+
+    .panel {
+        background: #ffffff;
+        border: 1px solid #d8e0ea;
+        border-radius: 18px;
+        padding: 18px;
+        box-shadow: 0 8px 24px rgba(64, 90, 122, 0.08);
+        height: 100%;
+    }
+
+    .panel-title {
+        color: #23456b;
+        font-size: 18px;
+        font-weight: 800;
+        margin-bottom: 14px;
+    }
+
+    .stat-list {
+        margin-top: 8px;
+    }
+
+    .stat-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 0;
+        border-bottom: 1px solid #e7edf5;
+        color: #304762;
+        font-size: 15px;
+    }
+
+    .stat-row:last-child {
+        border-bottom: none;
+    }
+
+    .stat-value {
+        color: #1c477e;
+        font-weight: 800;
+        font-size: 21px;
+    }
+
+    .mini-progress-wrap {
+        margin-top: 18px;
+    }
+
+    .mini-progress-row {
+        display: grid;
+        grid-template-columns: 92px 1fr 56px;
+        align-items: center;
+        gap: 12px;
+        margin: 10px 0;
+        color: #304762;
+        font-weight: 700;
+    }
+
+    .mini-progress {
+        width: 100%;
+        height: 22px;
+        background: #ecf1f6;
+        border-radius: 999px;
+        overflow: hidden;
+    }
+
+    .mini-progress > div {
+        height: 100%;
+        border-radius: 999px;
+    }
+
+    .green {
+        background: linear-gradient(90deg, #5fbf53, #46a93d);
+    }
+
+    .red {
+        background: linear-gradient(90deg, #ef5757, #da3f3f);
+    }
+
+    table.custom-table {
+        width: 100%;
+        border-collapse: collapse;
+        overflow: hidden;
+        border-radius: 14px;
+        font-size: 14px;
+    }
+
+    table.custom-table thead th {
+        background: linear-gradient(180deg, #2e6db8, #245b9b);
+        color: white;
+        text-align: left;
+        padding: 12px 14px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    table.custom-table tbody td {
+        padding: 12px 14px;
+        border-bottom: 1px solid #e5edf6;
+        color: #304762;
+        background: #fff;
+    }
+
+    table.custom-table tbody tr:nth-child(even) td {
+        background: #f7fafd;
+    }
+
+    table.custom-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .name-cell {
+        font-weight: 700;
+        color: #173c6a;
+    }
+
+    .countdown-pill {
+        display: inline-block;
+        padding: 7px 12px;
+        border-radius: 999px;
+        color: white;
+        font-weight: 800;
+        font-size: 14px;
+        min-width: 94px;
+        text-align: center;
+    }
+
+    .countdown-pill.success {
+        background: #59b95a;
+    }
+
+    .countdown-pill.warning {
+        background: #dda134;
+    }
+
+    .countdown-pill.danger {
+        background: #d84a4a;
+    }
+
+    .reminder-item, .activity-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 12px;
+        border-top: 1px solid #e7edf5;
+        color: #304762;
+        font-size: 15px;
+    }
+
+    .reminder-item:first-child, .activity-item:first-child {
+        border-top: none;
+    }
+
+    .bullet {
+        font-size: 18px;
+        margin-right: 10px;
+        color: #365983;
+    }
+
+    .muted {
+        color: #6c7f95;
+        font-size: 13px;
+    }
+
+    .sidebar-note {
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 14px;
+        padding: 12px;
+        font-size: 13px;
+        line-height: 1.45;
+        margin-top: 12px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 NOW = datetime.now()
 random.seed(12)
 
-
 # =========================
-# Helpers
+# HELPERS
 # =========================
 def format_rupiah(amount: int) -> str:
     return f"Rp {amount:,.0f}".replace(",", ".")
@@ -50,15 +343,34 @@ def countdown_badge(value: str) -> str:
     return f'<span class="countdown-pill {css}">{value}</span>'
 
 
+def render_table(df_show, columns, countdown_col=None):
+    header = "".join([f"<th>{c}</th>" for c in columns])
+    rows_html = ""
+    if df_show.empty:
+        rows_html = f'<tr><td colspan="{len(columns)}" style="text-align:center; color:#6c7f95;">Tidak ada data</td></tr>'
+    else:
+        for _, row in df_show.iterrows():
+            cells = []
+            for col in columns:
+                val = row[col]
+                if col == columns[0]:
+                    cells.append(f'<td class="name-cell">{val}</td>')
+                elif countdown_col and col == countdown_col:
+                    cells.append(f"<td>{countdown_badge(str(val))}</td>")
+                else:
+                    cells.append(f"<td>{val}</td>")
+            rows_html += f"<tr>{''.join(cells)}</tr>"
+    return f'<table class="custom-table"><thead><tr>{header}</tr></thead><tbody>{rows_html}</tbody></table>'
+
+
 # =========================
-# Dummy Data
+# DUMMY DATA
 # =========================
 customers = [
     "Budi", "Siti", "Andi", "Rina", "Yanto", "Dewi", "Rudi", "Nina",
     "Fajar", "Lukman", "Tika", "Hendra", "Maya", "Riko", "Putri",
     "Bagus", "Intan", "Asep", "Rahmat", "Desi",
 ]
-
 collectors = ["Aldi", "Bayu", "Citra", "Dimas"]
 priorities = ["Tinggi", "Sedang", "Rendah"]
 areas = ["Jakarta Timur", "Jakarta Barat", "Bekasi", "Depok"]
@@ -92,7 +404,7 @@ for i, name in enumerate(customers, start=1):
         }
     )
 
-# force a few showcase rows
+# Showcase rows biar tampilan stabil
 rows[3].update({"status": "Belum Lunas", "sudah_dichat": False, "jatuh_tempo": NOW + timedelta(days=1), "prioritas": "Tinggi", "nominal": 5_000_000})
 rows[4].update({"status": "Belum Lunas", "sudah_dichat": False, "jatuh_tempo": NOW + timedelta(days=2), "prioritas": "Sedang", "nominal": 3_500_000})
 rows[5].update({"status": "Belum Lunas", "sudah_dichat": False, "jatuh_tempo": NOW + timedelta(days=3), "prioritas": "Tinggi", "nominal": 7_200_000})
@@ -103,7 +415,23 @@ rows[8].update({"status": "Belum Lunas", "sudah_dichat": True, "janji_bayar": Tr
 df = pd.DataFrame(rows)
 
 # =========================
-# Derived Data
+# SIDEBAR
+# =========================
+with st.sidebar:
+    st.markdown("## Debt Collector App")
+    st.markdown("Navigasi multipage tetap aktif.")
+    st.markdown(
+        """
+        <div class="sidebar-note">
+            Halaman utama ini fokus ke layout dashboard.
+            Nanti data asli bisa dipisah ke folder <b>pages/</b> tanpa bongkar ulang UI utama.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+# =========================
+# DERIVED DATA
 # =========================
 paid_count = int((df["status"] == "Lunas").sum())
 unpaid_count = int((df["status"] == "Belum Lunas").sum())
@@ -139,230 +467,8 @@ priority_counts = (
 
 trend_values = [8, 12, 15, 21]
 
-
 # =========================
-# Styling
-# =========================
-st.markdown(
-    """
-    <style>
-    .stApp {
-        background: linear-gradient(180deg, #edf2f8 0%, #e7edf5 100%);
-    }
-    .block-container {
-        padding-top: 1.2rem;
-        padding-bottom: 2rem;
-        max-width: 1450px;
-    }
-    div[data-testid="stToolbar"] {visibility: hidden; height: 0%; position: fixed;}
-    header[data-testid="stHeader"] {background: transparent;}
-
-    .topbar {
-        background: linear-gradient(90deg, #1f5daa 0%, #2f73c7 100%);
-        padding: 18px 24px;
-        border-radius: 22px;
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        box-shadow: 0 14px 34px rgba(20, 63, 125, 0.18);
-        margin-bottom: 20px;
-    }
-    .topbar-left {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-    }
-    .logo-box {
-        width: 52px;
-        height: 52px;
-        border-radius: 14px;
-        background: rgba(255,255,255,0.18);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px;
-    }
-    .topbar-title {
-        font-size: 24px;
-        font-weight: 700;
-        line-height: 1.2;
-    }
-    .topbar-sub {
-        font-size: 13px;
-        opacity: 0.9;
-    }
-    .admin-box {
-        text-align: right;
-        font-size: 15px;
-        line-height: 1.15;
-    }
-    .admin-box span {
-        display: block;
-        font-size: 12px;
-        opacity: 0.88;
-        margin-top: 4px;
-    }
-
-    .kpi-card {
-        background: #ffffff;
-        border: 1px solid #d8e0ea;
-        border-radius: 18px;
-        padding: 18px 18px 16px 18px;
-        box-shadow: 0 6px 18px rgba(64, 90, 122, 0.08);
-        min-height: 116px;
-    }
-    .kpi-label {
-        color: #4b6078;
-        font-weight: 700;
-        font-size: 14px;
-        margin-bottom: 8px;
-    }
-    .kpi-value {
-        color: #143e73;
-        font-size: 22px;
-        font-weight: 800;
-        line-height: 1.2;
-    }
-    .kpi-note {
-        margin-top: 8px;
-        font-size: 12px;
-        color: #6d7f95;
-    }
-
-    .panel {
-        background: #ffffff;
-        border: 1px solid #d8e0ea;
-        border-radius: 18px;
-        padding: 18px;
-        box-shadow: 0 8px 24px rgba(64, 90, 122, 0.08);
-        height: 100%;
-    }
-    .panel-title {
-        color: #23456b;
-        font-size: 18px;
-        font-weight: 800;
-        margin-bottom: 14px;
-    }
-    .stat-list {
-        margin-top: 8px;
-    }
-    .stat-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 14px 0;
-        border-bottom: 1px solid #e7edf5;
-        color: #304762;
-        font-size: 15px;
-    }
-    .stat-row:last-child { border-bottom: none; }
-    .stat-value {
-        color: #1c477e;
-        font-weight: 800;
-        font-size: 21px;
-    }
-
-    .mini-progress-wrap {
-        margin-top: 18px;
-    }
-    .mini-progress-row {
-        display: grid;
-        grid-template-columns: 92px 1fr 56px;
-        align-items: center;
-        gap: 12px;
-        margin: 10px 0;
-        color: #304762;
-        font-weight: 700;
-    }
-    .mini-progress {
-        width: 100%;
-        height: 22px;
-        background: #ecf1f6;
-        border-radius: 999px;
-        overflow: hidden;
-    }
-    .mini-progress > div {
-        height: 100%;
-        border-radius: 999px;
-    }
-    .green { background: linear-gradient(90deg, #5fbf53, #46a93d); }
-    .red { background: linear-gradient(90deg, #ef5757, #da3f3f); }
-
-    table.custom-table {
-        width: 100%;
-        border-collapse: collapse;
-        overflow: hidden;
-        border-radius: 14px;
-        font-size: 14px;
-    }
-    table.custom-table thead th {
-        background: linear-gradient(180deg, #2e6db8, #245b9b);
-        color: white;
-        text-align: left;
-        padding: 12px 14px;
-        font-weight: 700;
-        white-space: nowrap;
-    }
-    table.custom-table tbody td {
-        padding: 12px 14px;
-        border-bottom: 1px solid #e5edf6;
-        color: #304762;
-        background: #fff;
-    }
-    table.custom-table tbody tr:nth-child(even) td {
-        background: #f7fafd;
-    }
-    table.custom-table tbody tr:last-child td {
-        border-bottom: none;
-    }
-    .name-cell {
-        font-weight: 700;
-        color: #173c6a;
-    }
-    .countdown-pill {
-        display: inline-block;
-        padding: 7px 12px;
-        border-radius: 999px;
-        color: white;
-        font-weight: 800;
-        font-size: 14px;
-        min-width: 94px;
-        text-align: center;
-    }
-    .countdown-pill.success { background: #59b95a; }
-    .countdown-pill.warning { background: #dda134; }
-    .countdown-pill.danger { background: #d84a4a; }
-
-    .reminder-item, .activity-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 14px 12px;
-        border-top: 1px solid #e7edf5;
-        color: #304762;
-        font-size: 15px;
-    }
-    .reminder-item:first-child, .activity-item:first-child {
-        border-top: none;
-    }
-    .bullet {
-        font-size: 18px;
-        margin-right: 10px;
-        color: #365983;
-    }
-    .muted {
-        color: #6c7f95;
-        font-size: 13px;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-
-# =========================
-# Layout
+# LAYOUT
 # =========================
 st.markdown(
     """
@@ -432,15 +538,17 @@ left_big, mid_big, right_big = st.columns([1.25, 1.25, 0.9])
 
 with left_big:
     fig = go.Figure(
-        data=[go.Pie(
-            labels=["Lunas", "Belum Lunas"],
-            values=[paid_count, unpaid_count],
-            hole=0.45,
-            marker=dict(colors=["#5dbb50", "#ea5252"]),
-            textinfo="label+percent",
-            textfont=dict(size=16, color="white"),
-            sort=False,
-        )]
+        data=[
+            go.Pie(
+                labels=["Lunas", "Belum Lunas"],
+                values=[paid_count, unpaid_count],
+                hole=0.45,
+                marker=dict(colors=["#5dbb50", "#ea5252"]),
+                textinfo="label+percent",
+                textfont=dict(size=16, color="white"),
+                sort=False,
+            )
+        ]
     )
     fig.update_layout(
         margin=dict(t=10, b=10, l=10, r=10),
@@ -472,6 +580,7 @@ with left_big:
     )
 
 with mid_big:
+    st.markdown('<div class="panel"><div class="panel-title">Tren Follow Up</div></div>', unsafe_allow_html=True)
     fig_line = go.Figure()
     fig_line.add_trace(
         go.Scatter(
@@ -492,12 +601,6 @@ with mid_big:
         xaxis=dict(showgrid=False, title=None),
         yaxis=dict(showgrid=True, gridcolor="#dfe8f2", zeroline=False, title=None),
     )
-    stats_html = f"""
-        <div class="panel">
-            <div class="panel-title">Tren Follow Up</div>
-        </div>
-    """
-    st.markdown(stats_html, unsafe_allow_html=True)
     st.plotly_chart(fig_line, use_container_width=True, config={"displayModeBar": False})
 
 with right_big:
@@ -515,27 +618,6 @@ with right_big:
         """,
         unsafe_allow_html=True,
     )
-
-
-def render_table(df_show, columns, countdown_col=None):
-    header = "".join([f"<th>{c}</th>" for c in columns])
-    rows_html = ""
-    if df_show.empty:
-        rows_html = f'<tr><td colspan="{len(columns)}" style="text-align:center; color:#6c7f95;">Tidak ada data</td></tr>'
-    else:
-        for _, row in df_show.iterrows():
-            tds = []
-            for col in columns:
-                val = row[col]
-                if col == columns[0]:
-                    tds.append(f'<td class="name-cell">{val}</td>')
-                elif countdown_col and col == countdown_col:
-                    tds.append(f"<td>{countdown_badge(str(val))}</td>")
-                else:
-                    tds.append(f"<td>{val}</td>")
-            rows_html += f"<tr>{''.join(tds)}</tr>"
-    return f'<table class="custom-table"><thead><tr>{header}</tr></thead><tbody>{rows_html}</tbody></table>'
-
 
 chat_table = chat_due[["nama", "nominal", "jatuh_tempo"]].copy()
 chat_table["nominal"] = chat_table["nominal"].apply(format_rupiah)
@@ -587,4 +669,4 @@ with bottom_right:
         unsafe_allow_html=True,
     )
 
-st.caption("Versi ini difokuskan untuk meniru layout mockup: tanpa filter, dengan visual container dan warna yang lebih rapi. Data masih dummy.")
+st.caption("Struktur dibuat ulang dari awal. CSS ditaruh paling atas. Sidebar/pages tetap aktif. Data masih dummy.")
