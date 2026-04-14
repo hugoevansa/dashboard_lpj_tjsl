@@ -9,6 +9,8 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+from sidebar_component import render_sidebar
+
 # ─── SESSION STATE INIT ───────────────────────────────────────────────────────
 if "detail_nama" not in st.session_state:
     st.session_state.detail_nama = None
