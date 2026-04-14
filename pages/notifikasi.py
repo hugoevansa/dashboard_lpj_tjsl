@@ -250,7 +250,7 @@ def clean_phone(s):
 
 def normalize_status(st_val):
     v = str(st_val).strip().lower()
-    return "Lunas" if v in ["lpj","sudah lpj"] else "Belum Lunas"
+    return "LPJ" if v in ["lpj","sudah lpj"] else "Belum LPJ"
 
 def normalize_chat(val):
     v = str(val).strip().lower()
@@ -350,7 +350,7 @@ today = pd.Timestamp.today().normalize()
 
 data["Kondisi Tenggat"] = data.apply(
     lambda r: "Jatuh Tempo"
-    if r["Status Pembayaran"] == "Belum Lunas" and pd.notna(r["Tenggat"]) and r["Tenggat"] < today
+    if r["Status Pembayaran"] == "Belum LPJ" and pd.notna(r["Tenggat"]) and r["Tenggat"] < today
     else "Belum Jatuh Tempo", axis=1
 )
 data["Terlambat Hari"] = data["Tenggat"].apply(
@@ -383,26 +383,26 @@ def is_resolved(row, auto_status):
     return False
 
 belum_chat = data[
-    (data["Status Pembayaran"] == "Belum Lunas") &
+    (data["Status Pembayaran"] == "Belum LPJ") &
     (data["Kondisi Tenggat"] == "Jatuh Tempo") &
     (data["Chat Normal"] == "Belum di Chat") &
     (~data.apply(lambda r: is_resolved(r, "Belum di Chat"), axis=1))
 ].copy().sort_values("Terlambat Hari", ascending=False)
 
 blacklist = data[
-    (data["Status Pembayaran"] == "Belum Lunas") &
+    (data["Status Pembayaran"] == "Belum LPJ") &
     (data["Klasifikasi Chat"] == "BlackList") &
     (~data.apply(lambda r: is_resolved(r, "BlackList"), axis=1))
 ].copy().sort_values("Hari Setelah Chat", ascending=False)
 
 follow_up = data[
-    (data["Status Pembayaran"] == "Belum Lunas") &
+    (data["Status Pembayaran"] == "Belum LPJ") &
     (data["Klasifikasi Chat"] == "Follow Up LPJ") &
     (~data.apply(lambda r: is_resolved(r, "Follow Up LPJ"), axis=1))
 ].copy().sort_values("Hari Setelah Chat", ascending=False)
 
 menunggu = data[
-    (data["Status Pembayaran"] == "Belum Lunas") &
+    (data["Status Pembayaran"] == "Belum LPJ") &
     (data["Klasifikasi Chat"] == "Menunggu LPJ") &
     (~data.apply(lambda r: is_resolved(r, "Menunggu LPJ"), axis=1))
 ].copy().sort_values("Hari Setelah Chat", ascending=False)
