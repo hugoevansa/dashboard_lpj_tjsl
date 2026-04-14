@@ -216,6 +216,11 @@ div[data-baseweb="input"] > div {
 </style>
 """, unsafe_allow_html=True)
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  SIDEBAR  ← baru
+# ─────────────────────────────────────────────────────────────────────────────
+render_sidebar(active_page="database", notif_count=total_notif)
+
 # ─── GOOGLE SHEETS CONFIG ────────────────────────────────────────────────────
 SHEET_ID = "1wi4id0XqYlTuw_KO89-cOLSPTFAQ6ODv_tH09LK_2Ao"
 GID      = "0"
