@@ -860,7 +860,7 @@ def make_gauge_html(items):
     items: list of (label, pct_float, color_hex, count_int)
     Returns a full HTML string with embedded SVG ring gauges.
     """
-    def one_gauge(pct, color, size=110, stroke=10, track="#EAD8DF"):
+    def one_gauge(pct, color, size=95, stroke=9, track="#EAD8DF"):
         r = (size - stroke * 2) / 2
         cx = cy = size / 2
         circ = 2 * math.pi * r
@@ -877,7 +877,7 @@ def make_gauge_html(items):
             stroke-dasharray="{fill:.3f} {gap:.3f}"
             transform="rotate(-90 {cx} {cy})"/>
           <text x="{cx}" y="{cy+1}" text-anchor="middle" dominant-baseline="middle"
-            font-family="Sora, sans-serif" font-size="14" font-weight="800" fill="#1C0A12">{pct_txt}</text>
+            font-family="Sora, sans-serif" font-size="13" font-weight="800" fill="#1C0A12">{pct_txt}</text>
         </svg>"""
 
     cards = ""
@@ -902,11 +902,15 @@ def make_gauge_html(items):
     </div>
     </body></html>"""
 
-pct_lpj    = round((total_lpj / total_penerima) * 100, 1)          if total_penerima else 0
-pct_belum  = round((total_belum_lpj / total_penerima) * 100, 1)    if total_penerima else 0
-pct_jt     = round((total_jatuh_tempo / total_penerima) * 100, 1)  if total_penerima else 0
-pct_fu     = round((total_follow_up / total_penerima) * 100, 1)    if total_penerima else 0
-pct_bl     = round((total_blacklist / total_penerima) * 100, 1)    if total_penerima else 0
+total_belum_dichat = len(filtered[filtered["Chat Normal"] == "Belum di Chat"])
+
+pct_lpj          = round((total_lpj / total_penerima) * 100, 1)          if total_penerima else 0
+pct_belum        = round((total_belum_lpj / total_penerima) * 100, 1)    if total_penerima else 0
+pct_belum_dichat = round((total_belum_dichat / total_penerima) * 100, 1) if total_penerima else 0
+pct_jt           = round((total_jatuh_tempo / total_penerima) * 100, 1)  if total_penerima else 0
+pct_fu           = round((total_follow_up / total_penerima) * 100, 1)    if total_penerima else 0
+pct_bl           = round((total_blacklist / total_penerima) * 100, 1)    if total_penerima else 0
+pct_menunggu     = round((total_menunggu / total_penerima) * 100, 1)     if total_penerima else 0
 
 c1, c2, c3 = st.columns([1, 1, 1], gap="medium")
 
@@ -938,11 +942,12 @@ with c3:
         st.markdown('<div class="panel-title">Indikator Risiko Tindak Lanjut</div>', unsafe_allow_html=True)
         st.markdown('<div class="panel-sub">Proporsi berdasarkan urgensi tindak lanjut</div>', unsafe_allow_html=True)
         html_risk = make_gauge_html([
-            ("Jatuh Tempo",      pct_jt, "#8B1A3A", total_jatuh_tempo),
-            ("Follow Up",        pct_fu, "#A8355A", total_follow_up),
-            ("Blacklist",        pct_bl, "#C4617F", total_blacklist),
+            ("Belum di Chat",    pct_belum_dichat, "#5E0F26", total_belum_dichat),
+            ("Menunggu LPJ",     pct_menunggu,     "#8B1A3A", total_menunggu),
+            ("Follow Up LPJ",    pct_fu,           "#A8355A", total_follow_up),
+            ("Blacklist",        pct_bl,           "#C4617F", total_blacklist),
         ])
-        components.html(html_risk, height=180, scrolling=False)
+        components.html(html_risk, height=200, scrolling=False)
 
 st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
