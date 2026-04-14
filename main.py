@@ -109,7 +109,6 @@ div[data-baseweb="input"] > div {
 .page-header-sub   { color:rgba(255,255,255,0.75); font-size:0.9rem; margin-top:3px; }
 .page-header-right { margin-left:auto; }
 
-/* Notif Button di Header */
 .notif-btn {
     display: inline-flex;
     align-items: center;
@@ -184,14 +183,20 @@ div[data-baseweb="input"] > div {
 .filter-label { font-size:0.78rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:4px; }
 
 .chip { display:inline-block; padding:4px 11px; border-radius:999px; font-size:0.77rem; font-weight:800; white-space:nowrap; }
-.chip-lunas     { background:#e6f5ec; color:var(--success); border:1px solid #b0dfc0; }
-.chip-belum     { background:#fff4e0; color:var(--warning); border:1px solid #f0d49a; }
-.chip-jatuh     { background:#fde8ec; color:var(--danger);  border:1px solid #f0bfc9; }
-.chip-chat      { background:#eef4ff; color:var(--info);    border:1px solid #c7d7fe; }
-.chip-menunggu  { background:#eef2ff; color:#4338ca;        border:1px solid #c7d2fe; }
-.chip-follow    { background:#fff7e6; color:#b36b00;        border:1px solid #f1d193; }
-.chip-blacklist { background:#111827; color:#fff;           border:1px solid #374151; }
-.chip-muted     { background:#f5f5f5; color:#6b7280;        border:1px solid #d1d5db; }
+.chip-lunas          { background:#e6f5ec; color:var(--success); border:1px solid #b0dfc0; }
+.chip-belum          { background:#fff4e0; color:var(--warning); border:1px solid #f0d49a; }
+.chip-jatuh          { background:#fde8ec; color:var(--danger);  border:1px solid #f0bfc9; }
+.chip-chat           { background:#eef4ff; color:var(--info);    border:1px solid #c7d7fe; }
+.chip-menunggu       { background:#eef2ff; color:#4338ca;        border:1px solid #c7d2fe; }
+.chip-follow         { background:#fff7e6; color:#b36b00;        border:1px solid #f1d193; }
+.chip-blacklist      { background:#111827; color:#fff;           border:1px solid #374151; }
+.chip-muted          { background:#f5f5f5; color:#6b7280;        border:1px solid #d1d5db; }
+/* Chip tambahan untuk Tahap Followup manual */
+.chip-konfirmasi     { background:#e0f2fe; color:#0369a1;        border:1px solid #7dd3fc; }
+.chip-negosiasi      { background:#fef9c3; color:#854d0e;        border:1px solid #fde047; }
+.chip-lpj-diterima   { background:#dcfce7; color:#15803d;        border:1px solid #86efac; }
+.chip-bl-konfirmasi  { background:#1f2937; color:#f9fafb;        border:1px solid #6b7280; }
+.chip-belum-diisi    { background:#f3f4f6; color:#9ca3af;        border:1px solid #d1d5db; font-style:italic; }
 
 .tbl-wrap { border-radius:16px; border:1.5px solid var(--line); box-shadow:var(--shadow); overflow:hidden; }
 .tbl-scroll {
@@ -223,6 +228,12 @@ SHEET_ID = "1wi4id0XqYlTuw_KO89-cOLSPTFAQ6ODv_tH09LK_2Ao"
 GID      = "0"
 CSV_URL  = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={GID}"
 GVIZ_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&gid={GID}"
+
+# ─── VALID TAHAP FOLLOWUP ────────────────────────────────────────────────────
+VALID_TAHAP = [
+    "Menunggu Balasan", "Sudah Konfirmasi", "Negosiasi",
+    "LPJ Diterima", "Blacklist Dikonfirmasi"
+]
 
 # ─── HELPERS ─────────────────────────────────────────────────────────────────
 def fmt_rupiah(x):
@@ -268,6 +279,29 @@ def chip_aksi_prioritas(val, chat_normal=None):
     if val == "Menunggu LPJ":  return '<span class="chip chip-menunggu">Menunggu LPJ</span>'
     if val == "Follow Up LPJ": return '<span class="chip chip-follow">Follow Up LPJ</span>'
     if val == "BlackList":     return '<span class="chip chip-blacklist">BlackList</span>'
+    return '<span class="chip chip-muted">-</span>'
+
+def chip_klasifikasi_auto(val):
+    """Chip dengan label jelas bahwa ini OTOMATIS (dihitung dari waktu chat)"""
+    if val == "BlackList":     return '<span class="chip chip-blacklist">🤖 Auto: Blacklist</span>'
+    if val == "Follow Up LPJ": return '<span class="chip chip-follow">🤖 Auto: Follow Up</span>'
+    if val == "Menunggu LPJ":  return '<span class="chip chip-menunggu">🤖 Auto: Menunggu</span>'
+    return '<span class="chip chip-muted">-</span>'
+
+def chip_tahap_followup(val):
+    """Chip untuk status manual yang diisi oleh pengguna"""
+    if not val or val in ["nan", "", "-"]:
+        return '<span class="chip chip-belum-diisi">Belum diisi</span>'
+    if val == "Blacklist Dikonfirmasi":
+        return '<span class="chip chip-bl-konfirmasi">✓ Blacklist</span>'
+    if val == "LPJ Diterima":
+        return '<span class="chip chip-lpj-diterima">✓ LPJ Diterima</span>'
+    if val == "Sudah Konfirmasi":
+        return '<span class="chip chip-konfirmasi">✓ Konfirmasi</span>'
+    if val == "Negosiasi":
+        return '<span class="chip chip-negosiasi">Negosiasi</span>'
+    if val == "Menunggu Balasan":
+        return '<span class="chip chip-menunggu">Menunggu Balasan</span>'
     return '<span class="chip chip-muted">-</span>'
 
 def df_to_html(df, max_height=360):
@@ -349,8 +383,10 @@ aliases = {
 }
 data = data.rename(columns={k:v for k,v in aliases.items() if k in data.columns})
 
+# Tambahkan kolom baru Tahap Followup & Catatan Followup ke required_cols
 required_cols = ["Nama Bantuan","Jumlah Bantuan (Rp)","Tanggal Dibantu","Tenggat",
-                 "PIC","No Hp Penerima","Status","Chat","Status Chat"]
+                 "PIC","No Hp Penerima","Status","Chat","Status Chat",
+                 "Tahap Followup","Catatan Followup"]
 for col in required_cols:
     if col not in data.columns: data[col] = ""
 
@@ -367,6 +403,14 @@ data["Tanggal Chat"]        = pd.to_datetime(data["Status Chat"], errors="coerce
 data["Tahun"]               = data["Tanggal Dibantu"].dt.year
 data["Status Pembayaran"]   = data["Status"].apply(normalize_status)
 data["Chat Normal"]         = data["Chat"].apply(normalize_chat)
+
+# Normalisasi kolom Tahap Followup (manual)
+data["Tahap Followup"] = data["Tahap Followup"].astype(str).str.strip()
+data["Tahap Followup"] = data["Tahap Followup"].apply(
+    lambda x: x if x in VALID_TAHAP else ""
+)
+# Normalisasi Catatan Followup
+data["Catatan Followup"] = data["Catatan Followup"].astype(str).str.strip().replace("nan", "")
 
 today = pd.Timestamp.today().normalize()
 
@@ -420,7 +464,6 @@ if not notif_kritis.empty and not st.session_state.toast_shown:
 # ── PAGE HEADER ──────────────────────────────────────────────────────────────
 badge_html = f'<span class="notif-badge">{total_notif}</span>' if total_notif > 0 else ""
 
-# Header HTML (tanpa tombol refresh — pakai st.button di bawah)
 st.markdown(f"""
 <div class="page-header">
     <div class="page-header-icon">&#x1F4CA;</div>
@@ -434,7 +477,6 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# Tombol-tombol di kanan header — pakai st.columns agar tetap rapi
 _spacer, _notif_col, _refresh_col = st.columns([7, 1.2, 0.5], gap="small")
 with _notif_col:
     if st.button(
@@ -631,16 +673,19 @@ else:
             st.info("Tidak ada penerima bantuan di kategori ini.")
         else:
             pv_belum = prioritas_belum_chat[[
-                "Nama Bantuan","Jumlah Bantuan (Rp)","No Hp Penerima","Chat Normal","Klasifikasi Chat"
+                "Nama Bantuan","Jumlah Bantuan (Rp)","No Hp Penerima",
+                "Chat Normal","Klasifikasi Chat","Tahap Followup"
             ]].copy()
             pv_belum["Jumlah Bantuan (Rp)"] = pv_belum["Jumlah Bantuan (Rp)"].apply(fmt_rupiah)
             pv_belum["No Hp Penerima"]      = pv_belum["No Hp Penerima"].replace("","-")
-            pv_belum["Aksi Chat"]           = pv_belum.apply(
+            pv_belum["Status Auto"]         = pv_belum.apply(
                 lambda r: chip_aksi_prioritas(r["Klasifikasi Chat"], r["Chat Normal"]), axis=1
             )
-            pv_belum["Detail"] = pv_belum["Nama Bantuan"].apply(detail_btn_html)
+            pv_belum["Tahap Manual"]        = pv_belum["Tahap Followup"].apply(chip_tahap_followup)
+            pv_belum["Detail"]              = prioritas_belum_chat["Nama Bantuan"].apply(detail_btn_html)
             pv_belum = pv_belum[[
-                "Nama Bantuan","Jumlah Bantuan (Rp)","No Hp Penerima","Aksi Chat","Detail"
+                "Nama Bantuan","Jumlah Bantuan (Rp)","No Hp Penerima",
+                "Status Auto","Tahap Manual","Detail"
             ]]
             st.markdown(df_to_html(pv_belum, max_height=360), unsafe_allow_html=True)
 
@@ -654,16 +699,19 @@ else:
             st.info("Tidak ada penerima bantuan di kategori ini.")
         else:
             pv_sudah = prioritas_sudah_chat[[
-                "Nama Bantuan","Jumlah Bantuan (Rp)","No Hp Penerima","Chat Normal","Klasifikasi Chat"
+                "Nama Bantuan","Jumlah Bantuan (Rp)","No Hp Penerima",
+                "Chat Normal","Klasifikasi Chat","Tahap Followup"
             ]].copy()
             pv_sudah["Jumlah Bantuan (Rp)"] = pv_sudah["Jumlah Bantuan (Rp)"].apply(fmt_rupiah)
             pv_sudah["No Hp Penerima"]      = pv_sudah["No Hp Penerima"].replace("","-")
-            pv_sudah["Aksi Chat"]           = pv_sudah.apply(
+            pv_sudah["Status Auto"]         = pv_sudah.apply(
                 lambda r: chip_aksi_prioritas(r["Klasifikasi Chat"], r["Chat Normal"]), axis=1
             )
-            pv_sudah["Detail"] = pv_sudah["Nama Bantuan"].apply(detail_btn_html)
+            pv_sudah["Tahap Manual"]        = pv_sudah["Tahap Followup"].apply(chip_tahap_followup)
+            pv_sudah["Detail"]              = prioritas_sudah_chat["Nama Bantuan"].apply(detail_btn_html)
             pv_sudah = pv_sudah[[
-                "Nama Bantuan","Jumlah Bantuan (Rp)","No Hp Penerima","Aksi Chat","Detail"
+                "Nama Bantuan","Jumlah Bantuan (Rp)","No Hp Penerima",
+                "Status Auto","Tahap Manual","Detail"
             ]]
             st.markdown(df_to_html(pv_sudah, max_height=360), unsafe_allow_html=True)
 
@@ -688,7 +736,9 @@ if search:
         table_df["Label Tampilan"].astype(str).str.lower().str.contains(kw,na=False) |
         table_df["Chat Normal"].astype(str).str.lower().str.contains(kw,na=False) |
         table_df["Label Jeda Chat"].astype(str).str.lower().str.contains(kw,na=False) |
-        table_df["Klasifikasi Chat"].astype(str).str.lower().str.contains(kw,na=False)
+        table_df["Klasifikasi Chat"].astype(str).str.lower().str.contains(kw,na=False) |
+        table_df["Tahap Followup"].astype(str).str.lower().str.contains(kw,na=False) |
+        table_df["Catatan Followup"].astype(str).str.lower().str.contains(kw,na=False)
     ]
 
 st.markdown(
@@ -698,17 +748,21 @@ st.markdown(
 
 disp = table_df[[
     "Nama Bantuan","Jumlah Bantuan (Rp)","Tanggal Dibantu","Tenggat",
-    "PIC","No Hp Penerima","Tahun","Label Tampilan","Klasifikasi Chat"
+    "PIC","No Hp Penerima","Tahun","Label Tampilan","Klasifikasi Chat",
+    "Tahap Followup","Catatan Followup"
 ]].copy()
 disp["Jumlah Bantuan (Rp)"] = disp["Jumlah Bantuan (Rp)"].apply(fmt_rupiah)
 disp["Tanggal Dibantu"]     = disp["Tanggal Dibantu"].apply(fmt_tgl)
 disp["Tenggat"]             = disp["Tenggat"].apply(fmt_tgl)
 disp["No Hp Penerima"]      = disp["No Hp Penerima"].replace("","-")
 disp["Status"]              = disp["Label Tampilan"].apply(chip_status)
-disp = disp.drop(columns=["Label Tampilan","Klasifikasi Chat"])
+disp["Status Auto"]         = disp["Klasifikasi Chat"].apply(chip_klasifikasi_auto)
+disp["Tahap Manual"]        = disp["Tahap Followup"].apply(chip_tahap_followup)
+disp["Catatan"]             = disp["Catatan Followup"].replace("", "-")
+disp = disp.drop(columns=["Label Tampilan","Klasifikasi Chat","Tahap Followup","Catatan Followup"])
 disp = disp[[
     "Nama Bantuan","Jumlah Bantuan (Rp)","Tanggal Dibantu","Tenggat",
-    "PIC","No Hp Penerima","Tahun","Status"
+    "PIC","No Hp Penerima","Tahun","Status","Status Auto","Tahap Manual","Catatan"
 ]]
 
 st.markdown(df_to_html(disp), unsafe_allow_html=True)
