@@ -902,7 +902,11 @@ def make_gauge_html(items):
     </div>
     </body></html>"""
 
-total_belum_dichat = len(filtered[filtered["Chat Normal"] == "Belum di Chat"])
+total_belum_dichat = len(filtered[
+    (filtered["Status Pembayaran"] == "Belum LPJ") &
+    (filtered["Kondisi Tenggat"] == "Jatuh Tempo") &
+    (filtered["Chat Normal"] == "Belum di Chat")
+])
 
 pct_lpj          = round((total_lpj / total_penerima) * 100, 1)          if total_penerima else 0
 pct_belum        = round((total_belum_lpj / total_penerima) * 100, 1)    if total_penerima else 0
