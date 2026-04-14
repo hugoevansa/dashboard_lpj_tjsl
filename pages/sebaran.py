@@ -1,7 +1,7 @@
 """
 heatmap.py  ─  Peta Penyebaran Bantuan Indonesia
 =================================================
-Simpan di folder  pages/  agar otomatis muncul di sidebar Streamlit.
+Simpan di folder  pages/  agar muncul di sidebar multi-page Streamlit.
 
 Install:
     pip install streamlit pandas plotly requests
@@ -13,14 +13,16 @@ Jalankan standalone:
 # ─────────────────────────────────────────────────────────────────────────────
 #  IMPORTS
 # ─────────────────────────────────────────────────────────────────────────────
+import os
 import re
+import base64
 import requests
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  PAGE CONFIG  (hapus baris ini jika file dipakai sebagai pages/ di multi-app)
+#  PAGE CONFIG
 # ─────────────────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Peta Penyebaran Bantuan",
@@ -30,22 +32,22 @@ st.set_page_config(
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  PALET WARNA  (disesuaikan dengan dashboard utama)
+#  PALET WARNA
 # ─────────────────────────────────────────────────────────────────────────────
 P = {
-    "deep"     : "#3D0E21",   # maroon paling gelap
-    "primary"  : "#6B1D3A",   # maroon utama
-    "secondary": "#8B2252",   # maroon menengah
-    "accent"   : "#C5547A",   # rose-medium
-    "rose300"  : "#E8A0B4",   # rose terang
-    "rose100"  : "#F8D7DA",   # rose sangat terang
-    "bg"       : "#F9F0F3",   # latar konten
+    "deep"     : "#3D0E21",
+    "primary"  : "#6B1D3A",
+    "secondary": "#8B2252",
+    "accent"   : "#C5547A",
+    "rose300"  : "#E8A0B4",
+    "rose200"  : "#F0B8C5",
+    "rose100"  : "#F8D7DA",
+    "bg"       : "#F9F0F3",
     "card"     : "#FFFFFF",
     "muted"    : "#9C7B86",
     "text"     : "#2D1A20",
 }
 
-# Colorscale peta (terang → gelap = kecil → besar)
 MAP_COLORSCALE = [
     [0.00, "#FBF0F3"],
     [0.15, "#F8D7DA"],
@@ -56,20 +58,45 @@ MAP_COLORSCALE = [
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  CSS  ─  meniru tampilan dashboard utama
+#  CSS
 # ─────────────────────────────────────────────────────────────────────────────
 st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
-
 html, body, [class*="css"] {{
     font-family: 'Plus Jakarta Sans', sans-serif !important;
 }}
-.stApp {{
-    background-color: {P['bg']};
+.stApp {{ background-color: {P['bg']}; }}
+
+/* ══ SIDEBAR ══════════════════════════════════════════════════════════ */
+section[data-testid="stSidebar"] {{
+    background: {P['deep']} !important;
+    border-right: none;
+}}
+section[data-testid="stSidebar"] * {{
+    color: rgba(255,255,255,.85) !important;
+}}
+section[data-testid="stSidebar"] a[data-testid="stSidebarNavLink"] {{
+    background: transparent !important;
+    border-radius: 8px;
+    padding: 8px 12px;
+    margin: 2px 0;
+    font-size: 13.5px;
+    font-weight: 500;
+    transition: background .15s;
+}}
+section[data-testid="stSidebar"] a[data-testid="stSidebarNavLink"]:hover {{
+    background: rgba(255,255,255,.10) !important;
+}}
+section[data-testid="stSidebar"] a[aria-current="page"] {{
+    background: rgba(255,255,255,.18) !important;
+    font-weight: 700 !important;
+}}
+section[data-testid="stSidebar"] hr {{
+    border-color: rgba(255,255,255,.12) !important;
 }}
 
-/* ─ Banner ─────────────────────────────────────────────────────── */
+/* ══ BANNER ═══════════════════════════════════════════════════════════ */
 .banner {{
     background: linear-gradient(130deg, {P['deep']} 0%, {P['primary']} 50%, {P['secondary']} 100%);
     padding: 22px 32px 22px 28px;
@@ -81,23 +108,22 @@ html, body, [class*="css"] {{
     position: relative; overflow: hidden;
 }}
 .banner::after {{
-    content:"";
-    position:absolute; right:-50px; top:-50px;
+    content:""; position:absolute; right:-50px; top:-50px;
     width:220px; height:220px; border-radius:50%;
     background:rgba(255,255,255,.055);
 }}
 .banner-icon {{
     font-size:36px; line-height:1;
     background:rgba(255,255,255,.15);
-    padding:10px 12px; border-radius:10px;
+    padding:10px 12px; border-radius:10px; flex-shrink:0;
 }}
 .banner h1 {{
     margin:0; font-size:22px; font-weight:800;
     letter-spacing:-.3px; text-transform:uppercase;
 }}
-.banner p  {{ margin:5px 0 0; font-size:13px; opacity:.80; font-weight:400; }}
+.banner p {{ margin:5px 0 0; font-size:13px; opacity:.80; font-weight:400; }}
 
-/* ─ Filter bar ─────────────────────────────────────────────────── */
+/* ══ FILTER BAR ═══════════════════════════════════════════════════════ */
 .filter-wrap {{
     background:{P['card']};
     border-radius:12px;
@@ -113,7 +139,6 @@ div[data-testid="stRadio"] label {{
     text-transform:uppercase;
     letter-spacing:.7px;
 }}
-/* radio row horizontal */
 div[data-testid="stRadio"] > div {{
     flex-direction: row !important;
     gap: 6px !important;
@@ -123,14 +148,13 @@ div[data-testid="stRadio"] > div > label {{
     background: {P['rose100']};
     border: 1.5px solid {P['rose300']};
     border-radius: 20px;
-    padding: 4px 14px !important;
+    padding: 4px 16px !important;
     font-size: 12px !important;
     font-weight: 600 !important;
     color: {P['primary']} !important;
     text-transform: none !important;
     letter-spacing: 0 !important;
-    cursor: pointer;
-    transition: all .15s;
+    cursor: pointer; transition: all .15s;
 }}
 div[data-testid="stRadio"] > div > label:has(input:checked) {{
     background: {P['primary']};
@@ -138,7 +162,7 @@ div[data-testid="stRadio"] > div > label:has(input:checked) {{
     color: #fff !important;
 }}
 
-/* ─ KPI cards ──────────────────────────────────────────────────── */
+/* ══ KPI CARDS ════════════════════════════════════════════════════════ */
 .kpi-grid {{
     display:grid;
     grid-template-columns: repeat(5, 1fr);
@@ -156,8 +180,7 @@ div[data-testid="stRadio"] > div > label:has(input:checked) {{
 .kpi-icon {{ font-size:20px; margin-bottom:6px; }}
 .kpi-val  {{
     font-size:24px; font-weight:800;
-    color:{P['primary']}; line-height:1.15;
-    letter-spacing:-.5px;
+    color:{P['primary']}; line-height:1.15; letter-spacing:-.5px;
 }}
 .kpi-lbl  {{
     font-size:10.5px; font-weight:600;
@@ -165,7 +188,7 @@ div[data-testid="stRadio"] > div > label:has(input:checked) {{
     letter-spacing:.9px; margin-top:4px;
 }}
 
-/* ─ Section header ──────────────────────────────────────────────── */
+/* ══ SECTION HEADER ═══════════════════════════════════════════════════ */
 .sec {{
     background:{P['card']};
     border-left:5px solid {P['primary']};
@@ -178,11 +201,9 @@ div[data-testid="stRadio"] > div > label:has(input:checked) {{
     margin:0; color:{P['primary']};
     font-size:14px; font-weight:700; letter-spacing:-.1px;
 }}
-.sec span {{
-    font-size:11.5px; color:{P['muted']}; font-weight:400;
-}}
+.sec span {{ font-size:11.5px; color:{P['muted']}; font-weight:400; }}
 
-/* ─ Table info bar ──────────────────────────────────────────────── */
+/* ══ TABLE INFO BAR ═══════════════════════════════════════════════════ */
 .tbl-info {{
     background: {P['rose100']};
     border-radius:8px;
@@ -193,40 +214,222 @@ div[data-testid="stRadio"] > div > label:has(input:checked) {{
 }}
 .tbl-info b {{ color:{P['primary']}; }}
 
-/* ─ Misc ─────────────────────────────────────────────────────────── */
-footer, #MainMenu, div[data-testid="stDecoration"] {{ visibility:hidden; }}
-div[data-testid="stDataFrame"] table thead tr th {{
-    background-color:{P['primary']} !important;
-    color:#fff !important;
-    font-weight:700 !important;
+/* ══ TABEL  (gaya persis Main) ════════════════════════════════════════ */
+.bantuan-table-wrap {{
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 3px 16px rgba(107,29,58,.13);
+    border: 1px solid {P['rose200']};
 }}
+.bantuan-table {{
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+}}
+.bantuan-table thead tr {{
+    background: {P['primary']};
+    color: #fff;
+}}
+.bantuan-table thead th {{
+    padding: 12px 16px;
+    text-align: left;
+    font-weight: 700;
+    font-size: 11.5px;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    border: none;
+    white-space: nowrap;
+}}
+.bantuan-table tbody tr {{
+    border-bottom: 1px solid {P['rose100']};
+    transition: background .1s;
+}}
+.bantuan-table tbody tr:nth-child(even) {{
+    background: #fdf5f7;
+}}
+.bantuan-table tbody tr:hover {{
+    background: {P['rose100']} !important;
+}}
+.bantuan-table tbody td {{
+    padding: 10px 16px;
+    color: {P['text']};
+    vertical-align: middle;
+    border: none;
+}}
+.bantuan-table .td-nama {{
+    font-weight: 600;
+    color: {P['primary']};
+    max-width: 260px;
+}}
+.bantuan-table .td-nominal {{
+    font-weight: 700;
+    color: {P['secondary']};
+    white-space: nowrap;
+}}
+.bantuan-table .td-muted {{
+    font-size: 12px;
+    color: {P['muted']};
+    white-space: nowrap;
+}}
+.bantuan-table .td-tgl {{
+    font-size: 12px;
+    color: {P['text']};
+    white-space: nowrap;
+}}
+
+/* ══ RANKING CARD ═════════════════════════════════════════════════════ */
+.rank-card {{
+    background: {P['card']};
+    border-radius: 12px;
+    padding: 16px 18px;
+    box-shadow: 0 2px 12px rgba(107,29,58,.09);
+    height: 100%;
+}}
+.rank-title {{
+    font-size: 13px; font-weight: 700;
+    color: {P['primary']}; margin-bottom: 12px;
+}}
+.rank-item {{
+    display: flex; align-items: center;
+    gap: 10px; padding: 7px 0;
+    border-bottom: 1px solid {P['rose100']};
+}}
+.rank-item:last-child {{ border-bottom: none; }}
+.rank-num {{
+    font-size: 12px; font-weight: 800;
+    color: #fff;
+    background: {P['primary']};
+    border-radius: 50%;
+    min-width: 26px; height: 26px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}}
+.rank-gold   {{ background: #C8960C !important; }}
+.rank-silver {{ background: #7A8694 !important; }}
+.rank-bronze {{ background: #A0522D !important; }}
+.rank-body {{ flex:1; min-width:0; }}
+.rank-name {{
+    font-size: 12.5px; font-weight: 700;
+    color: {P['text']};
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}}
+.rank-sub  {{ font-size: 11px; color: {P['muted']}; margin-top:1px; }}
+.rank-total {{
+    font-size: 12px; font-weight: 800;
+    color: {P['primary']};
+    white-space: nowrap; text-align: right; flex-shrink: 0;
+}}
+
+/* ══ SIDEBAR LOGO BLOCK ═══════════════════════════════════════════════ */
+.sb-logo {{
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px 10px;
+    margin-top: 6px;
+    border-top: 1px solid rgba(255,255,255,.12);
+}}
+.sb-logo img {{
+    width: 36px; height: 36px;
+    border-radius: 8px; object-fit: cover;
+}}
+.sb-logo-title {{
+    font-size: 13px; font-weight: 700;
+    color: rgba(255,255,255,.92) !important;
+    line-height: 1.3;
+}}
+.sb-logo-sub {{
+    font-size: 10.5px;
+    color: rgba(255,255,255,.50) !important;
+}}
+
+/* ══ DOWNLOAD BUTTON ══════════════════════════════════════════════════ */
 .stDownloadButton > button {{
-    background:{P['primary']};
-    color:#fff;
-    border:none;
-    border-radius:8px;
-    font-weight:600;
-    padding:8px 20px;
+    background:{P['primary']} !important;
+    color:#fff !important;
+    border:none !important;
+    border-radius:8px !important;
+    font-weight:600 !important;
+    padding:8px 20px !important;
 }}
 .stDownloadButton > button:hover {{
-    background:{P['secondary']};
-    color:#fff;
+    background:{P['secondary']} !important;
+    color:#fff !important;
 }}
+
+/* ══ MISC ═════════════════════════════════════════════════════════════ */
+footer, #MainMenu, div[data-testid="stDecoration"] {{ visibility:hidden; }}
 </style>
 """, unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  KOORDINAT  Kab/Kota  (lat, lon)
+#  SIDEBAR RENDERER
+# ─────────────────────────────────────────────────────────────────────────────
+def render_sidebar() -> None:
+    """
+    Sidebar maroon + ikon per menu + logo 'Spasial Bantuan' di bawah.
+    Streamlit otomatis buat nav dari pages/; kita injeksikan
+    label-ikon sebagai petunjuk visual dan logo di bagian bawah.
+    """
+    # ── Label ikon menu (di atas nav otomatis) ─────────────────────────
+    st.sidebar.markdown(f"""
+    <div style="padding:8px 12px 6px;">
+        <div style="font-size:9.5px;font-weight:700;letter-spacing:1.3px;
+                    color:rgba(255,255,255,.40);text-transform:uppercase;
+                    margin-bottom:10px;">Navigasi</div>
+        <div style="display:flex;flex-direction:column;gap:2px;">
+            <div style="font-size:13px;padding:7px 10px;border-radius:7px;
+                        color:rgba(255,255,255,.82);">🏠&nbsp; main</div>
+            <div style="font-size:13px;padding:7px 10px;border-radius:7px;
+                        color:rgba(255,255,255,.82);">🗄️&nbsp; database</div>
+            <div style="font-size:13px;padding:7px 10px;border-radius:7px;
+                        color:rgba(255,255,255,.82);">🔔&nbsp; notifikasi</div>
+            <div style="font-size:13px;padding:7px 10px;border-radius:7px;
+                        background:rgba(255,255,255,.16);
+                        color:#fff;font-weight:700;">🗺️&nbsp; sebaran</div>
+        </div>
+    </div>
+    <hr style="border:none;border-top:1px solid rgba(255,255,255,.12);margin:10px 0 6px;">
+    """, unsafe_allow_html=True)
+
+    # ── Logo + judul di bagian bawah sidebar ──────────────────────────
+    logo_b64: str | None = None
+    for candidate in [
+        "Dokumentasi/DummyLogo.png",
+        "dokumentasi/DummyLogo.png",
+        "DummyLogo.png",
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "Dokumentasi", "DummyLogo.png"),
+    ]:
+        if os.path.exists(candidate):
+            with open(candidate, "rb") as fh:
+                logo_b64 = base64.b64encode(fh.read()).decode()
+            break
+
+    if logo_b64:
+        img_html = f'<img src="data:image/png;base64,{logo_b64}" alt="logo">'
+    else:
+        img_html = '<div style="font-size:28px;line-height:1;">🗺️</div>'
+
+    st.sidebar.markdown(f"""
+    <div class="sb-logo">
+        {img_html}
+        <div>
+            <div class="sb-logo-title">Spasial Bantuan</div>
+            <div class="sb-logo-sub">Dashboard Distribusi</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  KOORDINAT  Kab/Kota
 # ─────────────────────────────────────────────────────────────────────────────
 KOTA_COORDS: dict[str, tuple[float, float]] = {
-    # Aceh
     "Sabang":(5.89,95.32),"Banda Aceh":(5.56,95.32),"Lhokseumawe":(5.18,97.15),
     "Langsa":(4.47,97.97),"Subulussalam":(2.65,98.00),"Aceh Besar":(5.50,95.55),
     "Aceh Utara":(5.00,97.50),"Aceh Timur":(4.55,97.80),"Bireuen":(5.18,96.70),
     "Pidie":(5.20,96.00),"Nagan Raya":(4.00,96.20),"Aceh Barat":(4.10,96.20),
     "Aceh Selatan":(3.20,97.40),"Gayo Lues":(3.80,97.20),"Aceh Tenggara":(3.50,97.80),
-    # Sumatera Utara
     "Medan":(3.60,98.67),"Binjai":(3.60,98.49),"Tebing Tinggi":(3.33,99.16),
     "Pematang Siantar":(2.96,99.07),"Sibolga":(1.74,98.78),"Tanjung Balai":(2.97,99.80),
     "Padang Sidempuan":(1.38,99.27),"Deli Serdang":(3.50,98.70),"Karo":(3.10,98.50),
@@ -234,38 +437,29 @@ KOTA_COORDS: dict[str, tuple[float, float]] = {
     "Labuhan Batu":(2.10,99.80),"Tapanuli Utara":(2.20,99.00),
     "Tapanuli Tengah":(1.70,98.60),"Tapanuli Selatan":(1.30,99.00),
     "Nias":(1.10,97.60),"Mandailing Natal":(0.50,99.50),
-    # Sumatera Barat
     "Padang":(-0.95,100.42),"Bukittinggi":(-0.31,100.37),"Payakumbuh":(-0.22,100.63),
     "Padang Panjang":(-0.47,100.41),"Sawahlunto":(-0.68,100.78),"Solok":(-0.80,100.66),
     "Pariaman":(-0.63,100.12),"Pasaman":(0.50,99.80),"Agam":(-0.24,100.00),
     "Lima Puluh Kota":(-0.30,100.70),"Tanah Datar":(-0.50,100.55),
     "Sijunjung":(-0.70,100.90),"Solok Selatan":(-1.20,101.00),
     "Dharmasraya":(-1.20,101.60),"Pasaman Barat":(0.30,99.60),
-    # Riau
     "Pekanbaru":(0.51,101.44),"Dumai":(1.68,101.45),"Bengkalis":(1.48,102.10),
     "Kampar":(0.40,101.20),"Indragiri Hulu":(-0.30,102.40),"Indragiri Hilir":(-0.40,103.00),
-    # Jambi
     "Jambi":(-1.61,103.61),"Sungai Penuh":(-2.09,101.66),"Batanghari":(-1.70,103.10),
     "Kerinci":(-2.10,101.50),"Bungo":(-1.60,102.20),"Muaro Jambi":(-1.75,103.50),
-    # Sumatera Selatan
     "Palembang":(-2.97,104.74),"Prabumulih":(-3.43,104.23),"Pagaralam":(-4.02,103.25),
     "Lubuklinggau":(-3.30,102.87),"Musi Banyuasin":(-2.80,104.20),"Lahat":(-3.80,103.50),
     "Muara Enim":(-3.70,104.00),"Ogan Ilir":(-3.30,104.70),
-    # Bengkulu
     "Bengkulu":(-3.80,102.27),"Rejang Lebong":(-3.50,102.60),"Kepahiang":(-3.70,102.60),
-    # Lampung
     "Bandar Lampung":(-5.45,105.27),"Metro":(-5.11,105.31),"Lampung Utara":(-4.80,104.90),
     "Lampung Selatan":(-5.60,105.50),"Lampung Tengah":(-4.80,105.30),
     "Pringsewu":(-5.35,104.98),"Way Kanan":(-4.30,104.80),
-    # Banten
     "Tangerang":(-6.18,106.63),"Tangerang Selatan":(-6.29,106.72),
     "Cilegon":(-6.00,106.00),"Serang":(-6.12,106.15),"Lebak":(-6.60,106.25),
     "Pandeglang":(-6.30,105.85),
-    # DKI Jakarta
     "Jakarta":(-6.21,106.85),"Jakarta Selatan":(-6.26,106.81),
     "Jakarta Utara":(-6.15,106.90),"Jakarta Barat":(-6.14,106.80),
     "Jakarta Timur":(-6.23,106.90),"Jakarta Pusat":(-6.18,106.83),
-    # Jawa Barat
     "Bandung":(-6.92,107.62),"Bekasi":(-6.24,106.98),"Depok":(-6.40,106.79),
     "Bogor":(-6.60,106.81),"Cimahi":(-6.87,107.54),"Cirebon":(-6.73,108.55),
     "Sukabumi":(-6.92,106.93),"Tasikmalaya":(-7.33,108.22),"Banjar":(-7.37,108.54),
@@ -273,7 +467,6 @@ KOTA_COORDS: dict[str, tuple[float, float]] = {
     "Purwakarta":(-6.56,107.45),"Kuningan":(-6.98,108.49),"Majalengka":(-6.84,108.23),
     "Sumedang":(-6.86,107.92),"Indramayu":(-6.33,108.32),"Cianjur":(-6.82,107.14),
     "Ciamis":(-7.33,108.35),"Pangandaran":(-7.69,108.65),"Bandung Barat":(-6.87,107.44),
-    # Jawa Tengah
     "Semarang":(-6.99,110.42),"Surakarta":(-7.58,110.82),"Salatiga":(-7.33,110.51),
     "Magelang":(-7.48,110.22),"Pekalongan":(-6.89,109.68),"Tegal":(-6.88,109.13),
     "Kudus":(-6.80,110.84),"Jepara":(-6.59,110.67),"Demak":(-6.89,110.64),
@@ -284,11 +477,9 @@ KOTA_COORDS: dict[str, tuple[float, float]] = {
     "Klaten":(-7.71,110.61),"Sukoharjo":(-7.69,110.84),"Wonogiri":(-7.81,110.92),
     "Karanganyar":(-7.61,111.03),"Sragen":(-7.43,111.03),"Grobogan":(-7.10,110.88),
     "Blora":(-6.97,111.41),"Rembang":(-6.71,111.34),"Pati":(-6.75,111.04),
-    "Pemalang":(-6.89,109.38),"Lombok Timur":(-8.58,116.46),
-    # DI Yogyakarta
+    "Pemalang":(-6.89,109.38),
     "Yogyakarta":(-7.80,110.37),"Sleman":(-7.72,110.36),"Bantul":(-7.89,110.33),
     "Gunung Kidul":(-7.97,110.59),"Kulon Progo":(-7.83,110.16),
-    # Jawa Timur
     "Surabaya":(-7.26,112.75),"Malang":(-7.98,112.63),"Kediri":(-7.82,112.01),
     "Blitar":(-8.10,112.16),"Madiun":(-7.63,111.52),"Mojokerto":(-7.47,111.52),
     "Probolinggo":(-7.75,113.22),"Pasuruan":(-7.65,112.91),"Jember":(-8.18,113.67),
@@ -300,42 +491,29 @@ KOTA_COORDS: dict[str, tuple[float, float]] = {
     "Sumenep":(-6.99,113.86),"Sampang":(-7.20,113.25),"Trenggalek":(-8.06,111.71),
     "Tulungagung":(-8.07,111.90),"Pacitan":(-8.20,111.10),"Ponorogo":(-7.86,111.46),
     "Batu":(-7.87,112.53),
-    # Bali
     "Denpasar":(-8.65,115.22),"Gianyar":(-8.54,115.33),"Tabanan":(-8.54,115.13),
     "Badung":(-8.62,115.09),"Buleleng":(-8.11,115.09),"Klungkung":(-8.54,115.40),
     "Karangasem":(-8.45,115.61),"Bangli":(-8.46,115.35),"Jembrana":(-8.36,114.65),
-    # NTB
     "Mataram":(-8.58,116.12),"Bima":(-8.46,118.73),"Sumbawa Besar":(-8.49,117.42),
     "Dompu":(-8.54,118.46),"Sumbawa":(-8.70,117.80),"Lombok Barat":(-8.65,116.08),
-    "Lombok Tengah":(-8.73,116.28),"Lombok Utara":(-8.37,116.24),
-    # NTT
+    "Lombok Tengah":(-8.73,116.28),"Lombok Utara":(-8.37,116.24),"Lombok Timur":(-8.58,116.46),
     "Kupang":(-10.17,123.59),"Ende":(-8.84,121.66),"Maumere":(-8.62,122.21),
     "Labuan Bajo":(-8.49,119.89),"Ruteng":(-8.62,120.48),
-    # Kalimantan Barat
     "Pontianak":(-0.03,109.33),"Singkawang":(0.90,108.98),"Sambas":(1.36,109.30),
     "Ketapang":(-1.83,109.98),"Sintang":(0.07,111.47),"Sanggau":(0.13,110.57),
-    # Kalimantan Tengah
     "Palangka Raya":(-2.21,113.92),"Sampit":(-2.54,112.95),"Pangkalan Bun":(-2.69,111.62),
-    # Kalimantan Selatan
     "Banjarmasin":(-3.33,114.59),"Banjarbaru":(-3.44,114.83),"Martapura":(-3.41,114.85),
     "Kandangan":(-2.78,115.26),"Amuntai":(2.43,115.25),"Batulicin":(-3.32,115.89),
-    # Kalimantan Timur
     "Samarinda":(-0.50,117.15),"Balikpapan":(-1.27,116.83),"Bontang":(0.13,117.50),
     "Kutai Kartanegara":(-0.45,117.02),"Kutai Barat":(-0.12,115.87),
     "Berau":(2.16,117.50),"Paser":(-1.73,116.01),"Penajam Paser Utara":(-1.54,116.30),
-    # Kalimantan Utara
     "Tanjung Selor":(2.84,117.37),"Tarakan":(3.30,117.63),"Nunukan":(4.14,117.66),
-    # Sulawesi Utara
     "Manado":(1.49,124.84),"Bitung":(1.44,125.19),"Tomohon":(1.32,124.84),
     "Kotamobagu":(0.72,124.31),"Minahasa":(1.26,124.78),
-    # Gorontalo
     "Gorontalo":(0.54,123.06),"Gorontalo Utara":(0.79,122.49),
-    # Sulawesi Tengah
     "Palu":(-0.90,119.87),"Donggala":(-0.80,119.73),"Toli-Toli":(1.11,120.82),
     "Poso":(-1.40,120.76),"Morowali":(-2.30,121.80),"Banggai":(-1.50,122.53),
-    # Sulawesi Barat
     "Mamuju":(-2.68,118.89),"Majene":(-3.54,118.97),"Polewali Mandar":(-3.41,119.33),
-    # Sulawesi Selatan
     "Makassar":(-5.15,119.43),"Parepare":(-4.01,119.63),"Palopo":(-2.99,120.20),
     "Gowa":(-5.29,119.51),"Maros":(-4.99,119.58),"Pangkajene":(-4.87,119.53),
     "Barru":(-4.41,119.61),"Bone":(-4.54,120.35),"Wajo":(-3.90,120.40),
@@ -343,64 +521,39 @@ KOTA_COORDS: dict[str, tuple[float, float]] = {
     "Jeneponto":(-5.68,119.75),"Takalar":(-5.44,119.44),"Enrekang":(-3.56,119.78),
     "Sidrap":(-3.95,119.95),"Pinrang":(-3.79,119.65),"Luwu":(-2.58,121.02),
     "Tana Toraja":(-3.03,119.86),"Luwu Utara":(-2.10,120.47),"Luwu Timur":(-2.58,121.52),
-    # Sulawesi Tenggara
     "Kendari":(-3.97,122.51),"Bau-Bau":(-5.47,122.61),"Kolaka":(-4.05,121.58),
-    # Maluku
     "Ambon":(-3.70,128.18),"Tual":(-5.63,132.75),"Masohi":(-3.34,128.92),
-    # Maluku Utara
     "Ternate":(0.79,127.37),"Sofifi":(0.73,127.56),"Tobelo":(1.74,128.01),
-    # Papua Barat
     "Manokwari":(-0.86,134.06),"Sorong":(-0.87,131.26),"Fak-Fak":(-2.93,132.27),
     "Raja Ampat":(-0.50,130.50),
-    # Papua
     "Jayapura":(-2.53,140.72),"Merauke":(-8.50,140.40),"Timika":(-4.53,136.89),
     "Nabire":(-3.37,135.50),"Biak":(-1.18,136.10),"Wamena":(-4.09,138.95),
-    "Mimika":(-4.53,136.89),
 }
 
-# Mapping nama Provinsi di data → nama di GeoJSON
 PROV_GEO: dict[str, str] = {
-    "Aceh": "Aceh",
-    "Sumatera Utara": "Sumatera Utara",
-    "Sumatera Barat": "Sumatera Barat",
-    "Riau": "Riau",
-    "Jambi": "Jambi",
-    "Sumatera Selatan": "Sumatera Selatan",
-    "Bengkulu": "Bengkulu",
-    "Lampung": "Lampung",
-    "Kepulauan Bangka Belitung": "Kepulauan Bangka Belitung",
-    "Kepulauan Riau": "Kepulauan Riau",
-    "DKI Jakarta": "DKI Jakarta",
-    "Jawa Barat": "Jawa Barat",
-    "Jawa Tengah": "Jawa Tengah",
-    "DI Yogyakarta": "DI Yogyakarta",
-    "Jawa Timur": "Jawa Timur",
-    "Banten": "Banten",
-    "Bali": "Bali",
-    "Nusa Tenggara Barat": "Nusa Tenggara Barat",
-    "Nusa Tenggara Timur": "Nusa Tenggara Timur",
-    "Kalimantan Barat": "Kalimantan Barat",
-    "Kalimantan Tengah": "Kalimantan Tengah",
-    "Kalimantan Selatan": "Kalimantan Selatan",
-    "Kalimantan Timur": "Kalimantan Timur",
-    "Kalimantan Utara": "Kalimantan Utara",
-    "Sulawesi Utara": "Sulawesi Utara",
-    "Gorontalo": "Gorontalo",
-    "Sulawesi Tengah": "Sulawesi Tengah",
-    "Sulawesi Barat": "Sulawesi Barat",
-    "Sulawesi Selatan": "Sulawesi Selatan",
-    "Sulawesi Tenggara": "Sulawesi Tenggara",
-    "Maluku": "Maluku",
-    "Maluku Utara": "Maluku Utara",
-    "Papua Barat": "Papua Barat",
-    "Papua": "Papua",
+    "Aceh":"Aceh","Sumatera Utara":"Sumatera Utara","Sumatera Barat":"Sumatera Barat",
+    "Riau":"Riau","Jambi":"Jambi","Sumatera Selatan":"Sumatera Selatan",
+    "Bengkulu":"Bengkulu","Lampung":"Lampung",
+    "Kepulauan Bangka Belitung":"Kepulauan Bangka Belitung",
+    "Kepulauan Riau":"Kepulauan Riau","DKI Jakarta":"DKI Jakarta",
+    "Jawa Barat":"Jawa Barat","Jawa Tengah":"Jawa Tengah",
+    "DI Yogyakarta":"DI Yogyakarta","Jawa Timur":"Jawa Timur","Banten":"Banten",
+    "Bali":"Bali","Nusa Tenggara Barat":"Nusa Tenggara Barat",
+    "Nusa Tenggara Timur":"Nusa Tenggara Timur",
+    "Kalimantan Barat":"Kalimantan Barat","Kalimantan Tengah":"Kalimantan Tengah",
+    "Kalimantan Selatan":"Kalimantan Selatan","Kalimantan Timur":"Kalimantan Timur",
+    "Kalimantan Utara":"Kalimantan Utara","Sulawesi Utara":"Sulawesi Utara",
+    "Gorontalo":"Gorontalo","Sulawesi Tengah":"Sulawesi Tengah",
+    "Sulawesi Barat":"Sulawesi Barat","Sulawesi Selatan":"Sulawesi Selatan",
+    "Sulawesi Tenggara":"Sulawesi Tenggara","Maluku":"Maluku",
+    "Maluku Utara":"Maluku Utara","Papua Barat":"Papua Barat","Papua":"Papua",
 }
+
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  HELPER FUNCTIONS
+#  HELPERS
 # ─────────────────────────────────────────────────────────────────────────────
 def parse_rp(v) -> float:
-    """Konversi string 'Rp 1.234.567' → float 1234567."""
     if pd.isna(v):
         return 0.0
     cleaned = re.sub(r"[Rp\s\.]", "", str(v)).replace(",", "")
@@ -411,12 +564,10 @@ def parse_rp(v) -> float:
 
 
 def fmt_rp(v: float) -> str:
-    """Format float → 'Rp 1.234.567' (notasi Indonesia)."""
     return "Rp {:,.0f}".format(v).replace(",", ".")
 
 
 def fmt_rp_compact(v: float) -> str:
-    """Format singkat: Rp 1,2 M / Rp 800 jt / dll."""
     if v >= 1e12:
         return f"Rp {v/1e12:.2f} T"
     if v >= 1e9:
@@ -426,37 +577,29 @@ def fmt_rp_compact(v: float) -> str:
     return fmt_rp(v)
 
 
-def build_kab_hover_text(prov: str, df: pd.DataFrame) -> str:
-    """
-    Buat teks hover rincian Kab/Kota untuk satu provinsi.
-    Format:
-        📍 Rincian Kab/Kota:
-        • Bandung   → 12 penerima | Rp 1.234.567.000
-        ...
-    """
+def build_kab_hover(prov: str, df: pd.DataFrame) -> str:
     sub = (
         df[df["Provinsi"] == prov]
         .groupby("Kab/Kota")
-        .agg(n=("Nominal", "count"), total=("Nominal", "sum"))
+        .agg(n=("Nominal","count"), total=("Nominal","sum"))
         .sort_values("total", ascending=False)
         .reset_index()
     )
     if sub.empty:
-        return "Tidak ada data Kab/Kota"
-
+        return ""
     lines = ["<br><b>📍 Rincian Kab/Kota:</b>"]
-    for _, row in sub.head(10).iterrows():
+    for _, row in sub.head(8).iterrows():
         lines.append(
-            f"&nbsp;&nbsp;• {row['Kab/Kota']} "
-            f"→ <b>{int(row['n'])}</b> penerima | {fmt_rp(row['total'])}"
+            f"&nbsp;&nbsp;• {row['Kab/Kota']}"
+            f" → <b>{int(row['n'])}</b> bantuan | {fmt_rp(row['total'])}"
         )
-    if len(sub) > 10:
-        lines.append(f"&nbsp;&nbsp;<i>...dan {len(sub)-10} Kab/Kota lainnya</i>")
+    if len(sub) > 8:
+        lines.append(f"&nbsp;&nbsp;<i>...dan {len(sub)-8} lainnya</i>")
     return "<br>".join(lines)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  DATA & GEOJSON  (cached agar tidak reload setiap interaksi)
+#  DATA & GEOJSON
 # ─────────────────────────────────────────────────────────────────────────────
 SHEET_CSV = (
     "https://docs.google.com/spreadsheets/d/"
@@ -482,15 +625,13 @@ def load_data() -> pd.DataFrame:
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_geojson():
-    """Unduh GeoJSON provinsi Indonesia; return (geojson_dict, prop_key) atau (None, None)."""
     try:
         r = requests.get(GEOJSON_URL, timeout=20)
         r.raise_for_status()
         gj = r.json()
-        # Deteksi kunci properti nama provinsi
         props = gj["features"][0].get("properties", {}) if gj.get("features") else {}
         prop_key = "state"
-        for k in ("state", "name", "NAME_1", "PROVINSI", "Provinsi"):
+        for k in ("state","name","NAME_1","PROVINSI","Provinsi"):
             if k in props:
                 prop_key = k
                 break
@@ -501,117 +642,85 @@ def load_geojson():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  BUILD MAP FIGURE
+#  BUILD MAP
 # ─────────────────────────────────────────────────────────────────────────────
 def build_map(df_f: pd.DataFrame, geojson, prop_key: str) -> go.Figure:
-    """
-    Buat Plotly Figure berisi:
-      - Layer 1: Choropleth warna provinsi (total nominal bantuan)
-      - Layer 2: Scatter bubble per Kab/Kota
-    """
-
-    # ── Agregasi per Provinsi ───────────────────────────────────────────────
     prov_agg = (
         df_f.groupby("Provinsi")
-        .agg(
-            Penerima=("Nominal", "count"),
-            Total   =("Nominal", "sum"),
-        )
+        .agg(Bantuan=("Nominal","count"), Total=("Nominal","sum"))
         .reset_index()
     )
-    prov_agg["GeoName"] = prov_agg["Provinsi"].map(PROV_GEO).fillna(prov_agg["Provinsi"])
+    prov_agg["GeoName"]  = prov_agg["Provinsi"].map(PROV_GEO).fillna(prov_agg["Provinsi"])
+    prov_agg["HoverKab"] = prov_agg["Provinsi"].apply(lambda p: build_kab_hover(p, df_f))
 
-    # Hover text per provinsi (termasuk rincian Kab/Kota)
-    prov_agg["HoverKab"] = prov_agg["Provinsi"].apply(
-        lambda p: build_kab_hover_text(p, df_f)
-    )
-
-    # ── Agregasi per Kab/Kota ───────────────────────────────────────────────
     kab_agg = (
-        df_f.groupby(["Kab/Kota", "Provinsi"])
-        .agg(
-            Penerima=("Nominal", "count"),
-            Total   =("Nominal", "sum"),
-        )
+        df_f.groupby(["Kab/Kota","Provinsi"])
+        .agg(Bantuan=("Nominal","count"), Total=("Nominal","sum"))
         .reset_index()
     )
-    kab_agg["lat"] = kab_agg["Kab/Kota"].map(lambda k: KOTA_COORDS.get(k, (None, None))[0])
-    kab_agg["lon"] = kab_agg["Kab/Kota"].map(lambda k: KOTA_COORDS.get(k, (None, None))[1])
-    kab_ok = kab_agg.dropna(subset=["lat", "lon"]).copy()
-
-    # Ukuran bubble: akar proporsi
+    kab_agg["lat"] = kab_agg["Kab/Kota"].map(lambda k: KOTA_COORDS.get(k,(None,None))[0])
+    kab_agg["lon"] = kab_agg["Kab/Kota"].map(lambda k: KOTA_COORDS.get(k,(None,None))[1])
+    kab_ok = kab_agg.dropna(subset=["lat","lon"]).copy()
     mx = kab_ok["Total"].max() or 1
-    kab_ok["sz"] = (kab_ok["Total"] / mx) ** 0.50 * 24 + 6
+    kab_ok["sz"] = (kab_ok["Total"] / mx) ** 0.5 * 24 + 6
 
-    # ── Figure ──────────────────────────────────────────────────────────────
     fig = go.Figure()
 
-    # Layer 1: Choropleth Provinsi
     if geojson:
-        fig.add_trace(
-            go.Choropleth(
-                geojson=geojson,
-                featureidkey=f"properties.{prop_key}",
-                locations=prov_agg["GeoName"],
-                z=prov_agg["Total"],
-                colorscale=MAP_COLORSCALE,
-                zmin=0,
-                zmax=float(prov_agg["Total"].max() or 1),
-                marker_line_color="#ffffff",
-                marker_line_width=0.9,
-                colorbar=dict(
-                    title=dict(
-                        text="Total<br>Nominal",
-                        font=dict(size=10, color=P["primary"]),
-                    ),
-                    tickformat=".2s",
-                    x=1.01, thickness=13, len=0.50,
-                    tickfont=dict(size=9, color=P["text"]),
-                    bgcolor="rgba(255,255,255,.85)",
-                ),
-                # customdata: [Provinsi, Penerima, Total, HoverKab]
-                customdata=prov_agg[["Provinsi","Penerima","Total","HoverKab"]].values,
-                hovertemplate=(
-                    "<b>🏛️ %{customdata[0]}</b><br>"
-                    "━━━━━━━━━━━━━━━━━━━━━━━━<br>"
-                    "👥 Total Penerima&nbsp;: <b>%{customdata[1]}</b> orang<br>"
-                    "💰 Total Nominal &nbsp;: <b>Rp %{z:,.0f}</b><br>"
-                    "%{customdata[3]}"
-                    "<extra></extra>"
-                ),
-                name="Provinsi",
-            )
-        )
-
-    # Layer 2: Scatter Kab/Kota
-    fig.add_trace(
-        go.Scattergeo(
-            lat=kab_ok["lat"],
-            lon=kab_ok["lon"],
-            mode="markers",
-            marker=dict(
-                size=kab_ok["sz"],
-                color=kab_ok["Total"],
-                colorscale=MAP_COLORSCALE,
-                cmin=0,
-                cmax=float(kab_ok["Total"].max() or 1),
-                opacity=0.82,
-                line=dict(color="#fff", width=0.8),
-                showscale=False,
+        fig.add_trace(go.Choropleth(
+            geojson=geojson,
+            featureidkey=f"properties.{prop_key}",
+            locations=prov_agg["GeoName"],
+            z=prov_agg["Total"],
+            colorscale=MAP_COLORSCALE,
+            zmin=0,
+            zmax=float(prov_agg["Total"].max() or 1),
+            marker_line_color="#ffffff",
+            marker_line_width=0.9,
+            colorbar=dict(
+                title=dict(text="Total<br>Nominal", font=dict(size=10, color=P["primary"])),
+                tickformat=".2s",
+                x=1.01, thickness=13, len=0.50,
+                tickfont=dict(size=9, color=P["text"]),
+                bgcolor="rgba(255,255,255,.85)",
             ),
-            customdata=kab_ok[["Kab/Kota","Provinsi","Penerima","Total"]].values,
+            customdata=prov_agg[["Provinsi","Bantuan","Total","HoverKab"]].values,
             hovertemplate=(
-                "<b>📍 %{customdata[0]}</b><br>"
-                "Provinsi   : %{customdata[1]}<br>"
-                "Penerima   : <b>%{customdata[2]}</b> orang<br>"
-                "Total Nominal: <b>Rp %{customdata[3]:,.0f}</b>"
+                "<b>🏛️ %{customdata[0]}</b><br>"
+                "━━━━━━━━━━━━━━━━━━━━━━━━<br>"
+                "📦 Total Bantuan : <b>%{customdata[1]}</b> bantuan<br>"
+                "💰 Total Nominal : <b>Rp %{z:,.0f}</b><br>"
+                "%{customdata[3]}"
                 "<extra></extra>"
             ),
-            name="Kab/Kota",
-        )
-    )
+            name="Provinsi",
+        ))
 
-    # Layout peta
+    fig.add_trace(go.Scattergeo(
+        lat=kab_ok["lat"],
+        lon=kab_ok["lon"],
+        mode="markers",
+        marker=dict(
+            size=kab_ok["sz"],
+            color=kab_ok["Total"],
+            colorscale=MAP_COLORSCALE,
+            cmin=0,
+            cmax=float(kab_ok["Total"].max() or 1),
+            opacity=0.82,
+            line=dict(color="#fff", width=0.8),
+            showscale=False,
+        ),
+        customdata=kab_ok[["Kab/Kota","Provinsi","Bantuan","Total"]].values,
+        hovertemplate=(
+            "<b>📍 %{customdata[0]}</b><br>"
+            "Provinsi     : %{customdata[1]}<br>"
+            "Jml Bantuan  : <b>%{customdata[2]}</b> bantuan<br>"
+            "Total Nominal: <b>Rp %{customdata[3]:,.0f}</b>"
+            "<extra></extra>"
+        ),
+        name="Kab/Kota",
+    ))
+
     fig.update_layout(
         geo=dict(
             scope="asia",
@@ -622,8 +731,7 @@ def build_map(df_f: pd.DataFrame, geojson, prop_key: str) -> go.Figure:
             showcountries=True, countrycolor="#D8C8D0",
             showcoastlines=True, coastlinecolor="#C0AEB8",
             showlakes=True,   lakecolor="#E8F4FC",
-            showframe=False,
-            bgcolor="rgba(0,0,0,0)",
+            showframe=False,  bgcolor="rgba(0,0,0,0)",
         ),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
@@ -632,116 +740,145 @@ def build_map(df_f: pd.DataFrame, geojson, prop_key: str) -> go.Figure:
         legend=dict(
             x=0.01, y=0.98,
             bgcolor="rgba(255,255,255,.88)",
-            bordercolor=P["rose300"],
-            borderwidth=1,
+            bordercolor=P["rose300"], borderwidth=1,
             font=dict(size=11, color=P["text"]),
         ),
         hoverlabel=dict(
-            bgcolor=P["deep"],
-            font_color="#fff",
-            font_size=12,
+            bgcolor=P["deep"], font_color="#fff", font_size=12,
             font_family="Plus Jakarta Sans",
-            bordercolor=P["accent"],
-            align="left",
+            bordercolor=P["accent"], align="left",
         ),
     )
     return fig
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  CHART: Top 10 Provinsi (horizontal bar)
+#  CHART: Top 10 Provinsi horizontal bar
 # ─────────────────────────────────────────────────────────────────────────────
 def chart_top_prov(df_f: pd.DataFrame) -> go.Figure:
     top = (
         df_f.groupby("Provinsi")
-        .agg(Penerima=("Nominal","count"), Total=("Nominal","sum"))
+        .agg(Bantuan=("Nominal","count"), Total=("Nominal","sum"))
         .sort_values("Total", ascending=True)
         .tail(10)
         .reset_index()
     )
-    fig = go.Figure(
-        go.Bar(
-            x=top["Total"],
-            y=top["Provinsi"],
-            orientation="h",
-            marker=dict(
-                color=top["Total"],
-                colorscale=MAP_COLORSCALE,
-                line=dict(color="rgba(0,0,0,0)"),
-            ),
-            customdata=top[["Penerima","Total"]].values,
-            hovertemplate=(
-                "<b>%{y}</b><br>"
-                "Penerima : %{customdata[0]}<br>"
-                "Total    : Rp %{customdata[1]:,.0f}"
-                "<extra></extra>"
-            ),
-        )
-    )
+    fig = go.Figure(go.Bar(
+        x=top["Total"],
+        y=top["Provinsi"],
+        orientation="h",
+        marker=dict(
+            color=top["Total"],
+            colorscale=MAP_COLORSCALE,
+            line=dict(color="rgba(0,0,0,0)"),
+        ),
+        customdata=top[["Bantuan","Total"]].values,
+        hovertemplate=(
+            "<b>%{y}</b><br>"
+            "Jumlah Bantuan : %{customdata[0]}<br>"
+            "Total Nominal  : Rp %{customdata[1]:,.0f}"
+            "<extra></extra>"
+        ),
+    ))
     fig.update_layout(
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         margin=dict(l=0, r=16, t=4, b=0),
-        height=320,
+        height=340,
         xaxis=dict(
             showgrid=True, gridcolor="#F0E4E8",
-            tickformat=".2s",
-            tickfont=dict(size=10),
-            zeroline=False,
+            tickformat=".2s", tickfont=dict(size=10), zeroline=False,
         ),
-        yaxis=dict(
-            showgrid=False,
-            tickfont=dict(size=11, color=P["text"]),
-        ),
+        yaxis=dict(showgrid=False, tickfont=dict(size=11, color=P["text"])),
         hoverlabel=dict(bgcolor=P["deep"], font_color="#fff", font_size=11),
     )
     return fig
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  CHART: Distribusi Status (donut) — opsional jika kolom Status ada
+#  RANKING CARD HTML  (gantikan Pie chart)
 # ─────────────────────────────────────────────────────────────────────────────
-def chart_status_donut(df_f: pd.DataFrame) -> go.Figure | None:
-    if "Status" not in df_f.columns:
-        return None
-    cnt = df_f["Status"].value_counts().reset_index()
-    cnt.columns = ["Status", "n"]
+def ranking_html(df_f: pd.DataFrame, top_n: int = 10) -> str:
+    rank = (
+        df_f.groupby("Provinsi")
+        .agg(Bantuan=("Nominal","count"), Total=("Nominal","sum"))
+        .sort_values("Bantuan", ascending=False)
+        .head(top_n)
+        .reset_index()
+    )
 
-    color_map = {
-        "Lunas"      : P["primary"],
-        "Belum Lunas": P["rose300"],
+    medal_cls = {1:"rank-gold", 2:"rank-silver", 3:"rank-bronze"}
+    rows = ""
+    for i, row in enumerate(rank.itertuples(), start=1):
+        m = medal_cls.get(i, "")
+        rows += f"""
+        <div class="rank-item">
+            <div class="rank-num {m}">{i}</div>
+            <div class="rank-body">
+                <div class="rank-name">{row.Provinsi}</div>
+                <div class="rank-sub">{int(row.Bantuan)} bantuan</div>
+            </div>
+            <div class="rank-total">{fmt_rp_compact(row.Total)}</div>
+        </div>"""
+
+    return f"""
+    <div class="rank-card">
+        <div class="rank-title">🏆 Ranking Provinsi Penerima Bantuan Terbanyak</div>
+        {rows}
+    </div>"""
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  HTML TABLE  (gaya Main: maroon header, stripe, hover)
+# ─────────────────────────────────────────────────────────────────────────────
+def render_table_html(df_t: pd.DataFrame) -> None:
+    """Render df_t sebagai HTML table bergaya Main, dengan scroll container."""
+    col_map = {
+        "Nama Bantuan"      : ("td-nama",    "Nama Bantuan"),
+        "Jumlah Bantuan (Rp)": ("td-nominal", "Jumlah Dana (Rp)"),
+        "Provinsi"          : ("td-muted",   "Provinsi"),
+        "Kab/Kota"          : ("td-muted",   "Kab / Kota"),
+        "Tanggal Dibantu"   : ("td-tgl",     "Tanggal Dibantu"),
     }
-    colors = [color_map.get(s, P["accent"]) for s in cnt["Status"]]
 
-    fig = go.Figure(
-        go.Pie(
-            labels=cnt["Status"],
-            values=cnt["n"],
-            hole=0.52,
-            marker=dict(colors=colors, line=dict(color="#fff", width=2)),
-            textfont=dict(size=12, family="Plus Jakarta Sans"),
-            hovertemplate="<b>%{label}</b><br>%{value} penerima (%{percent})<extra></extra>",
+    # Hanya kolom yang tersedia
+    avail = [c for c in col_map if c in df_t.columns]
+
+    # Header
+    header_cells = "".join(f"<th>{col_map[c][1]}</th>" for c in avail)
+
+    # Body rows
+    body = ""
+    for row in df_t[avail].itertuples(index=False):
+        cells = "".join(
+            f'<td class="{col_map[avail[i]][0]}">{str(val)}</td>'
+            for i, val in enumerate(row)
         )
+        body += f"<tr>{cells}</tr>\n"
+
+    html = f"""
+    <div class="bantuan-table-wrap">
+        <table class="bantuan-table">
+            <thead><tr>{header_cells}</tr></thead>
+            <tbody>{body}</tbody>
+        </table>
+    </div>"""
+
+    st.markdown(
+        f'<div style="max-height:460px;overflow-y:auto;border-radius:12px;">{html}</div>',
+        unsafe_allow_html=True,
     )
-    fig.update_layout(
-        paper_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=0, r=0, t=0, b=0),
-        height=220,
-        legend=dict(
-            orientation="h", x=0.5, xanchor="center", y=-0.05,
-            font=dict(size=11),
-        ),
-        hoverlabel=dict(bgcolor=P["deep"], font_color="#fff", font_size=11),
-    )
-    return fig
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  MAIN APP
+#  MAIN
 # ─────────────────────────────────────────────────────────────────────────────
 def main() -> None:
 
-    # ── Banner ────────────────────────────────────────────────────────────
+    # ── Sidebar ────────────────────────────────────────────────────────────
+    render_sidebar()
+
+    # ── Banner ─────────────────────────────────────────────────────────────
     st.markdown("""
     <div class="banner">
         <div class="banner-icon">🗺️</div>
@@ -749,24 +886,22 @@ def main() -> None:
             <h1>Peta Penyebaran Bantuan Indonesia</h1>
             <p>Visualisasi spasial distribusi bantuan per Provinsi &amp; Kabupaten/Kota di seluruh Indonesia</p>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+    </div>""", unsafe_allow_html=True)
 
-    # ── Load data & GeoJSON ───────────────────────────────────────────────
-    with st.spinner("⏳ Memuat data dari Google Sheets…"):
+    # ── Load data ──────────────────────────────────────────────────────────
+    with st.spinner("⏳ Memuat data …"):
         df = load_data()
-    with st.spinner("🗺️ Memuat GeoJSON peta Indonesia…"):
+    with st.spinner("🗺️ Memuat GeoJSON …"):
         geojson, prop_key = load_geojson()
 
     # ═════════════════════════════════════════════════════════════════════
-    #  SECTION 1 : HEATMAP PETA
+    #  SECTION 1  — FILTER + KPI + HEATMAP
     # ═════════════════════════════════════════════════════════════════════
 
-    # ── Filter Tahun (radio pill) ─────────────────────────────────────────
+    # ── Filter Tahun ───────────────────────────────────────────────────────
     st.markdown('<div class="filter-wrap">', unsafe_allow_html=True)
-    fcol1, fcol2 = st.columns([3, 5])
-    with fcol1:
-        # Opsi tahun spesifik + "Semua"
+    fc1, fc2 = st.columns([4, 4])
+    with fc1:
         avail_years = sorted([int(y) for y in df["Tahun"].dropna().unique()])
         year_labels = ["Semua"] + [str(y) for y in avail_years]
         sel_year = st.radio(
@@ -775,7 +910,7 @@ def main() -> None:
             horizontal=True,
             key="map_year",
         )
-    with fcol2:
+    with fc2:
         if sel_year != "Semua":
             st.markdown(
                 f"<div style='margin-top:26px;font-size:12.5px;color:{P['muted']};'>"
@@ -784,110 +919,92 @@ def main() -> None:
             )
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Terapkan filter tahun
     df_map = df.copy()
     if sel_year != "Semua":
         df_map = df_map[df_map["Tahun"] == int(sel_year)]
 
-    # ── KPI Cards ─────────────────────────────────────────────────────────
-    total_nom    = df_map["Nominal"].sum()
-    total_cnt    = len(df_map)
-    total_prov   = df_map["Provinsi"].nunique()
-    total_kab    = df_map["Kab/Kota"].nunique()
-    avg_per_recv = (total_nom / total_cnt) if total_cnt else 0.0
+    # ── KPI ────────────────────────────────────────────────────────────────
+    total_nom  = df_map["Nominal"].sum()
+    total_cnt  = len(df_map)
+    total_prov = df_map["Provinsi"].nunique()
+    total_kab  = df_map["Kab/Kota"].nunique()
+    avg_per    = (total_nom / total_cnt) if total_cnt else 0.0
 
-    st.markdown("""<div class="kpi-grid">""", unsafe_allow_html=True)
+    st.markdown('<div class="kpi-grid">', unsafe_allow_html=True)
     kpis = [
-        ("👥", fmt_rp_compact(total_nom) if total_nom < 1e9 else fmt_rp_compact(total_nom),
-         "Total Nominal Bantuan"),
-        ("🤝", f"{total_cnt:,}", "Total Penerima"),
-        ("🗺️", f"{total_prov}", "Provinsi Terlibat"),
-        ("📍", f"{total_kab}", "Kab/Kota Terlibat"),
-        ("📊", fmt_rp_compact(avg_per_recv), "Rata-rata / Penerima"),
+        ("💰", fmt_rp_compact(total_nom), "Total Nominal Bantuan"),
+        ("📦", f"{total_cnt:,}",          "Total Bantuan"),
+        ("🗺️", f"{total_prov}",           "Provinsi Terlibat"),
+        ("📍", f"{total_kab}",            "Kab/Kota Terlibat"),
+        ("📊", fmt_rp_compact(avg_per),   "Rata-rata / Bantuan"),
     ]
-    cols_kpi = st.columns(5)
-    for col, (icon, val, lbl) in zip(cols_kpi, kpis):
+    for col, (icon, val, lbl) in zip(st.columns(5), kpis):
         with col:
             st.markdown(f"""
             <div class="kpi">
                 <div class="kpi-icon">{icon}</div>
                 <div class="kpi-val">{val}</div>
                 <div class="kpi-lbl">{lbl}</div>
-            </div>
-            """, unsafe_allow_html=True)
+            </div>""", unsafe_allow_html=True)
 
-    # ── Section header peta ────────────────────────────────────────────────
+    # ── Heatmap ────────────────────────────────────────────────────────────
     st.markdown(f"""
     <div class="sec">
         <h3>🗺️ Heatmap Interaktif Penyebaran Bantuan
-            <span>&nbsp;—&nbsp;
-                Arahkan kursor ke Provinsi untuk detail penerima &amp; nominal per Kab/Kota
-            </span>
+            <span>&nbsp;—&nbsp;Arahkan kursor ke Provinsi untuk detail bantuan &amp; nominal per Kab/Kota</span>
         </h3>
-    </div>
-    """, unsafe_allow_html=True)
+    </div>""", unsafe_allow_html=True)
 
-    # ── Peta ──────────────────────────────────────────────────────────────
     if df_map.empty:
-        st.info("Tidak ada data untuk filter yang dipilih.")
+        st.info("Tidak ada data untuk tahun yang dipilih.")
     else:
         fig_map = build_map(df_map, geojson, prop_key or "state")
-        st.plotly_chart(fig_map, use_container_width=True,
-                        config={"displayModeBar": True,
-                                "modeBarButtonsToRemove": ["select2d","lasso2d"],
-                                "toImageButtonOptions": {"filename": "peta_bantuan"}})
+        st.plotly_chart(
+            fig_map, use_container_width=True,
+            config={
+                "displayModeBar": True,
+                "modeBarButtonsToRemove": ["select2d","lasso2d"],
+                "toImageButtonOptions": {"filename":"peta_bantuan"},
+            },
+        )
 
-    # ── Baris analitik: Top Provinsi + Donut Status ────────────────────────
+    # ═════════════════════════════════════════════════════════════════════
+    #  SECTION 2  — ANALITIK: Bar chart + Ranking (gantikan Pie chart)
+    # ═════════════════════════════════════════════════════════════════════
     st.markdown(f"""
     <div class="sec">
         <h3>📊 Analitik Distribusi
-            <span>&nbsp;—&nbsp;Top provinsi dan komposisi status bantuan</span>
+            <span>&nbsp;—&nbsp;Top 10 nominal &amp; ranking provinsi penerima bantuan terbanyak</span>
         </h3>
-    </div>
-    """, unsafe_allow_html=True)
+    </div>""", unsafe_allow_html=True)
 
-    col_bar, col_gap, col_donut = st.columns([5, 0.3, 2])
+    col_bar, col_rank = st.columns([3, 2], gap="medium")
 
     with col_bar:
-        st.markdown(f"<p style='font-size:13px;font-weight:700;color:{P['primary']};margin-bottom:4px;'>🏆 Top 10 Provinsi — Total Nominal Bantuan</p>",
-                    unsafe_allow_html=True)
+        st.markdown(
+            f"<p style='font-size:13px;font-weight:700;color:{P['primary']};margin-bottom:4px;'>"
+            "📊 Top 10 Provinsi — Total Nominal Bantuan</p>",
+            unsafe_allow_html=True,
+        )
         st.plotly_chart(chart_top_prov(df_map), use_container_width=True,
-                        config={"displayModeBar": False})
+                        config={"displayModeBar":False})
 
-    with col_donut:
-        fig_donut = chart_status_donut(df_map)
-        if fig_donut:
-            st.markdown(f"<p style='font-size:13px;font-weight:700;color:{P['primary']};margin-bottom:4px;'>📋 Komposisi Status</p>",
-                        unsafe_allow_html=True)
-            st.plotly_chart(fig_donut, use_container_width=True,
-                            config={"displayModeBar": False})
-        else:
-            # Ringkasan kab/kota terbesar
-            st.markdown(f"<p style='font-size:13px;font-weight:700;color:{P['primary']};margin-bottom:8px;'>🏆 Top 5 Kab/Kota</p>",
-                        unsafe_allow_html=True)
-            top5 = (
-                df_map.groupby(["Kab/Kota","Provinsi"])["Nominal"]
-                .sum().sort_values(ascending=False).head(5).reset_index()
-            )
-            top5["Nominal_fmt"] = top5["Nominal"].apply(fmt_rp_compact)
-            st.dataframe(top5[["Kab/Kota","Provinsi","Nominal_fmt"]].rename(
-                columns={"Nominal_fmt":"Total"}),
-                use_container_width=True, hide_index=True, height=200)
+    with col_rank:
+        st.markdown(ranking_html(df_map, top_n=10), unsafe_allow_html=True)
 
     # ═════════════════════════════════════════════════════════════════════
-    #  SECTION 2 : TABEL DATA BANTUAN
+    #  SECTION 3  — TABEL DATA BANTUAN (bergaya Main)
     # ═════════════════════════════════════════════════════════════════════
     st.markdown(f"""
     <div class="sec" style="margin-top:28px;">
         <h3>📋 Tabel Data Bantuan
             <span>&nbsp;—&nbsp;Gunakan filter di bawah untuk menyaring data</span>
         </h3>
-    </div>
-    """, unsafe_allow_html=True)
+    </div>""", unsafe_allow_html=True)
 
     # ── Filter tabel ──────────────────────────────────────────────────────
     st.markdown('<div class="filter-wrap">', unsafe_allow_html=True)
-    tf1, tf2, tf3 = st.columns([1, 1.8, 1.8])
+    tf1, tf2, tf3 = st.columns([1, 2, 2])
 
     with tf1:
         tbl_year = st.selectbox(
@@ -899,17 +1016,19 @@ def main() -> None:
         prov_list = ["Semua"] + sorted(df["Provinsi"].dropna().unique())
         tbl_prov = st.selectbox("🏙️ Provinsi", prov_list, key="tbl_prov")
     with tf3:
-        # Kab/Kota disesuaikan dengan provinsi yang dipilih
-        if tbl_prov != "Semua":
-            kab_pool = df[df["Provinsi"] == tbl_prov]["Kab/Kota"].dropna().unique()
-        else:
-            kab_pool = df["Kab/Kota"].dropna().unique()
-        kab_list = ["Semua"] + sorted(kab_pool)
-        tbl_kab = st.selectbox("📍 Kab/Kota", kab_list, key="tbl_kab")
-
+        kab_pool = (
+            df[df["Provinsi"] == tbl_prov]["Kab/Kota"].dropna().unique()
+            if tbl_prov != "Semua"
+            else df["Kab/Kota"].dropna().unique()
+        )
+        tbl_kab = st.selectbox(
+            "📍 Kab/Kota",
+            ["Semua"] + sorted(kab_pool),
+            key="tbl_kab",
+        )
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Terapkan filter tabel
+    # Apply filters
     df_tbl = df.copy()
     if tbl_year != "Semua":
         df_tbl = df_tbl[df_tbl["Tahun"] == int(tbl_year)]
@@ -918,75 +1037,50 @@ def main() -> None:
     if tbl_kab != "Semua":
         df_tbl = df_tbl[df_tbl["Kab/Kota"] == tbl_kab]
 
-    # ── Info baris ────────────────────────────────────────────────────────
-    nom_total_tbl = df_tbl["Nominal"].sum()
+    # Info baris
     st.markdown(
         f'<div class="tbl-info">'
-        f'Menampilkan <b>{len(df_tbl):,} data</b> &nbsp;|&nbsp; '
-        f'Total Nominal: <b>{fmt_rp(nom_total_tbl)}</b> &nbsp;|&nbsp; '
-        f'Total Penerima: <b>{len(df_tbl):,} orang</b>'
+        f'Menampilkan <b>{len(df_tbl):,} bantuan</b>'
+        f'&nbsp;|&nbsp;Total Nominal: <b>{fmt_rp(df_tbl["Nominal"].sum())}</b>'
         f'</div>',
         unsafe_allow_html=True,
     )
 
-    # ── Pilih kolom tampil ────────────────────────────────────────────────
-    col_show_src = [
-        "Nama Bantuan", "Kab/Kota", "Provinsi",
-        "Jumlah Bantuan (Rp)", "Tanggal Dibantu", "Tenggat",
-        "PIC", "Status", "Chat", "Status Chat",
-    ]
-    col_show = [c for c in col_show_src if c in df_tbl.columns]
-    df_display = df_tbl[col_show].reset_index(drop=True)
+    # ── Hanya 5 kolom ─────────────────────────────────────────────────────
+    COLS5 = ["Nama Bantuan","Jumlah Bantuan (Rp)","Provinsi","Kab/Kota","Tanggal Dibantu"]
+    df_show = df_tbl[[c for c in COLS5 if c in df_tbl.columns]].reset_index(drop=True)
 
-    # Konfigurasi kolom untuk st.dataframe
-    col_cfg: dict = {}
-    if "Nama Bantuan" in col_show:
-        col_cfg["Nama Bantuan"] = st.column_config.TextColumn("Nama Bantuan", width="large")
-    if "Jumlah Bantuan (Rp)" in col_show:
-        col_cfg["Jumlah Bantuan (Rp)"] = st.column_config.TextColumn("Jumlah Bantuan (Rp)", width="medium")
-    if "Tanggal Dibantu" in col_show:
-        col_cfg["Tanggal Dibantu"] = st.column_config.TextColumn("Tanggal Dibantu", width="small")
-    if "Tenggat" in col_show:
-        col_cfg["Tenggat"] = st.column_config.TextColumn("Tenggat", width="small")
-    if "Status" in col_show:
-        col_cfg["Status"] = st.column_config.TextColumn("Status", width="small")
+    # Render sebagai HTML table
+    render_table_html(df_show)
 
-    st.dataframe(
-        df_display,
-        use_container_width=True,
-        hide_index=True,
-        height=460,
-        column_config=col_cfg,
-    )
-
-    # ── Download CSV ──────────────────────────────────────────────────────
+    # ── Download ──────────────────────────────────────────────────────────
     csv_bytes = df_tbl.to_csv(index=False).encode("utf-8")
-    dcol1, _, dcol3 = st.columns([2, 5, 2])
-    with dcol1:
+    dl1, _, dl2 = st.columns([2, 5, 2])
+    with dl1:
         st.download_button(
             label="⬇️  Unduh Data (CSV)",
             data=csv_bytes,
             file_name=f"data_bantuan_{tbl_prov}_{tbl_year}.csv",
             mime="text/csv",
         )
-    with dcol3:
+    with dl2:
         st.markdown(
-            f"<p style='text-align:right;font-size:11px;color:{P['muted']};margin-top:8px;'>"
+            f"<p style='text-align:right;font-size:11px;color:{P['muted']};margin-top:10px;'>"
             f"{len(df_tbl):,} baris diekspor</p>",
             unsafe_allow_html=True,
         )
 
     # ── Footer ────────────────────────────────────────────────────────────
     st.markdown(
-        f"<hr style='border:none;border-top:1.5px solid {P['rose100']};margin:30px 0 10px;'>"
-        f"<p style='text-align:center;color:{P['muted']};font-size:11.5px;'>"
-        "📡 Data diambil secara real-time dari Google Sheets &nbsp;·&nbsp; "
-        "Peta menggunakan GeoJSON Indonesia (superpikar)"
-        "</p>",
+        f"<hr style='border:none;border-top:1.5px solid {P['rose100']};margin:32px 0 10px;'>"
+        "<p style='text-align:center;font-size:11.5px;"
+        f"color:{P['muted']};'>"
+        "📡 Data real-time dari Google Sheets &nbsp;·&nbsp; "
+        "Peta: GeoJSON Indonesia (superpikar) &nbsp;·&nbsp; "
+        "🗺️ Spasial Bantuan</p>",
         unsafe_allow_html=True,
     )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  Streamlit selalu mengeksekusi dari atas ke bawah; panggil main() langsung.
 main()
