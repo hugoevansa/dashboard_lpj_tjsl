@@ -711,6 +711,8 @@ total_notif = len(data[
     (~data["Nama Bantuan"].isin(st.session_state.notif_dismissed))
 ])
 
+render_sidebar(active_page="main", notif_count=total_notif)
+
 notif_kritis = data[
     (data["Status Pembayaran"] == "Belum LPJ") &
     (data["Kondisi Tenggat"] == "Jatuh Tempo") &
