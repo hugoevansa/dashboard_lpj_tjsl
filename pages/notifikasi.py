@@ -69,7 +69,6 @@ html, body, [class*="css"] {
 
 footer { visibility: hidden; }
 
-/* ── Page Header ── */
 .page-header {
     background: linear-gradient(135deg, var(--maroon-dark) 0%, var(--maroon) 60%, var(--maroon-mid) 100%);
     border-radius: 22px;
@@ -84,7 +83,6 @@ footer { visibility: hidden; }
 .page-header-title { color:#fff; font-size:1.7rem; font-weight:900; line-height:1.1; margin:0; }
 .page-header-sub   { color:rgba(255,255,255,0.75); font-size:0.9rem; margin-top:3px; }
 
-/* ── KPI ── */
 .kpi-wrap {
     background: #fff;
     border-radius: var(--radius);
@@ -107,17 +105,22 @@ footer { visibility: hidden; }
 .kpi-value { font-size:1.85rem; font-weight:900; color:var(--text); line-height:1.1; }
 .kpi-note  { font-size:0.8rem; color:var(--muted); margin-top:6px; }
 
-/* ── Section ── */
 .section-head { font-size:1.1rem; font-weight:900; color:var(--text); margin:0; }
 .section-sub  { font-size:0.85rem; color:var(--muted); margin-top:2px; margin-bottom:10px; }
 
-/* ── Urgensi Badge ── */
 .badge-urgent   { display:inline-block;padding:4px 12px;border-radius:999px;font-size:0.78rem;font-weight:800;background:#fde8ec;color:#b42318;border:1px solid #f0bfc9; }
 .badge-followup { display:inline-block;padding:4px 12px;border-radius:999px;font-size:0.78rem;font-weight:800;background:#fff4e0;color:#92600a;border:1px solid #f0d49a; }
 .badge-blacklist{ display:inline-block;padding:4px 12px;border-radius:999px;font-size:0.78rem;font-weight:800;background:#111827;color:#fff;border:1px solid #374151; }
 .badge-belum    { display:inline-block;padding:4px 12px;border-radius:999px;font-size:0.78rem;font-weight:800;background:#fde8ec;color:#b42318;border:1px solid #f0bfc9; }
 
-/* ── Notif Card ── */
+/* Badge tambahan untuk Tahap Followup manual */
+.badge-konfirmasi    { display:inline-block;padding:4px 12px;border-radius:999px;font-size:0.78rem;font-weight:800;background:#e0f2fe;color:#0369a1;border:1px solid #7dd3fc; }
+.badge-negosiasi     { display:inline-block;padding:4px 12px;border-radius:999px;font-size:0.78rem;font-weight:800;background:#fef9c3;color:#854d0e;border:1px solid #fde047; }
+.badge-lpj-diterima  { display:inline-block;padding:4px 12px;border-radius:999px;font-size:0.78rem;font-weight:800;background:#dcfce7;color:#15803d;border:1px solid #86efac; }
+.badge-bl-konfirmasi { display:inline-block;padding:4px 12px;border-radius:999px;font-size:0.78rem;font-weight:800;background:#1f2937;color:#f9fafb;border:1px solid #6b7280; }
+.badge-belum-diisi   { display:inline-block;padding:4px 12px;border-radius:999px;font-size:0.78rem;font-weight:800;background:#f3f4f6;color:#9ca3af;border:1px solid #d1d5db;font-style:italic; }
+.badge-menunggu-balasan { display:inline-block;padding:4px 12px;border-radius:999px;font-size:0.78rem;font-weight:800;background:#eef2ff;color:#4338ca;border:1px solid #c7d2fe; }
+
 .notif-card {
     background: #fff;
     border-radius: 16px;
@@ -126,7 +129,7 @@ footer { visibility: hidden; }
     padding: 16px 20px;
     margin-bottom: 12px;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 16px;
     transition: box-shadow 0.2s;
 }
@@ -136,12 +139,32 @@ footer { visibility: hidden; }
 .notif-card-blacklist{ border-left: 5px solid #111827 !important; }
 .notif-card-belum    { border-left: 5px solid #b42318 !important; }
 
-.notif-icon { font-size:1.6rem; min-width:40px; text-align:center; }
+.notif-icon { font-size:1.6rem; min-width:40px; text-align:center; padding-top:2px; }
 .notif-body { flex:1; min-width:0; }
-.notif-name { font-size:1rem; font-weight:900; color:var(--text); margin:0 0 2px 0; }
+.notif-name { font-size:1rem; font-weight:900; color:var(--text); margin:0 0 4px 0; }
+.notif-badges { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:6px; }
 .notif-meta { font-size:0.82rem; color:var(--muted); margin:0; display:flex; gap:14px; flex-wrap:wrap; }
 .notif-meta span { display:flex; align-items:center; gap:4px; }
-.notif-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.notif-tahap {
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: #faf5f7;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    font-size: 0.82rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.notif-tahap-label { font-weight:700; color:var(--muted); }
+.notif-catatan {
+    font-size: 0.8rem;
+    color: var(--text);
+    font-style: italic;
+    margin-top: 2px;
+}
+.notif-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding-top:2px; }
 
 .btn-wa {
     display:inline-block; padding:7px 14px; border-radius:10px;
@@ -164,7 +187,6 @@ footer { visibility: hidden; }
     border:1px solid #b0dfc0; white-space:nowrap;
 }
 
-/* ── Divider ── */
 .group-divider {
     display:flex; align-items:center; gap:12px;
     margin: 20px 0 14px 0;
@@ -175,7 +197,6 @@ footer { visibility: hidden; }
     text-transform:uppercase; letter-spacing:0.08em; white-space:nowrap;
 }
 
-/* ── Empty state ── */
 .empty-state {
     text-align:center; padding:48px 24px;
     background:#fff; border-radius:var(--radius);
@@ -186,7 +207,6 @@ footer { visibility: hidden; }
 .empty-state-title { font-size:1.1rem; font-weight:900; color:var(--text); margin-bottom:6px; }
 .empty-state-sub   { font-size:0.88rem; }
 
-/* ── Scrollbar ── */
 ::-webkit-scrollbar       { width:6px; height:6px; }
 ::-webkit-scrollbar-track { background:#f5eaef; border-radius:10px; }
 ::-webkit-scrollbar-thumb { background:var(--maroon-mid); border-radius:10px; }
@@ -198,6 +218,12 @@ SHEET_ID = "1wi4id0XqYlTuw_KO89-cOLSPTFAQ6ODv_tH09LK_2Ao"
 GID      = "0"
 CSV_URL  = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={GID}"
 GVIZ_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&gid={GID}"
+
+# ─── VALID TAHAP FOLLOWUP ────────────────────────────────────────────────────
+VALID_TAHAP = [
+    "Menunggu Balasan", "Sudah Konfirmasi", "Negosiasi",
+    "LPJ Diterima", "Blacklist Dikonfirmasi"
+]
 
 # ─── HELPERS ─────────────────────────────────────────────────────────────────
 def fmt_rupiah(x):
@@ -250,15 +276,21 @@ def wa_link(nomor):
     if not clean.startswith("62"): clean = "62" + clean
     return f"https://wa.me/{clean}"
 
-def detail_btn_html(nama):
-    enc = urllib.parse.quote(nama)
-    return f'<a href="?detail={enc}" target="_self" class="btn-detail">🔍 Detail</a>'
-
-def dismiss_btn_html(nama, sudah_dismiss=False):
-    if sudah_dismiss:
-        return '<span class="btn-dismissed">✓ Dicatat</span>'
-    enc = urllib.parse.quote(nama)
-    return f'<a href="?dismiss={enc}" target="_self" class="btn-dismiss">✅ Sudah Chat</a>'
+def badge_tahap_followup_html(val):
+    """Badge HTML untuk Tahap Followup manual di kartu notifikasi"""
+    if not val or val in ["nan", "", "-"]:
+        return '<span class="badge-belum-diisi">Tahap: Belum diisi</span>'
+    if val == "Blacklist Dikonfirmasi":
+        return '<span class="badge-bl-konfirmasi">✓ Blacklist Dikonfirmasi</span>'
+    if val == "LPJ Diterima":
+        return '<span class="badge-lpj-diterima">✓ LPJ Diterima</span>'
+    if val == "Sudah Konfirmasi":
+        return '<span class="badge-konfirmasi">✓ Sudah Konfirmasi</span>'
+    if val == "Negosiasi":
+        return '<span class="badge-negosiasi">Negosiasi</span>'
+    if val == "Menunggu Balasan":
+        return '<span class="badge-menunggu-balasan">Menunggu Balasan</span>'
+    return '<span class="badge-belum-diisi">Belum diisi</span>'
 
 @st.cache_data(ttl=30)
 def load_data():
@@ -287,8 +319,10 @@ aliases = {
 }
 data = data.rename(columns={k:v for k,v in aliases.items() if k in data.columns})
 
+# Tambahkan kolom Tahap Followup & Catatan Followup ke required_cols
 required_cols = ["Nama Bantuan","Jumlah Bantuan (Rp)","Tanggal Dibantu","Tenggat",
-                 "PIC","No Hp Penerima","Status","Chat","Status Chat"]
+                 "PIC","No Hp Penerima","Status","Chat","Status Chat",
+                 "Tahap Followup","Catatan Followup"]
 for col in required_cols:
     if col not in data.columns: data[col] = ""
 
@@ -304,6 +338,13 @@ data["Tenggat"]             = pd.to_datetime(data["Tenggat"], errors="coerce", d
 data["Tanggal Chat"]        = pd.to_datetime(data["Status Chat"], errors="coerce", dayfirst=True)
 data["Status Pembayaran"]   = data["Status"].apply(normalize_status)
 data["Chat Normal"]         = data["Chat"].apply(normalize_chat)
+
+# Normalisasi kolom Tahap Followup (manual)
+data["Tahap Followup"] = data["Tahap Followup"].astype(str).str.strip()
+data["Tahap Followup"] = data["Tahap Followup"].apply(
+    lambda x: x if x in VALID_TAHAP else ""
+)
+data["Catatan Followup"] = data["Catatan Followup"].astype(str).str.strip().replace("nan", "")
 
 today = pd.Timestamp.today().normalize()
 
@@ -323,26 +364,22 @@ data["Klasifikasi Chat"] = data["Hari Setelah Chat"].apply(klasifikasi_chat)
 data = data.reset_index(drop=True)
 
 # ─── FILTER NOTIFIKASI ────────────────────────────────────────────────────────
-# Grup 1: Jatuh Tempo + Belum di Chat → paling kritis
 belum_chat = data[
     (data["Status Pembayaran"] == "Belum Lunas") &
     (data["Kondisi Tenggat"] == "Jatuh Tempo") &
     (data["Chat Normal"] == "Belum di Chat")
 ].copy().sort_values("Terlambat Hari", ascending=False)
 
-# Grup 2: Sudah di Chat, tapi BlackList (21+ hari)
 blacklist = data[
     (data["Status Pembayaran"] == "Belum Lunas") &
     (data["Klasifikasi Chat"] == "BlackList")
 ].copy().sort_values("Hari Setelah Chat", ascending=False)
 
-# Grup 3: Follow Up LPJ (14–20 hari)
 follow_up = data[
     (data["Status Pembayaran"] == "Belum Lunas") &
     (data["Klasifikasi Chat"] == "Follow Up LPJ")
 ].copy().sort_values("Hari Setelah Chat", ascending=False)
 
-# Grup 4: Menunggu LPJ (0–13 hari)
 menunggu = data[
     (data["Status Pembayaran"] == "Belum Lunas") &
     (data["Klasifikasi Chat"] == "Menunggu LPJ")
@@ -386,7 +423,6 @@ for col, (label_k, val_k, note_k) in zip([k1, k2, k3, k4], kpi_cards):
 
 st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
 
-# ── TOTAL ─────────────────────────────────────────────────────────────────────
 if total_notif == 0:
     st.markdown("""
     <div class="empty-state">
@@ -403,16 +439,21 @@ st.markdown(
 )
 st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
 
-# --- HELPER RENDER KARTU (return string HTML, bukan st.markdown) ---
-def card_html(row, card_class, icon_code, badge_html, show_dismiss=False):
-    nama      = str(row["Nama Bantuan"])
-    pic       = str(row.get("PIC", "-") or "-")
-    hp        = str(row.get("No Hp Penerima", "-") or "-")
-    jumlah    = fmt_rupiah(row.get("Jumlah Bantuan (Rp)"))
-    tenggat   = fmt_tgl(row.get("Tenggat")) if pd.notna(row.get("Tenggat")) else "-"
-    terlambat = int(row.get("Terlambat Hari", 0)) if pd.notna(row.get("Terlambat Hari", 0)) else 0
-    jeda_raw  = row.get("Hari Setelah Chat")
-    jeda_chat = int(jeda_raw) if pd.notna(jeda_raw) else None
+# ─── HELPER RENDER KARTU ─────────────────────────────────────────────────────
+def card_html(row, card_class, icon_code, badge_status_html, show_dismiss=False):
+    nama          = str(row["Nama Bantuan"])
+    pic           = str(row.get("PIC", "-") or "-")
+    hp            = str(row.get("No Hp Penerima", "-") or "-")
+    jumlah        = fmt_rupiah(row.get("Jumlah Bantuan (Rp)"))
+    tenggat       = fmt_tgl(row.get("Tenggat")) if pd.notna(row.get("Tenggat")) else "-"
+    terlambat     = int(row.get("Terlambat Hari", 0)) if pd.notna(row.get("Terlambat Hari", 0)) else 0
+    jeda_raw      = row.get("Hari Setelah Chat")
+    jeda_chat     = int(jeda_raw) if pd.notna(jeda_raw) else None
+
+    # Tahap Followup manual
+    tahap         = str(row.get("Tahap Followup", "") or "")
+    catatan       = str(row.get("Catatan Followup", "") or "").strip()
+    badge_tahap   = badge_tahap_followup_html(tahap)
 
     wa_url  = wa_link(hp)
     wa_html = (
@@ -441,11 +482,24 @@ def card_html(row, card_class, icon_code, badge_html, show_dismiss=False):
         f'<span>&#x23F1; {jeda_chat} hari sejak chat</span>' if jeda_chat is not None else ""
     )
 
+    # Baris Tahap Followup — selalu tampil agar pengguna tahu harus diisi
+    catatan_html = (
+        f'<span class="notif-catatan">📝 {catatan}</span>' if catatan and catatan not in ["nan","-",""] else ""
+    )
+    tahap_section = (
+        f'<div class="notif-tahap">'
+        f'<span class="notif-tahap-label">Tahap kamu:</span>'
+        f'{badge_tahap}'
+        f'</div>'
+        f'{catatan_html}'
+    )
+
     return (
         f'<div class="notif-card {card_class}">'
         f'<div class="notif-icon">{icon_code}</div>'
         f'<div class="notif-body">'
-        f'<div class="notif-name">{nama} &nbsp; {badge_html}</div>'
+        f'<div class="notif-name">{nama}</div>'
+        f'<div class="notif-badges">{badge_status_html}</div>'
         f'<div class="notif-meta">'
         f'<span>&#x1F464; PIC: <b>{pic}</b></span>'
         f'<span>&#x1F4F1; {hp}</span>'
@@ -453,17 +507,18 @@ def card_html(row, card_class, icon_code, badge_html, show_dismiss=False):
         f'<span>&#x1F4C5; Tenggat: {tenggat}</span>'
         f'{terlambat_html}'
         f'{jeda_html}'
-        f'</div></div>'
+        f'</div>'
+        f'{tahap_section}'
+        f'</div>'
         f'<div class="notif-actions">{wa_html}{det_html}{dis_html}</div>'
         f'</div>'
     )
 
-def render_grup(df, divider_label, sub_text, card_class, icon_code, badge_html, show_dismiss=False):
-    """Kumpulkan semua kartu jadi 1 string lalu render sekaligus."""
+def render_grup(df, divider_label, sub_text, card_class, icon_code, badge_status_html, show_dismiss=False):
     if df.empty:
         return
     cards = "".join(
-        card_html(row, card_class, icon_code, badge_html, show_dismiss)
+        card_html(row, card_class, icon_code, badge_status_html, show_dismiss)
         for _, row in df.iterrows()
     )
     html = (
@@ -478,47 +533,47 @@ def render_grup(df, divider_label, sub_text, card_class, icon_code, badge_html, 
     st.markdown(html, unsafe_allow_html=True)
 
 
-# --- GRUP 1: SEGERA DI CHAT ---
+# ─── GRUP 1: SEGERA DI CHAT ───────────────────────────────────────────────────
 render_grup(
     belum_chat,
     divider_label=f"&#x1F534; Segera di Chat &mdash; {len(belum_chat)} orang",
     sub_text="Penerima bantuan yang jatuh tempo dan <b>belum</b> dihubungi sama sekali.",
     card_class="notif-card-belum",
     icon_code="&#x1F534;",
-    badge_html='<span class="badge-belum">Belum di Chat</span>',
+    badge_status_html='<span class="badge-belum">Belum di Chat</span>',
     show_dismiss=True,
 )
 
-# --- GRUP 2: BLACKLIST ---
+# ─── GRUP 2: BLACKLIST ────────────────────────────────────────────────────────
 render_grup(
     blacklist,
     divider_label=f"&#x26AB; BlackList &mdash; {len(blacklist)} orang",
-    sub_text="Sudah dihubungi tapi tidak ada respons selama <b>21 hari atau lebih</b>.",
+    sub_text="Sudah dihubungi tapi tidak ada respons selama <b>21 hari atau lebih</b>. Cek apakah sudah dikonfirmasi.",
     card_class="notif-card-blacklist",
     icon_code="&#x26AB;",
-    badge_html='<span class="badge-blacklist">BlackList</span>',
+    badge_status_html='<span class="badge-blacklist">🤖 Auto: Blacklist</span>',
     show_dismiss=False,
 )
 
-# --- GRUP 3: FOLLOW UP LPJ ---
+# ─── GRUP 3: FOLLOW UP LPJ ───────────────────────────────────────────────────
 render_grup(
     follow_up,
     divider_label=f"&#x1F7E1; Follow Up LPJ &mdash; {len(follow_up)} orang",
     sub_text="Sudah dihubungi, belum ada LPJ selama <b>14&ndash;20 hari</b>. Perlu follow up segera.",
     card_class="notif-card-followup",
     icon_code="&#x1F7E1;",
-    badge_html='<span class="badge-followup">Follow Up LPJ</span>',
+    badge_status_html='<span class="badge-followup">🤖 Auto: Follow Up</span>',
     show_dismiss=False,
 )
 
-# --- GRUP 4: MENUNGGU LPJ ---
+# ─── GRUP 4: MENUNGGU LPJ ────────────────────────────────────────────────────
 render_grup(
     menunggu,
     divider_label=f"&#x1F535; Menunggu LPJ &mdash; {len(menunggu)} orang",
     sub_text="Sudah dihubungi dan masih dalam periode tunggu LPJ (<b>0&ndash;13 hari</b>).",
     card_class="notif-card-menunggu",
     icon_code="&#x1F535;",
-    badge_html='<span class="badge-menunggu">Menunggu LPJ</span>',
+    badge_status_html='<span class="badge-urgent">🤖 Auto: Menunggu</span>',
     show_dismiss=False,
 )
 
