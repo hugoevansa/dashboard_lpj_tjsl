@@ -250,7 +250,7 @@ def clean_phone(s):
 
 def normalize_status(st_val):
     v = str(st_val).strip().lower()
-    return "Lunas" if v in ["lunas","sudah lunas"] else "Belum Lunas"
+    return "Lunas" if v in ["lpj","sudah lpj"] else "Belum Lunas"
 
 def normalize_chat(val):
     v = str(val).strip().lower()
