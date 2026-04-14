@@ -32,31 +32,36 @@ SB = {
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  CSS GLOBAL SIDEBAR
+#  FIX: Hapus min-width/max-width agar tombol toggle Streamlit bisa bekerja.
+#       Gunakan width saja, dan biarkan Streamlit mengurus collapsed state.
 # ─────────────────────────────────────────────────────────────────────────────
 SIDEBAR_CSS = f"""
 <style>
-/* ══ Sembunyikan nav bawaan Streamlit ══════════════════════════════ */
+/* ══ Background & padding utama ════════════════════════════════════ */
 section[data-testid="stSidebar"] > div:first-child {{
     padding: 0 !important;
 }}
 section[data-testid="stSidebar"] {{
     background: {SB['bg']} !important;
-    min-width: 230px !important;
-    max-width: 250px !important;
+    /* PERBAIKAN: Hapus min-width & max-width agar toggle bisa bekerja */
+    width: 240px !important;
 }}
-/* Sembunyikan nav otomatis Streamlit (pages/) */
+
+/* ══ Sembunyikan nav otomatis Streamlit (pages/) ════════════════════ */
 section[data-testid="stSidebar"] nav,
 section[data-testid="stSidebar"] [data-testid="stSidebarNavItems"],
 section[data-testid="stSidebar"] [data-testid="stSidebarNavLink"],
 section[data-testid="stSidebar"] [data-testid="stSidebarNavSeparator"] {{
     display: none !important;
 }}
-/* Reset semua teks sidebar ke warna putih */
+
+/* ══ Reset warna teks ═══════════════════════════════════════════════ */
 section[data-testid="stSidebar"] * {{
     color: {SB['text']} !important;
     border-color: {SB['line']} !important;
 }}
-/* Hilangkan padding bawaan st.sidebar.markdown */
+
+/* ══ Hapus gap & padding bawaan Streamlit ══════════════════════════ */
 section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {{
     gap: 0 !important;
     padding: 0 !important;
@@ -65,10 +70,11 @@ section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {{
     padding: 0 !important;
     width: 100% !important;
 }}
-/* Scrollbar */
-section[data-testid="stSidebar"] ::-webkit-scrollbar       {{ width:4px; }}
+
+/* ══ Scrollbar ══════════════════════════════════════════════════════ */
+section[data-testid="stSidebar"] ::-webkit-scrollbar       {{ width: 4px; }}
 section[data-testid="stSidebar"] ::-webkit-scrollbar-track {{ background: {SB['bg']}; }}
-section[data-testid="stSidebar"] ::-webkit-scrollbar-thumb {{ background: {SB['active']}; border-radius:4px; }}
+section[data-testid="stSidebar"] ::-webkit-scrollbar-thumb {{ background: {SB['active']}; border-radius: 4px; }}
 
 /* ══ Komponen custom sidebar ════════════════════════════════════════ */
 .sb-root {{
@@ -102,7 +108,6 @@ section[data-testid="stSidebar"] ::-webkit-scrollbar-thumb {{ background: {SB['a
     width: 38px; height: 38px;
     border-radius: 10px; object-fit: cover;
 }}
-.sb-logo-text {{}}
 .sb-logo-name {{
     font-size: 14px;
     font-weight: 800;
@@ -245,31 +250,7 @@ section[data-testid="stSidebar"] ::-webkit-scrollbar-thumb {{ background: {SB['a
 }}
 
 /* ── Spacer ──────────────────────────────────────────────────────── */
-.sb-spacer {{ flex: 1; }}
-
-/* ── Footer (user) ───────────────────────────────────────────────── */
-.sb-footer {{
-    border-top: 1px solid {SB['line']};
-    padding: 12px 14px;
-}}
-.sb-footer-link {{
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    padding: 6px 6px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background .13s;
-    text-decoration: none !important;
-    margin-bottom: 2px;
-}}
-.sb-footer-link:hover {{ background: {SB['hover']}; }}
-.sb-footer-icon {{ font-size: 14px; opacity: .6; width: 20px; text-align: center; }}
-.sb-footer-txt  {{
-    font-size: 12px;
-    color: rgba(255,255,255,.60) !important;
-}}
-.sb-footer-txt:hover {{ color: rgba(255,255,255,.85) !important; }}
+.sb-spacer {{ flex: 1; min-height: 20px; }}
 </style>
 """
 
@@ -328,33 +309,40 @@ def _build_sidebar_html(active_page: str, notif_count: int = 0) -> str:
 
     badge_notif = str(notif_count) if notif_count > 0 else ""
 
+    # PERBAIKAN: Footer (Feedback & Bantuan) dihapus sesuai permintaan
     html = (
         f'<div class="sb-root">'
+
+        # ── Logo
         f'<div class="sb-logo">{logo_img}'
         f'<div class="sb-logo-text">'
         f'<div class="sb-logo-name">Dashboard Bantuan</div>'
         f'<div class="sb-logo-sub">Sistem Monitoring</div>'
         f'</div></div>'
+
+        # ── Search
         f'<div class="sb-search">'
         f'<span class="sb-search-icon">🔍</span>'
         f'<span class="sb-search-txt">Cari menu…</span>'
         f'<span class="sb-search-kbd">⌘K</span>'
         f'</div>'
+
+        # ── Menu Utama
         f'<div class="sb-section-lbl">Menu Utama</div>'
         f'{_nav_item("🏠", "Main", "main", active_page)}'
         f'{_nav_item("🗄️", "Database", "database", active_page)}'
         f'{_nav_item("🔔", "Notifikasi", "notifikasi", active_page, badge=badge_notif)}'
+
+        # ── Analitik
         f'<div class="sb-section-lbl">Analitik</div>'
         f'{_nav_item("🗺️", "Sebaran Bantuan", "sebaran", active_page)}'
+
+        # ── Spacer (tanpa footer)
         f'<div class="sb-spacer"></div>'
-        f'<div class="sb-divider"></div>'
-        f'<div class="sb-footer">'
-        f'<div class="sb-footer-link"><span class="sb-footer-icon">💬</span><span class="sb-footer-txt">Feedback</span></div>'
-        f'<div class="sb-footer-link"><span class="sb-footer-icon">ℹ️</span><span class="sb-footer-txt">Bantuan & Panduan</span></div>'
-        f'</div>'
         f'</div>'
     )
     return html
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  PUBLIC API
@@ -362,9 +350,9 @@ def _build_sidebar_html(active_page: str, notif_count: int = 0) -> str:
 def render_sidebar(active_page: str = "main", notif_count: int = 0) -> None:
     sidebar_html = _build_sidebar_html(active_page, notif_count)
 
-    # Inject CSS ke halaman utama (agar bisa target .stApp dll)
+    # Inject CSS ke halaman utama
     st.markdown(SIDEBAR_CSS, unsafe_allow_html=True)
 
-    # Inject HTML ke sidebar dengan with block (lebih reliable di semua versi Streamlit)
+    # Inject HTML ke sidebar
     with st.sidebar:
         st.markdown(sidebar_html, unsafe_allow_html=True)
