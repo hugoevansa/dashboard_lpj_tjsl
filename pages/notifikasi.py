@@ -115,7 +115,7 @@ footer { visibility: hidden; }
 
 /* Badge tambahan untuk Tahap Followup manual */
 .badge-konfirmasi    { display:inline-block;padding:4px 12px;border-radius:999px;font-size:0.78rem;font-weight:800;background:#e0f2fe;color:#0369a1;border:1px solid #7dd3fc; }
-.badge-negosiasi     { display:inline-block;padding:4px 12px;border-radius:999px;font-size:0.78rem;font-weight:800;background:#fef9c3;color:#854d0e;border:1px solid #fde047; }
+.badge-sudah followup     { display:inline-block;padding:4px 12px;border-radius:999px;font-size:0.78rem;font-weight:800;background:#fef9c3;color:#854d0e;border:1px solid #fde047; }
 .badge-lpj-diterima  { display:inline-block;padding:4px 12px;border-radius:999px;font-size:0.78rem;font-weight:800;background:#dcfce7;color:#15803d;border:1px solid #86efac; }
 .badge-bl-konfirmasi { display:inline-block;padding:4px 12px;border-radius:999px;font-size:0.78rem;font-weight:800;background:#1f2937;color:#f9fafb;border:1px solid #6b7280; }
 .badge-belum-diisi   { display:inline-block;padding:4px 12px;border-radius:999px;font-size:0.78rem;font-weight:800;background:#f3f4f6;color:#9ca3af;border:1px solid #d1d5db;font-style:italic; }
@@ -221,7 +221,7 @@ GVIZ_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:c
 
 # ─── VALID TAHAP FOLLOWUP ────────────────────────────────────────────────────
 VALID_TAHAP = [
-    "Menunggu Balasan", "Sudah Konfirmasi", "Negosiasi",
+    "Menunggu Balasan", "Sudah Konfirmasi", "Sudah Followup",
     "LPJ Diterima", "Blacklist Dikonfirmasi"
 ]
 
@@ -286,8 +286,8 @@ def badge_tahap_followup_html(val):
         return '<span class="badge-lpj-diterima">✓ LPJ Diterima</span>'
     if val == "Sudah Konfirmasi":
         return '<span class="badge-konfirmasi">✓ Sudah Konfirmasi</span>'
-    if val == "Negosiasi":
-        return '<span class="badge-negosiasi">Negosiasi</span>'
+    if val == "Sudah Followup":
+        return '<span class="badge-sudah followup">Sudah Followup</span>'
     if val == "Menunggu Balasan":
         return '<span class="badge-menunggu-balasan">Menunggu Balasan</span>'
     return '<span class="badge-belum-diisi">Belum diisi</span>'
