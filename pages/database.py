@@ -468,6 +468,14 @@ if nama_filter and len(table_df) >= 1:
                 <div class="detail-field-value">{no_hp}</div>
             </div>
             <div class="detail-field">
+                <div class="detail-field-label">Kab / Kota</div>
+                <div class="detail-field-value">{r['Kab / Kota'] if r['Kab / Kota'] else '—'}</div>
+            </div>
+            <div class="detail-field">
+                <div class="detail-field-label">Provinsi</div>
+                <div class="detail-field-value">{r['Provinsi'] if r['Provinsi'] else '—'}</div>
+            </div>
+            <div class="detail-field">
                 <div class="detail-field-label">Tanggal Dibantu</div>
                 <div class="detail-field-value">{tgl_bantu}</div>
             </div>
