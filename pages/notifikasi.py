@@ -4,11 +4,23 @@ import requests
 import urllib.parse
 from io import StringIO
 
+import os
+import base64
+import streamlit as st
+
+from sidebar import render_sidebar
+
 st.set_page_config(
     page_title="Notifikasi",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+from sidebar import render_sidebar
+
+# Di bagian paling atas setelah st.set_page_config():
+render_sidebar(active_page="notifikasi", notif_count=total_notif)
+# active_page: "main" | "database" | "notifikasi" | "sebaran"
 
 # ─── SESSION STATE ────────────────────────────────────────────────────────────
 if "notif_dismissed" not in st.session_state:
