@@ -10,11 +10,14 @@ import requests
 import urllib.parse
 from io import StringIO
 
+
 st.set_page_config(
     page_title="Notifikasi",
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+from sidebar_component import render_sidebar
 
 # ─── SESSION STATE ────────────────────────────────────────────────────────────
 if "notif_dismissed" not in st.session_state:
@@ -400,12 +403,7 @@ total_notif = len(belum_chat) + len(blacklist) + len(follow_up) + len(menunggu)
 # ─────────────────────────────────────────────────────────────────────────────
 #  SIDEBAR  ← baru
 # ─────────────────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown("### 🏛️ Dashboard Bantuan")
-    st.page_link("main.py",              label="🏠 Main")
-    st.page_link("pages/database.py",    label="🗄️ Database")
-    st.page_link("pages/notifikasi.py",  label="🔔 Notifikasi")
-    st.page_link("pages/sebaran.py",     label="🗺️ Sebaran Bantuan")
+render_sidebar(active_page="notifikasi", notif_count=total_notif)
 
 # ═════════════════════════════════════════════════════════════════════════════
 #  LAYOUT
