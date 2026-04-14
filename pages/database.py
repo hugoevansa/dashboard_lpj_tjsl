@@ -75,99 +75,45 @@ div[data-baseweb="input"] > div {
     gap: 18px;
     box-shadow: 0 8px 32px rgba(92,18,41,0.22);
 }
-.page-header-icon {
-    font-size: 2.2rem;
-    background: rgba(255,255,255,0.15);
-    border-radius: 16px;
-    padding: 10px 14px;
-}
-.page-header-title {
-    color: #fff;
-    font-size: 1.7rem;
-    font-weight: 900;
-    line-height: 1.1;
-    margin: 0;
-}
-.page-header-sub {
-    color: rgba(255,255,255,0.75);
-    font-size: 0.9rem;
-    margin-top: 3px;
-}
+.page-header-icon  { font-size:2.2rem; background:rgba(255,255,255,0.15); border-radius:16px; padding:10px 14px; }
+.page-header-title { color:#fff; font-size:1.7rem; font-weight:900; line-height:1.1; margin:0; }
+.page-header-sub   { color:rgba(255,255,255,0.75); font-size:0.9rem; margin-top:3px; }
 
-.section-head {
-    font-size: 1.15rem;
-    font-weight: 900;
-    color: var(--text);
-    margin: 0;
-    padding: 0;
-}
-.section-sub {
-    font-size: 0.86rem;
-    color: var(--muted);
-    margin-top: 2px;
-    margin-bottom: 10px;
-}
+.section-head { font-size:1.15rem; font-weight:900; color:var(--text); margin:0; padding:0; }
+.section-sub  { font-size:0.86rem; color:var(--muted); margin-top:2px; margin-bottom:10px; }
 
-.chip {
-    display: inline-block;
-    padding: 4px 11px;
-    border-radius: 999px;
-    font-size: 0.77rem;
-    font-weight: 800;
-    white-space: nowrap;
-}
-.chip-lunas      { background: #e6f5ec; color: var(--success); border: 1px solid #b0dfc0; }
-.chip-belum      { background: #fff4e0; color: var(--warning); border: 1px solid #f0d49a; }
-.chip-jatuh      { background: #fde8ec; color: var(--danger);  border: 1px solid #f0bfc9; }
-.chip-menunggu   { background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; }
-.chip-follow     { background: #fff7e6; color: #b36b00; border: 1px solid #f1d193; }
-.chip-blacklist  { background: #111827; color: #fff; border: 1px solid #374151; }
-.chip-muted      { background: #f5f5f5; color: #6b7280; border: 1px solid #d1d5db; }
+.chip { display:inline-block; padding:4px 11px; border-radius:999px; font-size:0.77rem; font-weight:800; white-space:nowrap; }
+.chip-lunas          { background:#e6f5ec; color:var(--success); border:1px solid #b0dfc0; }
+.chip-belum          { background:#fff4e0; color:var(--warning); border:1px solid #f0d49a; }
+.chip-jatuh          { background:#fde8ec; color:var(--danger);  border:1px solid #f0bfc9; }
+.chip-menunggu       { background:#eef2ff; color:#4338ca;        border:1px solid #c7d2fe; }
+.chip-follow         { background:#fff7e6; color:#b36b00;        border:1px solid #f1d193; }
+.chip-blacklist      { background:#111827; color:#fff;           border:1px solid #374151; }
+.chip-muted          { background:#f5f5f5; color:#6b7280;        border:1px solid #d1d5db; }
+/* Chip tambahan untuk Tahap Followup manual */
+.chip-konfirmasi     { background:#e0f2fe; color:#0369a1;        border:1px solid #7dd3fc; }
+.chip-negosiasi      { background:#fef9c3; color:#854d0e;        border:1px solid #fde047; }
+.chip-lpj-diterima   { background:#dcfce7; color:#15803d;        border:1px solid #86efac; }
+.chip-bl-konfirmasi  { background:#1f2937; color:#f9fafb;        border:1px solid #6b7280; }
+.chip-belum-diisi    { background:#f3f4f6; color:#9ca3af;        border:1px solid #d1d5db; font-style:italic; }
 
-.tbl-wrap {
-    border-radius: 16px;
-    border: 1.5px solid var(--line);
-    box-shadow: var(--shadow);
-    overflow: hidden;
-}
-.tbl-scroll {
-    max-height: 480px;
-    overflow-y: auto;
-    overflow-x: auto;
-    border-radius: 0 0 14px 14px;
-}
-.tbl-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
-.tbl-scroll::-webkit-scrollbar-track { background: #f5eaef; border-radius: 10px; }
-.tbl-scroll::-webkit-scrollbar-thumb { background: var(--maroon-mid); border-radius: 10px; }
-.tbl-scroll::-webkit-scrollbar-thumb:hover { background: var(--maroon); }
-
-.tbl {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13.5px;
-}
-.tbl thead { position: sticky; top: 0; z-index: 2; }
+.tbl-wrap { border-radius:16px; border:1.5px solid var(--line); box-shadow:var(--shadow); overflow:hidden; }
+.tbl-scroll { max-height:480px; overflow-y:auto; overflow-x:auto; border-radius:0 0 14px 14px; }
+.tbl-scroll::-webkit-scrollbar { width:6px; height:6px; }
+.tbl-scroll::-webkit-scrollbar-track { background:#f5eaef; border-radius:10px; }
+.tbl-scroll::-webkit-scrollbar-thumb { background:var(--maroon-mid); border-radius:10px; }
+.tbl-scroll::-webkit-scrollbar-thumb:hover { background:var(--maroon); }
+.tbl { width:100%; border-collapse:collapse; font-size:13.5px; }
+.tbl thead { position:sticky; top:0; z-index:2; }
 .tbl th {
     background: linear-gradient(180deg, var(--maroon) 0%, var(--maroon-dark) 100%);
-    color: #fff;
-    font-weight: 800;
-    padding: 11px 14px;
-    text-align: left;
-    white-space: nowrap;
-    font-size: 13px;
+    color:#fff; font-weight:800; padding:11px 14px; text-align:left; white-space:nowrap; font-size:13px;
 }
-.tbl td {
-    padding: 10px 14px;
-    border-bottom: 1px solid #f2e2e8;
-    color: var(--text);
-    vertical-align: middle;
-    white-space: nowrap;
-}
-.tbl tr:last-child td { border-bottom: none; }
-.tbl tr:nth-child(even) td { background: #fffafc; }
-.tbl tr:hover td { background: #fff5f8; }
+.tbl td { padding:10px 14px; border-bottom:1px solid #f2e2e8; color:var(--text); vertical-align:middle; white-space:nowrap; }
+.tbl tr:last-child td { border-bottom:none; }
+.tbl tr:nth-child(even) td { background:#fffafc; }
+.tbl tr:hover td { background:#fff5f8; }
 
-/* Detail card */
 .detail-card {
     background: #fff;
     border-radius: 20px;
@@ -176,39 +122,50 @@ div[data-baseweb="input"] > div {
     padding: 24px 28px;
     margin-bottom: 20px;
 }
-.detail-card-title {
-    font-size: 1.4rem;
-    font-weight: 900;
-    color: var(--text);
-    margin-bottom: 6px;
-}
+.detail-card-title { font-size:1.4rem; font-weight:900; color:var(--text); margin-bottom:6px; }
 .detail-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 12px;
     margin-top: 16px;
 }
-.detail-field {
-    background: var(--maroon-soft);
-    border-radius: 12px;
-    padding: 12px 14px;
+.detail-field { background:var(--maroon-soft); border-radius:12px; padding:12px 14px; }
+.detail-field-label { font-size:0.72rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:5px; }
+.detail-field-value { font-size:0.98rem; font-weight:700; color:var(--text); word-break:break-word; }
+
+/* Box khusus untuk Tahap Followup & Catatan di detail card */
+.detail-followup-box {
+    margin-top: 16px;
+    padding: 16px 18px;
+    background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+    border-radius: 14px;
+    border: 1.5px solid #7dd3fc;
 }
-.detail-field-label {
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: var(--muted);
+.detail-followup-title {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #0369a1;
     text-transform: uppercase;
     letter-spacing: 0.07em;
-    margin-bottom: 5px;
+    margin-bottom: 10px;
 }
-.detail-field-value {
-    font-size: 0.98rem;
-    font-weight: 700;
+.detail-followup-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+.detail-followup-label { font-size:0.8rem; font-weight:700; color:var(--muted); margin-bottom:4px; }
+.detail-catatan-text {
+    font-size: 0.9rem;
     color: var(--text);
-    word-break: break-word;
+    font-style: italic;
+    padding: 6px 10px;
+    background: #fff;
+    border-radius: 8px;
+    border: 1px solid #bae6fd;
 }
 
-/* Banner info filter aktif */
 .filter-banner {
     background: linear-gradient(135deg, #fff8fa, #fdf0f4);
     border: 1.5px solid #e8c8d4;
@@ -219,9 +176,9 @@ div[data-baseweb="input"] > div {
     gap: 12px;
     margin-bottom: 16px;
 }
-.filter-banner-icon { font-size: 1.4rem; }
-.filter-banner-text { flex: 1; font-size: 0.9rem; color: var(--text); }
-.filter-banner-text b { color: var(--maroon); }
+.filter-banner-icon { font-size:1.4rem; }
+.filter-banner-text { flex:1; font-size:0.9rem; color:var(--text); }
+.filter-banner-text b { color:var(--maroon); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -230,6 +187,12 @@ SHEET_ID = "1wi4id0XqYlTuw_KO89-cOLSPTFAQ6ODv_tH09LK_2Ao"
 GID      = "0"
 CSV_URL  = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={GID}"
 GVIZ_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&gid={GID}"
+
+# ─── VALID TAHAP FOLLOWUP ────────────────────────────────────────────────────
+VALID_TAHAP = [
+    "Menunggu Balasan", "Sudah Konfirmasi", "Negosiasi",
+    "LPJ Diterima", "Blacklist Dikonfirmasi"
+]
 
 # ─── HELPERS ─────────────────────────────────────────────────────────────────
 def fmt_rupiah(x):
@@ -268,34 +231,35 @@ def chip_status(val):
     if val == "Jatuh Tempo": return '<span class="chip chip-jatuh">Jatuh Tempo</span>'
     return '<span class="chip chip-belum">Belum Lunas</span>'
 
-def chip_aksi_chat(val):
+def chip_klasifikasi_auto(val):
+    """Chip otomatis berdasarkan waktu chat"""
+    if val == "BlackList":     return '<span class="chip chip-blacklist">🤖 Auto: Blacklist</span>'
+    if val == "Follow Up LPJ": return '<span class="chip chip-follow">🤖 Auto: Follow Up</span>'
+    if val == "Menunggu LPJ":  return '<span class="chip chip-menunggu">🤖 Auto: Menunggu</span>'
+    return '<span class="chip chip-muted">-</span>'
+
+def chip_aksi_database(val, chat_normal=None):
+    if chat_normal == "Belum di Chat":
+        return '<span class="chip chip-jatuh">Segera di Chat</span>'
     if val == "Menunggu LPJ":  return '<span class="chip chip-menunggu">Menunggu LPJ</span>'
     if val == "Follow Up LPJ": return '<span class="chip chip-follow">Follow Up LPJ</span>'
     if val == "BlackList":     return '<span class="chip chip-blacklist">BlackList</span>'
     return '<span class="chip chip-muted">-</span>'
 
-def chip_aksi_prioritas(val, chat_normal=None):
-    # khusus untuk tabel prioritas
-    if chat_normal == "Belum di Chat":
-        return '<span class="chip chip-jatuh">Segera di Chat</span>'
-    if val == "Menunggu LPJ":
-        return '<span class="chip chip-menunggu">Menunggu LPJ</span>'
-    if val == "Follow Up LPJ":
-        return '<span class="chip chip-follow">Follow Up LPJ</span>'
-    if val == "BlackList":
-        return '<span class="chip chip-blacklist">BlackList</span>'
-    return '<span class="chip chip-muted">-</span>'
-
-def chip_aksi_database(val, chat_normal=None):
-    # untuk halaman database/detail
-    if chat_normal == "Belum di Chat":
-        return '<span class="chip chip-jatuh">Segera di Chat</span>'
-    if val == "Menunggu LPJ":
-        return '<span class="chip chip-menunggu">Menunggu LPJ</span>'
-    if val == "Follow Up LPJ":
-        return '<span class="chip chip-follow">Follow Up LPJ</span>'
-    if val == "BlackList":
-        return '<span class="chip chip-blacklist">BlackList</span>'
+def chip_tahap_followup(val):
+    """Chip untuk status manual yang diisi oleh pengguna"""
+    if not val or val in ["nan", "", "-"]:
+        return '<span class="chip chip-belum-diisi">Belum diisi</span>'
+    if val == "Blacklist Dikonfirmasi":
+        return '<span class="chip chip-bl-konfirmasi">✓ Blacklist</span>'
+    if val == "LPJ Diterima":
+        return '<span class="chip chip-lpj-diterima">✓ LPJ Diterima</span>'
+    if val == "Sudah Konfirmasi":
+        return '<span class="chip chip-konfirmasi">✓ Konfirmasi</span>'
+    if val == "Negosiasi":
+        return '<span class="chip chip-negosiasi">Negosiasi</span>'
+    if val == "Menunggu Balasan":
+        return '<span class="chip chip-menunggu">Menunggu Balasan</span>'
     return '<span class="chip chip-muted">-</span>'
 
 def df_to_html(df, max_height=480):
@@ -318,22 +282,18 @@ def hitung_jeda_chat(tanggal_chat, chat_status, today):
 
 def label_jeda_chat(hari):
     if hari is None: return ""
-    if 7 <= hari < 14: return "1 Minggu"
+    if 7 <= hari < 14:  return "1 Minggu"
     if 14 <= hari < 21: return "2 Minggu"
-    if hari >= 21: return "3 Minggu"
+    if hari >= 21:      return "3 Minggu"
     return "< 1 Minggu"
 
 def klasifikasi_chat(hari):
-    if hari is None:
-        return ""
-    if 0 <= hari < 14:
-        return "Menunggu LPJ"
-    if 14 <= hari < 21:
-        return "Follow Up LPJ"
-    if hari >= 21:
-        return "BlackList"
+    if hari is None:    return ""
+    if 0 <= hari < 14:  return "Menunggu LPJ"
+    if 14 <= hari < 21: return "Follow Up LPJ"
+    if hari >= 21:      return "BlackList"
     return ""
-    
+
 @st.cache_data(ttl=30)
 def load_data():
     for url in [CSV_URL, GVIZ_URL]:
@@ -361,8 +321,10 @@ aliases = {
 }
 data = data.rename(columns={k:v for k,v in aliases.items() if k in data.columns})
 
+# Tambahkan kolom Tahap Followup & Catatan Followup ke required_cols
 required_cols = ["Nama Bantuan","Jumlah Bantuan (Rp)","Tanggal Dibantu","Tenggat",
-                 "PIC","No Hp Penerima","Status","Chat","Status Chat"]
+                 "PIC","No Hp Penerima","Status","Chat","Status Chat",
+                 "Tahap Followup","Catatan Followup"]
 for col in required_cols:
     if col not in data.columns: data[col] = ""
 
@@ -379,6 +341,13 @@ data["Tanggal Chat"]        = pd.to_datetime(data["Status Chat"], errors="coerce
 data["Tahun"]               = data["Tanggal Dibantu"].dt.year
 data["Status Pembayaran"]   = data["Status"].apply(normalize_status)
 data["Chat Normal"]         = data["Chat"].apply(normalize_chat)
+
+# Normalisasi kolom Tahap Followup (manual)
+data["Tahap Followup"] = data["Tahap Followup"].astype(str).str.strip()
+data["Tahap Followup"] = data["Tahap Followup"].apply(
+    lambda x: x if x in VALID_TAHAP else ""
+)
+data["Catatan Followup"] = data["Catatan Followup"].astype(str).str.strip().replace("nan", "")
 
 today = pd.Timestamp.today().normalize()
 
@@ -407,7 +376,6 @@ data = data.reset_index(drop=True)
 
 nama_filter = st.session_state.get("detail_nama", None)
 
-# ── Header ───────────────────────────────────────────────────────────────────
 st.markdown("""
 <div class="page-header">
     <div class="page-header-icon">📋</div>
@@ -419,14 +387,12 @@ st.markdown("""
 """, unsafe_allow_html=True)
 st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
 
-# ── Tombol Kembali ────────────────────────────────────────────────────────────
 if st.button("← Kembali ke Dashboard", key="btn_back", type="secondary"):
     st.session_state.detail_nama = None
     st.switch_page("main.py")
 
 st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
 
-# ── Banner filter aktif ───────────────────────────────────────────────────────
 table_df = data.copy()
 
 if nama_filter:
@@ -450,9 +416,8 @@ if nama_filter:
 
     st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
 
-# ── Detail Card (hanya muncul kalau 1 data terfilter) ────────────────────────
+# ── Detail Card ───────────────────────────────────────────────────────────────
 if nama_filter and len(table_df) >= 1:
-    # Ambil baris pertama yang cocok
     r = table_df.iloc[0]
 
     jumlah_str  = fmt_rupiah(r["Jumlah Bantuan (Rp)"])
@@ -464,14 +429,26 @@ if nama_filter and len(table_df) >= 1:
     no_hp       = r["No Hp Penerima"] if r["No Hp Penerima"] else "—"
     tahun_str   = str(int(r["Tahun"])) if pd.notna(r["Tahun"]) else "—"
 
-    chip_s  = chip_status(r["Label Tampilan"])
-    chip_ac = chip_aksi_database(r["Klasifikasi Chat"], r["Chat Normal"])
+    # Tahap Followup manual
+    tahap_val   = str(r.get("Tahap Followup","") or "")
+    catatan_val = str(r.get("Catatan Followup","") or "").strip()
+
+    chip_s      = chip_status(r["Label Tampilan"])
+    chip_auto   = chip_klasifikasi_auto(r["Klasifikasi Chat"])
+    chip_manual = chip_tahap_followup(tahap_val)
+
+    # Tampilan catatan
+    catatan_display = (
+        f'<div class="detail-catatan-text">📝 {catatan_val}</div>'
+        if catatan_val and catatan_val not in ["nan","","-"] else
+        '<div style="font-size:0.85rem;color:var(--muted);font-style:italic;">Tidak ada catatan</div>'
+    )
 
     st.markdown(f"""
     <div class="detail-card">
         <div class="detail-card-title">{r['Nama Bantuan']}</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;margin-bottom:4px;">
-            {chip_s} {chip_ac}
+            {chip_s} {chip_auto} {chip_manual}
         </div>
         <div class="detail-grid">
             <div class="detail-field">
@@ -511,6 +488,24 @@ if nama_filter and len(table_df) >= 1:
                 <div class="detail-field-value">{tahun_str}</div>
             </div>
         </div>
+        <!-- Blok Tahap Followup Manual -->
+        <div class="detail-followup-box">
+            <div class="detail-followup-title">📌 Tahap Followup Manual (diisi oleh kamu)</div>
+            <div class="detail-followup-row">
+                <div>
+                    <div class="detail-followup-label">Status Auto (sistem)</div>
+                    {chip_auto}
+                </div>
+                <div>
+                    <div class="detail-followup-label">Tahap Manual (kamu)</div>
+                    {chip_manual}
+                </div>
+            </div>
+            <div style="margin-top:10px;">
+                <div class="detail-followup-label">Catatan Followup</div>
+                {catatan_display}
+            </div>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -522,11 +517,10 @@ if not nama_filter:
 search = st.text_input(
     "Cari",
     label_visibility="collapsed",
-    placeholder="🔍 Cari nama bantuan, PIC, nomor HP, status, atau status chat...",
+    placeholder="🔍 Cari nama bantuan, PIC, nomor HP, status, tahap followup, atau catatan...",
     key="db_search"
 )
 
-# Jika tidak ada filter aktif, search dari semua data
 if not nama_filter:
     table_df = data.copy()
 
@@ -539,17 +533,22 @@ if search:
         table_df["Label Tampilan"].astype(str).str.lower().str.contains(kw, na=False) |
         table_df["Chat Normal"].astype(str).str.lower().str.contains(kw, na=False) |
         table_df["Label Jeda Chat"].astype(str).str.lower().str.contains(kw, na=False) |
-        table_df["Klasifikasi Chat"].astype(str).str.lower().str.contains(kw, na=False)
+        table_df["Klasifikasi Chat"].astype(str).str.lower().str.contains(kw, na=False) |
+        table_df["Tahap Followup"].astype(str).str.lower().str.contains(kw, na=False) |
+        table_df["Catatan Followup"].astype(str).str.lower().str.contains(kw, na=False)
     ]
 
-total_label = f"Menampilkan {len(table_df)} dari {len(data)} data" if not nama_filter else f"{len(table_df)} data ditemukan"
+total_label = (
+    f"Menampilkan {len(table_df)} dari {len(data)} data"
+    if not nama_filter else f"{len(table_df)} data ditemukan"
+)
 st.markdown(f'<div class="section-sub">{total_label}</div>', unsafe_allow_html=True)
 
 # ── Build tabel tampilan ──────────────────────────────────────────────────────
 disp = table_df[[
     "Nama Bantuan","Jumlah Bantuan (Rp)","Tanggal Dibantu","Tenggat",
     "PIC","No Hp Penerima","Tahun","Label Tampilan","Klasifikasi Chat",
-    "Label Jeda Chat","Tanggal Chat"
+    "Label Jeda Chat","Tanggal Chat","Tahap Followup","Catatan Followup"
 ]].copy()
 
 disp["Jumlah Bantuan (Rp)"] = disp["Jumlah Bantuan (Rp)"].apply(fmt_rupiah)
@@ -558,17 +557,17 @@ disp["Tenggat"]             = disp["Tenggat"].apply(fmt_tgl)
 disp["Tanggal Chat"]        = disp["Tanggal Chat"].apply(fmt_tgl)
 disp["No Hp Penerima"]      = disp["No Hp Penerima"].replace("","-")
 disp["Status"]              = disp["Label Tampilan"].apply(chip_status)
-disp["Aksi Chat"] = table_df.apply(
-    lambda r: chip_aksi_database(r["Klasifikasi Chat"], r["Chat Normal"]),
-    axis=1
-)
+disp["Status Auto"]         = disp["Klasifikasi Chat"].apply(chip_klasifikasi_auto)
+disp["Tahap Manual"]        = disp["Tahap Followup"].apply(chip_tahap_followup)
+disp["Catatan"]             = disp["Catatan Followup"].replace("", "-").replace("nan", "-")
 disp["Jeda Chat"]           = disp["Label Jeda Chat"].replace("","-")
 
-disp = disp.drop(columns=["Label Tampilan","Klasifikasi Chat","Label Jeda Chat"])
-
+disp = disp.drop(columns=["Label Tampilan","Klasifikasi Chat","Label Jeda Chat",
+                           "Tahap Followup","Catatan Followup"])
 disp = disp[[
     "Nama Bantuan","Jumlah Bantuan (Rp)","Tanggal Dibantu","Tenggat",
-    "PIC","No Hp Penerima","Tahun","Tanggal Chat","Jeda Chat","Aksi Chat","Status"
+    "PIC","No Hp Penerima","Tahun","Tanggal Chat","Jeda Chat",
+    "Status","Status Auto","Tahap Manual","Catatan"
 ]]
 
 st.markdown(df_to_html(disp, max_height=480), unsafe_allow_html=True)
