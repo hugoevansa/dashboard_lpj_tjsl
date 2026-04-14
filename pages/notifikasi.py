@@ -364,25 +364,47 @@ data["Klasifikasi Chat"] = data["Hari Setelah Chat"].apply(klasifikasi_chat)
 data = data.reset_index(drop=True)
 
 # ─── FILTER NOTIFIKASI ────────────────────────────────────────────────────────
+
+def is_resolved(row, auto_status):
+    """Return True jika tahap followup manual sudah sesuai — entri tidak perlu muncul di notifikasi."""
+    tahap = str(row.get("Tahap Followup", "") or "").strip()
+    if auto_status == "BlackList":
+        # Hilang jika sudah dikonfirmasi sebagai blacklist
+        return tahap == "Blacklist Dikonfirmasi"
+    if auto_status == "Follow Up LPJ":
+        # Hilang jika sudah followup atau LPJ sudah diterima
+        return tahap in ("Sudah Followup", "LPJ Diterima")
+    if auto_status == "Menunggu LPJ":
+        # Hilang hanya jika LPJ sudah diterima
+        return tahap == "LPJ Diterima"
+    if auto_status == "Belum di Chat":
+        # Hilang jika sudah konfirmasi atau LPJ sudah diterima
+        return tahap in ("Sudah Konfirmasi", "LPJ Diterima")
+    return False
+
 belum_chat = data[
     (data["Status Pembayaran"] == "Belum Lunas") &
     (data["Kondisi Tenggat"] == "Jatuh Tempo") &
-    (data["Chat Normal"] == "Belum di Chat")
+    (data["Chat Normal"] == "Belum di Chat") &
+    (~data.apply(lambda r: is_resolved(r, "Belum di Chat"), axis=1))
 ].copy().sort_values("Terlambat Hari", ascending=False)
 
 blacklist = data[
     (data["Status Pembayaran"] == "Belum Lunas") &
-    (data["Klasifikasi Chat"] == "BlackList")
+    (data["Klasifikasi Chat"] == "BlackList") &
+    (~data.apply(lambda r: is_resolved(r, "BlackList"), axis=1))
 ].copy().sort_values("Hari Setelah Chat", ascending=False)
 
 follow_up = data[
     (data["Status Pembayaran"] == "Belum Lunas") &
-    (data["Klasifikasi Chat"] == "Follow Up LPJ")
+    (data["Klasifikasi Chat"] == "Follow Up LPJ") &
+    (~data.apply(lambda r: is_resolved(r, "Follow Up LPJ"), axis=1))
 ].copy().sort_values("Hari Setelah Chat", ascending=False)
 
 menunggu = data[
     (data["Status Pembayaran"] == "Belum Lunas") &
-    (data["Klasifikasi Chat"] == "Menunggu LPJ")
+    (data["Klasifikasi Chat"] == "Menunggu LPJ") &
+    (~data.apply(lambda r: is_resolved(r, "Menunggu LPJ"), axis=1))
 ].copy().sort_values("Hari Setelah Chat", ascending=False)
 
 total_notif = len(belum_chat) + len(blacklist) + len(follow_up) + len(menunggu)
