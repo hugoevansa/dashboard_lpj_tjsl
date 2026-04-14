@@ -34,6 +34,8 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+from sidebar_component import render_sidebar
+
 # ─────────────────────────────────────────────────────────────────────────────
 #  PALET WARNA
 # ─────────────────────────────────────────────────────────────────────────────
