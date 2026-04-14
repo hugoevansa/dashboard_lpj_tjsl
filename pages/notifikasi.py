@@ -11,7 +11,7 @@ import streamlit as st
 from sidebar import render_sidebar
 
 st.set_page_config(
-    page_title="Notifikasi",
+    page_title="Notifikasi.py",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
