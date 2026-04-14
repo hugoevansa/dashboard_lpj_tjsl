@@ -96,6 +96,11 @@ html, body, [class*="css"] {
 
 footer { visibility: hidden; }
 
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, var(--crimson-dark) 0%, var(--crimson) 100%) !important;
+}
+section[data-testid="stSidebar"] * { color: #fff !important; }
+
 div[data-testid="stPlotlyChart"] { border-radius: var(--radius-md); overflow: hidden; }
 
 div[data-baseweb="select"] > div,
@@ -172,6 +177,17 @@ div[data-baseweb="input"] > div {
 .hero-right { margin-left: auto; position: relative; z-index: 1; }
 
 /* ── FILTER BAR ── */
+.filter-bar {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+}
 .filter-label {
     font-size: 0.7rem;
     font-weight: 800;
@@ -182,6 +198,10 @@ div[data-baseweb="input"] > div {
 }
 
 /* ── KPI CARDS ── */
+.kpi-grid {
+    display: grid;
+    gap: 12px;
+}
 .kpi-card {
     background: var(--surface);
     border: 1.5px solid var(--border);
@@ -202,6 +222,7 @@ div[data-baseweb="input"] > div {
     top: 0; left: 0; right: 0;
     height: 3px;
     background: linear-gradient(90deg, var(--crimson-dark), var(--crimson-mid));
+    border-radius: 0;
 }
 .kpi-card-accent-success { background: linear-gradient(90deg, #5E0F26, #8B1A3A); }
 .kpi-card-accent-warning { background: linear-gradient(90deg, #7C1F3F, #B5476A); }
@@ -209,6 +230,14 @@ div[data-baseweb="input"] > div {
 .kpi-card-accent-indigo  { background: linear-gradient(90deg, #6B1530, #A8355A); }
 .kpi-card-accent-amber   { background: linear-gradient(90deg, #5E0F26, #9E3055); }
 
+.kpi-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+    background: var(--crimson-pale);
+}
 .kpi-label {
     font-size: 0.72rem;
     font-weight: 700;
@@ -224,6 +253,12 @@ div[data-baseweb="input"] > div {
     color: var(--text-primary);
     line-height: 1.1;
     letter-spacing: -0.03em;
+}
+.kpi-sub {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--crimson);
+    margin-top: 2px;
 }
 .kpi-note {
     font-size: 0.76rem;
@@ -336,6 +371,30 @@ div[data-baseweb="input"] > div {
     font-weight: 500;
 }
 
+/* ── MINI STATS ── */
+.mini-stat {
+    background: var(--crimson-tint);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.mini-stat-label {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+.mini-stat-value {
+    font-family: 'Sora', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--crimson);
+    letter-spacing: -0.02em;
+}
+
 /* ── TABLE ── */
 .tbl-container { border-radius: var(--radius-md); border: 1.5px solid var(--border); box-shadow: var(--shadow-sm); overflow: hidden; }
 .tbl-scroll {
@@ -378,15 +437,16 @@ div[data-baseweb="input"] > div {
 .chip-lpj          { background: #F0E6EA; color: #5E0F26;  border: 1px solid #C4849A; }
 .chip-belum        { background: #FDF5F7; color: #8B1A3A;  border: 1px solid #D9BEC9; }
 .chip-jatuh        { background: #F9EEF2; color: #5E0F26;  border: 1px solid #C4849A; font-weight:800; }
+.chip-chat         { background: #FDF0F4; color: #7C1F3F;  border: 1px solid #D9BEC9; }
 .chip-menunggu     { background: #FAF0F3; color: #6B1530;  border: 1px solid #CFAAB8; }
 .chip-follow       { background: #F9EEF2; color: #8B1A3A;  border: 1px solid #C4849A; }
-.chip-blacklist    { background: #2A0D18; color: #f9fafb;  border: 1px solid #5E0F26; }
-.chip-muted        { background: #f5f0f2; color: #9E7080;  border: 1px solid #e5d8dd; }
+.chip-blacklist    { background: #2A0D18;            color: #f9fafb;         border: 1px solid #5E0F26;            }
+.chip-muted        { background: #f5f0f2;            color: #9E7080;         border: 1px solid #e5d8dd;            }
 .chip-konfirmasi   { background: #FDF0F4; color: #7C1F3F;  border: 1px solid #D9BEC9; }
 .chip-sudah-followup { background: #FDF5F7; color: #8B1A3A; border: 1px solid #C4849A; }
 .chip-lpj-diterima { background: #F0E6EA; color: #5E0F26;  border: 1px solid #C4849A; font-weight:800; }
-.chip-bl-konfirmasi { background: #2A0D18; color: #f9fafb; border: 1px solid #5E0F26; }
-.chip-belum-diisi  { background: #f5f0f2; color: #9E7080;  border: 1px solid #e0d0d6; font-style: italic; }
+.chip-bl-konfirmasi { background: #2A0D18;           color: #f9fafb;         border: 1px solid #5E0F26;            }
+.chip-belum-diisi  { background: #f5f0f2;            color: #9E7080;         border: 1px solid #e0d0d6; font-style: italic; }
 
 /* ── SUB-SECTION HEADERS ── */
 .sub-section-header {
@@ -403,9 +463,13 @@ div[data-baseweb="input"] > div {
     display: flex; align-items: center; justify-content: center;
     font-size: 0.85rem;
 }
-.sub-section-icon-danger  { background: var(--danger-bg); }
+.sub-section-icon-danger { background: var(--danger-bg); }
 .sub-section-icon-success { background: var(--success-bg); }
-.sub-section-label { font-weight: 700; font-size: 0.88rem; color: var(--text-primary); }
+.sub-section-label {
+    font-weight: 700;
+    font-size: 0.88rem;
+    color: var(--text-primary);
+}
 .sub-section-count {
     margin-left: auto;
     font-size: 0.75rem;
@@ -416,6 +480,9 @@ div[data-baseweb="input"] > div {
     border-radius: 999px;
     padding: 2px 9px;
 }
+
+/* ── DIVIDER ── */
+.divider { height: 1px; background: var(--border); margin: 20px 0; }
 
 /* ── EMPTY STATE ── */
 .empty-state {
@@ -435,6 +502,7 @@ GID      = "0"
 CSV_URL  = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv&gid={GID}"
 GVIZ_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&gid={GID}"
 
+# ─── VALID TAHAP FOLLOWUP ────────────────────────────────────────────────────
 VALID_TAHAP = [
     "Menunggu Balasan", "Sudah Konfirmasi", "Sudah Followup",
     "LPJ Diterima", "Blacklist Dikonfirmasi"
@@ -486,6 +554,12 @@ def chip_aksi_prioritas(val, chat_normal=None):
     if val == "BlackList":     return '<span class="chip chip-blacklist">Blacklist</span>'
     return '<span class="chip chip-muted">—</span>'
 
+def chip_klasifikasi_auto(val):
+    if val == "BlackList":     return '<span class="chip chip-blacklist">Blacklist</span>'
+    if val == "Follow Up LPJ": return '<span class="chip chip-follow">Follow Up</span>'
+    if val == "Menunggu LPJ":  return '<span class="chip chip-menunggu">Menunggu</span>'
+    return '<span class="chip chip-muted">—</span>'
+
 def chip_tahap_followup(val):
     if not val or val in ["nan", "", "-"]:
         return '<span class="chip chip-belum-diisi">Belum diisi</span>'
@@ -522,6 +596,17 @@ def detail_btn_html(nama):
         f'style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:7px;'
         f'background:var(--crimson);color:#fff;font-size:11.5px;font-weight:700;'
         f'text-decoration:none;white-space:nowrap;letter-spacing:0.01em;">Detail →</a>'
+    )
+
+def dismiss_btn_html(nama, sudah_dismiss=False):
+    if sudah_dismiss:
+        return '<span class="chip chip-lpj">✓ Dicatat</span>'
+    enc = urllib.parse.quote(nama)
+    return (
+        f'<a href="?dismiss={enc}" target="_self" '
+        f'style="display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:7px;'
+        f'background:var(--success);color:#fff;font-size:11px;font-weight:700;'
+        f'text-decoration:none;white-space:nowrap;">✓ Sudah Chat</a>'
     )
 
 def hitung_jeda_chat(tanggal_chat, chat_status, today):
@@ -696,7 +781,7 @@ with f4:
 def make_filtered(tahun, status, chat):
     f = data.copy()
     if tahun != "Semua":    f = f[f["Tahun"] == tahun]
-    if status == "LPJ":     f = f[f["Status Pembayaran"] == "LPJ"]
+    if status == "LPJ":   f = f[f["Status Pembayaran"] == "LPJ"]
     elif status == "Belum LPJ":
         f = f[(f["Status Pembayaran"]=="Belum LPJ") & (f["Kondisi Tenggat"]=="Belum Jatuh Tempo")]
     elif status == "Jatuh Tempo": f = f[f["Kondisi Tenggat"] == "Jatuh Tempo"]
@@ -735,19 +820,20 @@ with n_col:
     """, unsafe_allow_html=True)
 
 kpi_data = [
-    (k1, "Total Penerima", str(total_penerima), "Terdaftar dalam sistem", ""),
-    (k2, "Sudah LPJ", str(total_lpj), "Selesai dikembalikan", "kpi-card-accent-success"),
-    (k3, "Belum LPJ", str(total_belum_lpj), "Belum selesai", "kpi-card-accent-warning"),
-    (k4, "Jatuh Tempo", str(total_jatuh_tempo), "Perlu segera ditindak", "kpi-card-accent-warning"),
-    (k5, "Menunggu LPJ", str(total_menunggu), "Sudah 1 minggu setelah chat", "kpi-card-accent-indigo"),
-    (k6, "Follow Up / BL", f"{total_follow_up} / {total_blacklist}", "2 minggu / 3 minggu ke atas", "kpi-card-accent-amber"),
+    (k1, "Total Penerima", str(total_penerima), "", "Terdaftar dalam sistem", "", ""),
+    (k2, "Sudah LPJ", str(total_lpj), "", "Selesai dikembalikan", "kpi-card-accent-success", ""),
+    (k3, "Belum LPJ", str(total_belum_lpj), "", "Belum selesai", "kpi-card-accent-warning", ""),
+    (k4, "Jatuh Tempo", str(total_jatuh_tempo), "", "Perlu segera ditindak", "kpi-card-accent-warning", ""),
+    (k5, "Menunggu LPJ", str(total_menunggu), "", "Sudah 1 minggu setelah chat", "kpi-card-accent-indigo", ""),
+    (k6, "Follow Up / BL", f"{total_follow_up} / {total_blacklist}", "", "2 minggu / 3 minggu ke atas", "kpi-card-accent-amber", ""),
 ]
 
-for col, label, val, note, accent in kpi_data:
+for col, label, val, sub, note, accent, _ in kpi_data:
     with col:
+        accent_class = accent if accent else ""
         st.markdown(f"""
         <div class="kpi-card">
-            <div class="kpi-card-accent {accent}"></div>
+            <div class="kpi-card-accent {accent_class}"></div>
             <div class="kpi-label">{label}</div>
             <div class="kpi-value">{val}</div>
             <div class="kpi-note">{note}</div>
@@ -774,6 +860,11 @@ status_dist_df = (
 status_dist_df.columns = ["Kategori","Jumlah"]
 
 def make_gauge_html(items, cols=2):
+    """
+    items: list of (label, pct_float, color_hex, count_int)
+    cols: number of columns in the grid
+    Returns a full HTML string with embedded SVG ring gauges.
+    """
     def one_gauge(pct, color, size=88, stroke=9, track="#EAD8DF"):
         if cols == 4:
             size, stroke = 75, 8
