@@ -10,14 +10,13 @@ import requests
 import urllib.parse
 from io import StringIO
 
+from sidebar_component import render_sidebar
 
 st.set_page_config(
     page_title="Notifikasi",
     layout="wide",
     initial_sidebar_state="expanded",
 )
-
-from sidebar_component import render_sidebar
 
 # ─── SESSION STATE ────────────────────────────────────────────────────────────
 if "notif_dismissed" not in st.session_state:
