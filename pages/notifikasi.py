@@ -9,7 +9,6 @@ import pandas as pd
 import requests
 import urllib.parse
 from io import StringIO
-from sidebar import render_sidebar
 
 st.set_page_config(
     page_title="Notifikasi",
