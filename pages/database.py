@@ -417,6 +417,8 @@ data["Label Tampilan"]   = data.apply(
 )
 data = data.reset_index(drop=True)
 
+render_sidebar(active_page="database")
+
 # ═════════════════════════════════════════════════════════════════════════════
 #  LAYOUT DATABASE
 # ═════════════════════════════════════════════════════════════════════════════
