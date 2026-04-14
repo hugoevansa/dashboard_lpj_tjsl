@@ -13,7 +13,7 @@ import os
 import base64
 import streamlit as st
 
-from sidebar import render_sidebar
+from sidebar_component import render_sidebar
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  PALET WARNA SIDEBAR  (maroon gelap, konsisten dgn semua halaman)
