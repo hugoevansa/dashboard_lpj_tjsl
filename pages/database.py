@@ -560,33 +560,63 @@ st.markdown(f'<div class="section-sub">{total_label}</div>', unsafe_allow_html=T
 
 # ── Build tabel tampilan ──────────────────────────────────────────────────────
 disp = table_df[[
-    "Nama Bantuan","Jumlah Bantuan (Rp)","Tanggal Dibantu","Tenggat",
-    "PIC","No Hp Penerima","Kab / Kota","Provinsi","Tahun",
-    "Label Tampilan","Klasifikasi Chat",
-    "Label Jeda Chat","Tanggal Chat","Tahap Followup","Catatan Followup"
-]].copy()
+    "Nama Bantuan",
+    "Jumlah Bantuan (Rp)",
+    "Tanggal Dibantu",
+    "Tenggat",
+    "PIC",
+    "No Hp Penerima",
+    "Kab / Kota",
+    "Provinsi",
+    "Tahun",
+    "Label Tampilan",
+    "Klasifikasi Chat",
+    "Label Jeda Chat",
+    "Tanggal Chat",
+    "Tahap Followup",
+    "Catatan Followup"
 ]].copy()
 
 disp["Jumlah Bantuan (Rp)"] = disp["Jumlah Bantuan (Rp)"].apply(fmt_rupiah)
-disp["Tanggal Dibantu"]     = disp["Tanggal Dibantu"].apply(fmt_tgl)
-disp["Tenggat"]             = disp["Tenggat"].apply(fmt_tgl)
-disp["Tanggal Chat"]        = disp["Tanggal Chat"].apply(fmt_tgl)
-disp["No Hp Penerima"]      = disp["No Hp Penerima"].replace("","-")
-disp["Kab / Kota"]          = disp["Kab / Kota"].replace("", "-").replace("nan", "-")
-disp["Provinsi"]            = disp["Provinsi"].replace("", "-").replace("nan", "-")
-disp["Tahun"]               = disp["Tahun"].replace("", "-").replace("nan", "-")
-disp["Status"]              = disp["Label Tampilan"].apply(chip_status)
-disp["Status Auto"]         = disp["Klasifikasi Chat"].apply(chip_klasifikasi_auto)
-disp["Tahap Manual"]        = disp["Tahap Followup"].apply(chip_tahap_followup)
-disp["Catatan"]             = disp["Catatan Followup"].replace("", "-").replace("nan", "-")
-disp["Jeda Chat"]           = disp["Label Jeda Chat"].replace("","-")
+disp["Tanggal Dibantu"] = disp["Tanggal Dibantu"].apply(fmt_tgl)
+disp["Tenggat"] = disp["Tenggat"].apply(fmt_tgl)
+disp["Tanggal Chat"] = disp["Tanggal Chat"].apply(fmt_tgl)
 
-disp = disp.drop(columns=["Label Tampilan","Klasifikasi Chat","Label Jeda Chat",
-                           "Tahap Followup","Catatan Followup"])
+disp["No Hp Penerima"] = disp["No Hp Penerima"].replace("", "-")
+disp["Kab / Kota"] = disp["Kab / Kota"].replace("", "-").replace("nan", "-")
+disp["Provinsi"] = disp["Provinsi"].replace("", "-").replace("nan", "-")
+disp["Tahun"] = disp["Tahun"].replace("", "-").replace("nan", "-")
+
+disp["Status"] = disp["Label Tampilan"].apply(chip_status)
+disp["Status Auto"] = disp["Klasifikasi Chat"].apply(chip_klasifikasi_auto)
+disp["Tahap Manual"] = disp["Tahap Followup"].apply(chip_tahap_followup)
+disp["Catatan"] = disp["Catatan Followup"].replace("", "-").replace("nan", "-")
+disp["Jeda Chat"] = disp["Label Jeda Chat"].replace("", "-")
+
+disp = disp.drop(columns=[
+    "Label Tampilan",
+    "Klasifikasi Chat",
+    "Label Jeda Chat",
+    "Tahap Followup",
+    "Catatan Followup"
+])
+
 disp = disp[[
-    "Nama Bantuan","Jumlah Bantuan (Rp)","Tanggal Dibantu","Tenggat",
-    "PIC","No Hp Penerima","Kab / Kota","Provinsi","Tahun",
-    "Tanggal Chat","Jeda Chat","Status","Status Auto","Tahap Manual","Catatan"
+    "Nama Bantuan",
+    "Jumlah Bantuan (Rp)",
+    "Tanggal Dibantu",
+    "Tenggat",
+    "PIC",
+    "No Hp Penerima",
+    "Kab / Kota",
+    "Provinsi",
+    "Tahun",
+    "Tanggal Chat",
+    "Jeda Chat",
+    "Status",
+    "Status Auto",
+    "Tahap Manual",
+    "Catatan"
 ]]
 
 st.markdown(df_to_html(disp, max_height=480), unsafe_allow_html=True)
