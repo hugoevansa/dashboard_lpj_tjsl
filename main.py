@@ -862,6 +862,8 @@ def make_gauge_html(items, cols=2):
     Returns a full HTML string with embedded SVG ring gauges.
     """
     def one_gauge(pct, color, size=88, stroke=9, track="#EAD8DF"):
+        if cols == 4:
+            size, stroke = 75, 8
         r = (size - stroke * 2) / 2
         cx = cy = size / 2
         circ = 2 * math.pi * r
@@ -927,7 +929,7 @@ pct_fu           = round((total_follow_up / total_penerima) * 100, 1)    if tota
 pct_bl           = round((total_blacklist / total_penerima) * 100, 1)    if total_penerima else 0
 pct_menunggu     = round((total_menunggu / total_penerima) * 100, 1)     if total_penerima else 0
 
-c1, c2, c3 = st.columns([1, 1, 1], gap="medium")
+c1, c2, c3 = st.columns([0.7, 1, 1.3], gap="medium")
 
 with c1:
     with st.container(border=True):
@@ -957,11 +959,11 @@ with c3:
         st.markdown('<div class="panel-title">Indikator Risiko Tindak Lanjut</div>', unsafe_allow_html=True)
         st.markdown('<div class="panel-sub">Proporsi berdasarkan urgensi tindak lanjut</div>', unsafe_allow_html=True)
         html_risk = make_gauge_html([
-            ("Belum di Chat",    pct_belum_dichat, "#5E0F26", total_belum_dichat),
-            ("Menunggu LPJ",     pct_menunggu,     "#8B1A3A", total_menunggu),
-            ("Follow Up LPJ",    pct_fu,           "#A8355A", total_follow_up),
-            ("Blacklist",        pct_bl,           "#C4617F", total_blacklist),
-        ], cols=2)
+            ("Belum di Chat",  pct_belum_dichat, "#5E0F26", total_belum_dichat),
+            ("Menunggu LPJ",   pct_menunggu,     "#8B1A3A", total_menunggu),
+            ("Follow Up LPJ",  pct_fu,           "#A8355A", total_follow_up),
+            ("Blacklist",      pct_bl,           "#C4617F", total_blacklist),
+        ], cols=4)
         components.html(html_risk, height=210, scrolling=False)
 
 st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
