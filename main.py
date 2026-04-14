@@ -193,7 +193,7 @@ div[data-baseweb="input"] > div {
 .chip-muted          { background:#f5f5f5; color:#6b7280;        border:1px solid #d1d5db; }
 /* Chip tambahan untuk Tahap Followup manual */
 .chip-konfirmasi     { background:#e0f2fe; color:#0369a1;        border:1px solid #7dd3fc; }
-.chip-negosiasi      { background:#fef9c3; color:#854d0e;        border:1px solid #fde047; }
+.chip-sudah followup      { background:#fef9c3; color:#854d0e;        border:1px solid #fde047; }
 .chip-lpj-diterima   { background:#dcfce7; color:#15803d;        border:1px solid #86efac; }
 .chip-bl-konfirmasi  { background:#1f2937; color:#f9fafb;        border:1px solid #6b7280; }
 .chip-belum-diisi    { background:#f3f4f6; color:#9ca3af;        border:1px solid #d1d5db; font-style:italic; }
@@ -231,7 +231,7 @@ GVIZ_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:c
 
 # ─── VALID TAHAP FOLLOWUP ────────────────────────────────────────────────────
 VALID_TAHAP = [
-    "Menunggu Balasan", "Sudah Konfirmasi", "Negosiasi",
+    "Menunggu Balasan", "Sudah Konfirmasi", "Sudah Followup",
     "LPJ Diterima", "Blacklist Dikonfirmasi"
 ]
 
@@ -298,8 +298,8 @@ def chip_tahap_followup(val):
         return '<span class="chip chip-lpj-diterima">✓ LPJ Diterima</span>'
     if val == "Sudah Konfirmasi":
         return '<span class="chip chip-konfirmasi">✓ Konfirmasi</span>'
-    if val == "Negosiasi":
-        return '<span class="chip chip-negosiasi">Negosiasi</span>'
+    if val == "Sudah Followup":
+        return '<span class="chip chip-sudah followup">Sudah Followup</span>'
     if val == "Menunggu Balasan":
         return '<span class="chip chip-menunggu">Menunggu Balasan</span>'
     return '<span class="chip chip-muted">-</span>'
