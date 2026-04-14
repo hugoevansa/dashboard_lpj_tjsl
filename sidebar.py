@@ -15,10 +15,6 @@ import streamlit as st
 
 from sidebar import render_sidebar
 
-# Di bagian paling atas setelah st.set_page_config():
-render_sidebar(active_page="notifikasi.py", notif_count=total_notif)
-# active_page: "main" | "database" | "notifikasi" | "sebaran"
-
 # ─────────────────────────────────────────────────────────────────────────────
 #  PALET WARNA SIDEBAR  (maroon gelap, konsisten dgn semua halaman)
 # ─────────────────────────────────────────────────────────────────────────────
