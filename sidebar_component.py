@@ -328,77 +328,43 @@ def _build_sidebar_html(active_page: str, notif_count: int = 0) -> str:
 
     badge_notif = str(notif_count) if notif_count > 0 else ""
 
-    html = f"""
-    <div class="sb-root">
-
-        <!-- ── LOGO ──────────────────────────────── -->
-        <div class="sb-logo">
-            {logo_img}
-            <div class="sb-logo-text">
-                <div class="sb-logo-name">Dashboard Bantuan</div>
-                <div class="sb-logo-sub">Sistem Monitoring</div>
-            </div>
-        </div>
-
-        <!-- ── SEARCH ────────────────────────────── -->
-        <div class="sb-search">
-            <span class="sb-search-icon">🔍</span>
-            <span class="sb-search-txt">Cari menu…</span>
-            <span class="sb-search-kbd">⌘K</span>
-        </div>
-
-        <!-- ── MAIN MENU ──────────────────────────── -->
-        <div class="sb-section-lbl">Menu Utama</div>
-
-        {_nav_item("🏠", "Main",        "main",       active_page)}
-        {_nav_item("🗄️",  "Database",   "database",   active_page)}
-        {_nav_item("🔔", "Notifikasi", "notifikasi", active_page, badge=badge_notif)}
-
-        <!-- ── ANALYTICS ─────────────────────────── -->
-        <div class="sb-section-lbl">Analitik</div>
-
-        {_nav_item("🗺️", "Sebaran Bantuan", "sebaran", active_page)}
-
-        <!-- ── SPACER & DIVIDER ───────────────────── -->
-        <div class="sb-spacer"></div>
-        <div class="sb-divider"></div>
-
-        <!-- ── FOOTER ────────────────────────────── -->
-        <div class="sb-footer">
-            <div class="sb-footer-link">
-                <span class="sb-footer-icon">💬</span>
-                <span class="sb-footer-txt">Feedback</span>
-            </div>
-            <div class="sb-footer-link">
-                <span class="sb-footer-icon">ℹ️</span>
-                <span class="sb-footer-txt">Bantuan & Panduan</span>
-            </div>
-        </div>
-
-    </div>
-    """
+    html = (
+        f'<div class="sb-root">'
+        f'<div class="sb-logo">{logo_img}'
+        f'<div class="sb-logo-text">'
+        f'<div class="sb-logo-name">Dashboard Bantuan</div>'
+        f'<div class="sb-logo-sub">Sistem Monitoring</div>'
+        f'</div></div>'
+        f'<div class="sb-search">'
+        f'<span class="sb-search-icon">🔍</span>'
+        f'<span class="sb-search-txt">Cari menu…</span>'
+        f'<span class="sb-search-kbd">⌘K</span>'
+        f'</div>'
+        f'<div class="sb-section-lbl">Menu Utama</div>'
+        f'{_nav_item("🏠", "Main", "main", active_page)}'
+        f'{_nav_item("🗄️", "Database", "database", active_page)}'
+        f'{_nav_item("🔔", "Notifikasi", "notifikasi", active_page, badge=badge_notif)}'
+        f'<div class="sb-section-lbl">Analitik</div>'
+        f'{_nav_item("🗺️", "Sebaran Bantuan", "sebaran", active_page)}'
+        f'<div class="sb-spacer"></div>'
+        f'<div class="sb-divider"></div>'
+        f'<div class="sb-footer">'
+        f'<div class="sb-footer-link"><span class="sb-footer-icon">💬</span><span class="sb-footer-txt">Feedback</span></div>'
+        f'<div class="sb-footer-link"><span class="sb-footer-icon">ℹ️</span><span class="sb-footer-txt">Bantuan & Panduan</span></div>'
+        f'</div>'
+        f'</div>'
+    )
     return html
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  PUBLIC API
 # ─────────────────────────────────────────────────────────────────────────────
 def render_sidebar(active_page: str = "main", notif_count: int = 0) -> None:
-    """
-    Render sidebar kustom di semua halaman.
+    sidebar_html = _build_sidebar_html(active_page, notif_count)
 
-    Parameters
-    ----------
-    active_page : str
-        Halaman aktif: "main" | "database" | "notifikasi" | "sebaran"
-    notif_count : int
-        Jumlah notifikasi yang belum ditangani (ditampilkan sbg badge merah).
-    """
-    # 1) Inject CSS global
+    # Inject CSS ke halaman utama (agar bisa target .stApp dll)
     st.markdown(SIDEBAR_CSS, unsafe_allow_html=True)
 
-    # 2) Render HTML sidebar
-    st.sidebar.markdown(
-        _build_sidebar_html(active_page, notif_count),
-        unsafe_allow_html=True,
-    )
+    # Inject HTML ke sidebar dengan with block (lebih reliable di semua versi Streamlit)
+    with st.sidebar:
+        st.markdown(sidebar_html, unsafe_allow_html=True)
