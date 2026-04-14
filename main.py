@@ -183,7 +183,7 @@ div[data-baseweb="input"] > div {
 .filter-label { font-size:0.78rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:4px; }
 
 .chip { display:inline-block; padding:4px 11px; border-radius:999px; font-size:0.77rem; font-weight:800; white-space:nowrap; }
-.chip-lunas          { background:#e6f5ec; color:var(--success); border:1px solid #b0dfc0; }
+.chip-lpj          { background:#e6f5ec; color:var(--success); border:1px solid #b0dfc0; }
 .chip-belum          { background:#fff4e0; color:var(--warning); border:1px solid #f0d49a; }
 .chip-jatuh          { background:#fde8ec; color:var(--danger);  border:1px solid #f0bfc9; }
 .chip-chat           { background:#eef4ff; color:var(--info);    border:1px solid #c7d7fe; }
@@ -260,7 +260,7 @@ def clean_phone(s):
 
 def normalize_status(st_val):
     v = str(st_val).strip().lower()
-    return "Lunas" if v in ["lunas","sudah lunas"] else "Belum Lunas"
+    return "LPJ" if v in ["lpj","sudah lpj"] else "Belum LPJ"
 
 def normalize_chat(val):
     v = str(val).strip().lower()
@@ -269,9 +269,9 @@ def normalize_chat(val):
     return "Belum di Chat"
 
 def chip_status(val):
-    if val == "Lunas":       return '<span class="chip chip-lunas">Lunas</span>'
+    if val == "LPJ":       return '<span class="chip chip-lpj">LPJ</span>'
     if val == "Jatuh Tempo": return '<span class="chip chip-jatuh">Jatuh Tempo</span>'
-    return '<span class="chip chip-belum">Belum Lunas</span>'
+    return '<span class="chip chip-belum">Belum LPJ</span>'
 
 def chip_aksi_prioritas(val, chat_normal=None):
     if chat_normal == "Belum di Chat":
@@ -329,7 +329,7 @@ def detail_btn_html(nama):
 
 def dismiss_btn_html(nama, sudah_dismiss=False):
     if sudah_dismiss:
-        return '<span class="chip chip-lunas">✓ Dicatat</span>'
+        return '<span class="chip chip-lpj">✓ Dicatat</span>'
     enc = urllib.parse.quote(nama)
     return (
         f'<a href="?dismiss={enc}" target="_self" '
@@ -416,7 +416,7 @@ today = pd.Timestamp.today().normalize()
 
 data["Kondisi Tenggat"] = data.apply(
     lambda r: "Jatuh Tempo"
-    if r["Status Pembayaran"] == "Belum Lunas" and pd.notna(r["Tenggat"]) and r["Tenggat"] < today
+    if r["Status Pembayaran"] == "Belum LPJ" and pd.notna(r["Tenggat"]) and r["Tenggat"] < today
     else "Belum Jatuh Tempo", axis=1
 )
 data["Terlambat Hari"] = data["Tenggat"].apply(
@@ -428,14 +428,14 @@ data["Hari Setelah Chat"] = data.apply(
 data["Label Jeda Chat"]  = data["Hari Setelah Chat"].apply(label_jeda_chat)
 data["Klasifikasi Chat"] = data["Hari Setelah Chat"].apply(klasifikasi_chat)
 data["Label Tampilan"]   = data.apply(
-    lambda r: "Lunas" if r["Status Pembayaran"] == "Lunas"
-    else ("Jatuh Tempo" if r["Kondisi Tenggat"] == "Jatuh Tempo" else "Belum Lunas"), axis=1
+    lambda r: "LPJ" if r["Status Pembayaran"] == "LPJ"
+    else ("Jatuh Tempo" if r["Kondisi Tenggat"] == "Jatuh Tempo" else "Belum LPJ"), axis=1
 )
 data = data.reset_index(drop=True)
 
 # ─── HITUNG NOTIFIKASI (untuk badge) ─────────────────────────────────────────
 total_notif = len(data[
-    (data["Status Pembayaran"] == "Belum Lunas") &
+    (data["Status Pembayaran"] == "Belum LPJ") &
     (
         (data["Kondisi Tenggat"] == "Jatuh Tempo") |
         (data["Klasifikasi Chat"].isin(["BlackList", "Follow Up LPJ", "Menunggu LPJ"]))
@@ -445,7 +445,7 @@ total_notif = len(data[
 
 # Toast sekali per session
 notif_kritis = data[
-    (data["Status Pembayaran"] == "Belum Lunas") &
+    (data["Status Pembayaran"] == "Belum LPJ") &
     (data["Kondisi Tenggat"] == "Jatuh Tempo") &
     (data["Chat Normal"] == "Belum di Chat") &
     (~data["Nama Bantuan"].isin(st.session_state.notif_dismissed))
@@ -502,7 +502,7 @@ with f2:
 
 with f3:
     st.markdown('<div class="filter-label">KONDISI</div>', unsafe_allow_html=True)
-    selected_status = st.selectbox("Kondisi", ["Semua", "Lunas", "Belum Lunas", "Jatuh Tempo"], label_visibility="collapsed")
+    selected_status = st.selectbox("Kondisi", ["Semua", "LPJ", "Belum LPJ", "Jatuh Tempo"], label_visibility="collapsed")
 
 with f4:
     st.markdown('<div class="filter-label">STATUS CHAT</div>', unsafe_allow_html=True)
@@ -516,9 +516,9 @@ with f4:
 def make_filtered(tahun, status, chat):
     f = data.copy()
     if tahun != "Semua":    f = f[f["Tahun"] == tahun]
-    if status == "Lunas":   f = f[f["Status Pembayaran"] == "Lunas"]
-    elif status == "Belum Lunas":
-        f = f[(f["Status Pembayaran"]=="Belum Lunas") & (f["Kondisi Tenggat"]=="Belum Jatuh Tempo")]
+    if status == "LPJ":   f = f[f["Status Pembayaran"] == "LPJ"]
+    elif status == "Belum LPJ":
+        f = f[(f["Status Pembayaran"]=="Belum LPJ") & (f["Kondisi Tenggat"]=="Belum Jatuh Tempo")]
     elif status == "Jatuh Tempo": f = f[f["Kondisi Tenggat"] == "Jatuh Tempo"]
     if chat == "Belum di Chat":   f = f[f["Chat Normal"] == "Belum di Chat"]
     elif chat == "Sudah di Chat": f = f[f["Chat Normal"] == "Sudah di Chat"]
@@ -530,26 +530,26 @@ def make_filtered(tahun, status, chat):
 filtered = make_filtered(selected_tahun, selected_status, selected_chat)
 
 total_nominal_semua = filtered["Jumlah Bantuan (Rp)"].fillna(0).sum()
-total_nominal_lunas = filtered.loc[filtered["Status Pembayaran"]=="Lunas","Jumlah Bantuan (Rp)"].fillna(0).sum()
+total_nominal_lpj = filtered.loc[filtered["Status Pembayaran"]=="LPJ","Jumlah Bantuan (Rp)"].fillna(0).sum()
 
 with f1:
     st.markdown(f"""
     <div class="kpi-wrap">
         <div class="kpi-label">UANG LUNAS / TOTAL</div>
         <div class="kpi-value">
-            {fmt_rupiah(total_nominal_lunas)}
+            {fmt_rupiah(total_nominal_lpj)}
             <div style="font-size:0.95rem;color:#8a6672;font-weight:600;margin-top:4px;">
                 dari {fmt_rupiah(total_nominal_semua)}
             </div>
         </div>
-        <div class="kpi-note">Total nominal bantuan yang sudah lunas</div>
+        <div class="kpi-note">Total nominal bantuan yang sudah lpj</div>
     </div>
     """, unsafe_allow_html=True)
 
 # ── KPI CARDS ────────────────────────────────────────────────────────────────
 total_penerima    = len(filtered)
-total_lunas       = len(filtered[filtered["Status Pembayaran"]=="Lunas"])
-total_belum_lunas = len(filtered[filtered["Status Pembayaran"]=="Belum Lunas"])
+total_lpj       = len(filtered[filtered["Status Pembayaran"]=="LPJ"])
+total_belum_lpj = len(filtered[filtered["Status Pembayaran"]=="Belum LPJ"])
 total_jatuh_tempo = len(filtered[filtered["Kondisi Tenggat"]=="Jatuh Tempo"])
 total_menunggu    = len(filtered[filtered["Klasifikasi Chat"]=="Menunggu LPJ"])
 total_follow_up   = len(filtered[filtered["Klasifikasi Chat"]=="Follow Up LPJ"])
@@ -558,8 +558,8 @@ total_blacklist   = len(filtered[filtered["Klasifikasi Chat"]=="BlackList"])
 k1,k2,k3,k4,k5,k6 = st.columns(6, gap="medium")
 cards = [
     ("Total Penerima",str(total_penerima),"Jumlah penerima bantuan"),
-    ("Sudah Lunas",str(total_lunas),"Selesai dikembalikan"),
-    ("Belum Lunas",str(total_belum_lunas),"Belum selesai"),
+    ("Sudah LPJ",str(total_lpj),"Selesai dikembalikan"),
+    ("Belum LPJ",str(total_belum_lpj),"Belum selesai"),
     ("Jatuh Tempo",str(total_jatuh_tempo),"Perlu segera follow-up"),
     ("Menunggu LPJ",str(total_menunggu),"Sudah 1 minggu setelah chat"),
     ("Follow Up / BlackList",f"{total_follow_up} / {total_blacklist}","2 minggu / 3 minggu ke atas"),
@@ -577,7 +577,7 @@ for col,(label_txt,val,note) in zip([k1,k2,k3,k4,k5,k6],cards):
 st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
 
 # ── CHARTS ───────────────────────────────────────────────────────────────────
-MAROON_COLORS = {"Lunas":"#7c1f3f","Belum Lunas":"#c07090","Jatuh Tempo":"#e8c0cf"}
+MAROON_COLORS = {"LPJ":"#7c1f3f","Belum LPJ":"#c07090","Jatuh Tempo":"#e8c0cf"}
 PLOTLY_BASE = dict(
     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
     margin=dict(t=8,b=8,l=0,r=0),
@@ -588,7 +588,7 @@ chart_df = filtered["Status Pembayaran"].value_counts().reset_index()
 chart_df.columns = ["Status","Jumlah"]
 status_dist_df = (
     filtered["Label Tampilan"].value_counts()
-    .reindex(["Lunas","Belum Lunas","Jatuh Tempo"],fill_value=0).reset_index()
+    .reindex(["LPJ","Belum LPJ","Jatuh Tempo"],fill_value=0).reset_index()
 )
 status_dist_df.columns = ["Kategori","Jumlah"]
 
@@ -597,7 +597,7 @@ c1,c2,c3 = st.columns(3, gap="medium")
 with c1:
     with st.container(border=True):
         st.markdown('<div class="panel-title">Komposisi Status</div>', unsafe_allow_html=True)
-        st.markdown('<div class="panel-sub">Lunas vs belum lunas</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-sub">LPJ vs belum lpj</div>', unsafe_allow_html=True)
         if not chart_df.empty:
             fig = px.pie(chart_df, names="Status", values="Jumlah", hole=0.62,
                          color="Status", color_discrete_map=MAROON_COLORS)
@@ -611,7 +611,7 @@ with c1:
 with c2:
     with st.container(border=True):
         st.markdown('<div class="panel-title">Distribusi Status</div>', unsafe_allow_html=True)
-        st.markdown('<div class="panel-sub">Lunas, belum lunas, dan jatuh tempo</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-sub">LPJ, belum lpj, dan jatuh tempo</div>', unsafe_allow_html=True)
         if not status_dist_df.empty:
             fig2 = px.bar(status_dist_df, x="Kategori", y="Jumlah", color="Kategori",
                           color_discrete_map=MAROON_COLORS)
@@ -645,7 +645,7 @@ st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
 # ── TABEL PRIORITAS JATUH TEMPO ──────────────────────────────────────────────
 prioritas = (
     filtered[
-        (filtered["Status Pembayaran"]=="Belum Lunas") &
+        (filtered["Status Pembayaran"]=="Belum LPJ") &
         (filtered["Kondisi Tenggat"]=="Jatuh Tempo")
     ]
     .copy()
