@@ -83,7 +83,7 @@ div[data-baseweb="input"] > div {
 .section-sub  { font-size:0.86rem; color:var(--muted); margin-top:2px; margin-bottom:10px; }
 
 .chip { display:inline-block; padding:4px 11px; border-radius:999px; font-size:0.77rem; font-weight:800; white-space:nowrap; }
-.chip-lunas          { background:#e6f5ec; color:var(--success); border:1px solid #b0dfc0; }
+.chip-lpj          { background:#e6f5ec; color:var(--success); border:1px solid #b0dfc0; }
 .chip-belum          { background:#fff4e0; color:var(--warning); border:1px solid #f0d49a; }
 .chip-jatuh          { background:#fde8ec; color:var(--danger);  border:1px solid #f0bfc9; }
 .chip-menunggu       { background:#eef2ff; color:#4338ca;        border:1px solid #c7d2fe; }
@@ -218,7 +218,7 @@ def clean_phone(s):
 
 def normalize_status(st_val):
     v = str(st_val).strip().lower()
-    return "Lunas" if v in ["lunas","sudah lunas"] else "Belum Lunas"
+    return "LPJ" if v in ["lpj","sudah lpj"] else "Belum LPJ"
 
 def normalize_chat(val):
     v = str(val).strip().lower()
@@ -227,9 +227,9 @@ def normalize_chat(val):
     return "Belum di Chat"
 
 def chip_status(val):
-    if val == "Lunas":       return '<span class="chip chip-lunas">Lunas</span>'
+    if val == "LPJ":       return '<span class="chip chip-lpj">LPJ</span>'
     if val == "Jatuh Tempo": return '<span class="chip chip-jatuh">Jatuh Tempo</span>'
-    return '<span class="chip chip-belum">Belum Lunas</span>'
+    return '<span class="chip chip-belum">Belum LPJ</span>'
 
 def chip_klasifikasi_auto(val):
     """Chip otomatis berdasarkan waktu chat"""
@@ -353,7 +353,7 @@ today = pd.Timestamp.today().normalize()
 
 data["Kondisi Tenggat"] = data.apply(
     lambda r: "Jatuh Tempo"
-    if r["Status Pembayaran"] == "Belum Lunas" and pd.notna(r["Tenggat"]) and r["Tenggat"] < today
+    if r["Status Pembayaran"] == "Belum LPJ" and pd.notna(r["Tenggat"]) and r["Tenggat"] < today
     else "Belum Jatuh Tempo", axis=1
 )
 data["Terlambat Hari"] = data["Tenggat"].apply(
@@ -365,8 +365,8 @@ data["Hari Setelah Chat"] = data.apply(
 data["Label Jeda Chat"]  = data["Hari Setelah Chat"].apply(label_jeda_chat)
 data["Klasifikasi Chat"] = data["Hari Setelah Chat"].apply(klasifikasi_chat)
 data["Label Tampilan"]   = data.apply(
-    lambda r: "Lunas" if r["Status Pembayaran"] == "Lunas"
-    else ("Jatuh Tempo" if r["Kondisi Tenggat"] == "Jatuh Tempo" else "Belum Lunas"), axis=1
+    lambda r: "LPJ" if r["Status Pembayaran"] == "LPJ"
+    else ("Jatuh Tempo" if r["Kondisi Tenggat"] == "Jatuh Tempo" else "Belum LPJ"), axis=1
 )
 data = data.reset_index(drop=True)
 
