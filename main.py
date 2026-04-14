@@ -38,201 +38,459 @@ if "dismiss" in _qp:
 # ─── CSS ──────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=DM+Mono:wght@500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@400;600;700;800&display=swap');
 
 :root {
-    --maroon:       #7c1f3f;
-    --maroon-dark:  #5a1229;
-    --maroon-mid:   #a14f6a;
-    --maroon-soft:  #f5e8ed;
-    --bg:           #f6eef2;
-    --card:         #ffffff;
-    --line:         #e8d0da;
-    --text:         #2a0d18;
-    --muted:        #8a6672;
-    --success:      #1b7a45;
-    --warning:      #92600a;
-    --danger:       #b42318;
-    --info:         #175cd3;
-    --shadow:       0 4px 24px rgba(92,18,41,0.10);
-    --radius:       18px;
+    --crimson:      #8B1A3A;
+    --crimson-dark: #5E0F26;
+    --crimson-mid:  #B5476A;
+    --crimson-pale: #F9EEF2;
+    --crimson-tint: #FDF5F7;
+    --bg:           #F7F3F5;
+    --surface:      #FFFFFF;
+    --border:       #EAD8DF;
+    --border-dark:  #D9BEC9;
+    --text-primary: #1C0A12;
+    --text-secondary:#6B4558;
+    --text-muted:   #9E7080;
+    --success:      #0F7540;
+    --success-bg:   #E8F5EE;
+    --success-bdr:  #A8D9BC;
+    --warning:      #8A5A00;
+    --warning-bg:   #FEF6E4;
+    --warning-bdr:  #EDD38A;
+    --danger:       #B91C3A;
+    --danger-bg:    #FDE8EE;
+    --danger-bdr:   #F0ABBC;
+    --info:         #1557C0;
+    --info-bg:      #EBF2FF;
+    --info-bdr:     #AECBFA;
+    --indigo:       #4338CA;
+    --indigo-bg:    #EEF0FF;
+    --indigo-bdr:   #BBBFF7;
+    --amber:        #92400E;
+    --amber-bg:     #FFFBEB;
+    --amber-bdr:    #FCD34D;
+    --shadow-sm:    0 1px 3px rgba(92,18,41,0.08), 0 1px 2px rgba(92,18,41,0.04);
+    --shadow-md:    0 4px 16px rgba(92,18,41,0.10), 0 2px 6px rgba(92,18,41,0.05);
+    --shadow-lg:    0 12px 40px rgba(92,18,41,0.14), 0 4px 12px rgba(92,18,41,0.06);
+    --radius-sm:    10px;
+    --radius-md:    16px;
+    --radius-lg:    22px;
+    --radius-xl:    28px;
 }
 
 html, body, [class*="css"] {
-    font-family: 'DM Sans', sans-serif !important;
-    color: var(--text);
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    color: var(--text-primary);
 }
 
 .stApp { background: var(--bg); }
 
 .block-container {
-    padding: 0.5rem 2rem 2rem 2rem !important;
-    max-width: 1440px !important;
+    padding: 0 2rem 3rem 2rem !important;
+    max-width: 1480px !important;
 }
 
 footer { visibility: hidden; }
 
 section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, var(--maroon-dark) 0%, var(--maroon) 100%) !important;
+    background: linear-gradient(180deg, var(--crimson-dark) 0%, var(--crimson) 100%) !important;
 }
 section[data-testid="stSidebar"] * { color: #fff !important; }
 
-div[data-testid="stVerticalBlock"] > div[data-testid="stVerticalBlock"] { gap: 0 !important; }
-
-div[data-testid="stPlotlyChart"] { border-radius: var(--radius); overflow: hidden; }
+div[data-testid="stPlotlyChart"] { border-radius: var(--radius-md); overflow: hidden; }
 
 div[data-baseweb="select"] > div,
 div[data-baseweb="input"] > div {
-    border-radius: 12px !important;
-    border: 1.5px solid var(--line) !important;
+    border-radius: var(--radius-sm) !important;
+    border: 1.5px solid var(--border-dark) !important;
     background: #fff !important;
-    font-family: 'DM Sans', sans-serif !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    font-size: 0.88rem !important;
 }
 
-.page-header {
-    background: linear-gradient(135deg, var(--maroon-dark) 0%, var(--maroon) 60%, var(--maroon-mid) 100%);
-    border-radius: 22px;
-    padding: 22px 28px;
-    margin-top: 14px;
+/* ── HERO HEADER ── */
+.hero-header {
+    background: linear-gradient(135deg, var(--crimson-dark) 0%, var(--crimson) 55%, var(--crimson-mid) 100%);
+    border-radius: var(--radius-xl);
+    padding: 28px 32px;
+    margin: 16px 0 20px 0;
     display: flex;
     align-items: center;
-    gap: 18px;
-    box-shadow: 0 8px 32px rgba(92,18,41,0.22);
+    gap: 20px;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    overflow: hidden;
 }
-.page-header-icon {
-    font-size: 2.2rem;
+.hero-header::before {
+    content: "";
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 200px; height: 200px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 50%;
+}
+.hero-header::after {
+    content: "";
+    position: absolute;
+    bottom: -60px; right: 120px;
+    width: 160px; height: 160px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 50%;
+}
+.hero-icon {
+    font-size: 2rem;
     background: rgba(255,255,255,0.15);
-    border-radius: 16px;
-    padding: 10px 14px;
-}
-.page-header-title { color:#fff; font-size:1.7rem; font-weight:900; line-height:1.1; margin:0; }
-.page-header-sub   { color:rgba(255,255,255,0.75); font-size:0.9rem; margin-top:3px; }
-.page-header-right { margin-left:auto; }
-
-.notif-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 18px;
-    border-radius: 12px;
-    background: rgba(255,255,255,0.18);
-    border: 1.5px solid rgba(255,255,255,0.35);
-    color: #fff;
-    font-size: 0.92rem;
-    font-weight: 800;
-    text-decoration: none;
-    cursor: pointer;
-    transition: background 0.2s;
-    white-space: nowrap;
-}
-.notif-btn:hover { background: rgba(255,255,255,0.28); color:#fff; }
-
-.notif-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: #e8192c;
-    color: #fff;
-    border-radius: 999px;
-    font-size: 0.75rem;
-    font-weight: 900;
-    min-width: 20px;
-    height: 20px;
-    padding: 0 5px;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
     line-height: 1;
+    flex-shrink: 0;
+}
+.hero-eyebrow {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 4px;
+}
+.hero-title {
+    font-family: 'Sora', sans-serif;
+    color: #fff;
+    font-size: 1.6rem;
+    font-weight: 800;
+    line-height: 1.15;
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+.hero-sub {
+    color: rgba(255,255,255,0.65);
+    font-size: 0.84rem;
+    margin-top: 5px;
+    font-weight: 500;
+}
+.hero-right { margin-left: auto; position: relative; z-index: 1; }
+
+/* ── FILTER BAR ── */
+.filter-bar {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+}
+.filter-label {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 5px;
 }
 
-.kpi-wrap {
-    background: #fff;
-    border-radius: var(--radius);
-    border: 1.5px solid var(--line);
-    box-shadow: var(--shadow);
-    padding: 18px 20px 14px 20px;
+/* ── KPI CARDS ── */
+.kpi-grid {
+    display: grid;
+    gap: 12px;
+}
+.kpi-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 18px 20px;
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    overflow: hidden;
+    transition: box-shadow 0.2s, transform 0.2s;
+    height: 100%;
+}
+.kpi-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+.kpi-card-accent {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--crimson-dark), var(--crimson-mid));
+    border-radius: 0;
+}
+.kpi-card-accent-success { background: linear-gradient(90deg, #0F7540, #34a869); }
+.kpi-card-accent-warning { background: linear-gradient(90deg, #B91C3A, #e84b6a); }
+.kpi-card-accent-info    { background: linear-gradient(90deg, #1557C0, #4285f4); }
+.kpi-card-accent-indigo  { background: linear-gradient(90deg, #4338CA, #7c6ee8); }
+.kpi-card-accent-amber   { background: linear-gradient(90deg, #92400E, #d97706); }
+
+.kpi-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+    background: var(--crimson-pale);
+}
+.kpi-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-bottom: 6px;
+}
+.kpi-value {
+    font-family: 'Sora', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+}
+.kpi-sub {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--crimson);
+    margin-top: 2px;
+}
+.kpi-note {
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    margin-top: 6px;
+    font-weight: 500;
+}
+
+/* ── NOMINAL HIGHLIGHT ── */
+.nominal-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 20px 24px;
+    box-shadow: var(--shadow-sm);
     position: relative;
     overflow: hidden;
     height: 100%;
 }
-.kpi-wrap::after {
+.nominal-card::before {
     content: "";
     position: absolute;
-    top: 0; left: 0; bottom: 0;
-    width: 5px;
-    background: linear-gradient(180deg, var(--maroon) 0%, var(--maroon-mid) 100%);
-    border-radius: 4px 0 0 4px;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--crimson-dark), var(--crimson-mid));
 }
-.kpi-label { font-size:0.82rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px; }
-.kpi-value { font-size:1.85rem; font-weight:900; color:var(--text); line-height:1.1; }
-.kpi-note  { font-size:0.8rem; color:var(--muted); margin-top:6px; }
+.nominal-eyebrow {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+}
+.nominal-value {
+    font-family: 'Sora', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--crimson-dark);
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+}
+.nominal-total {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+.nominal-note {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 8px;
+    font-weight: 500;
+}
 
-.panel-title { font-size:1.05rem; font-weight:900; color:var(--text); margin-bottom:2px; }
-.panel-sub   { font-size:0.82rem; color:var(--muted); margin-bottom:10px; }
+/* ── SECTION HEADER ── */
+.section-wrapper { margin-top: 8px; margin-bottom: 12px; }
+.section-title {
+    font-family: 'Sora', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    letter-spacing: -0.01em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.section-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--danger-bg);
+    color: var(--danger);
+    border: 1px solid var(--danger-bdr);
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 2px 9px;
+    min-width: 24px;
+}
+.section-desc {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin-top: 3px;
+    font-weight: 500;
+}
 
+/* ── PANEL CARDS ── */
+.panel {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 18px 20px 14px 20px;
+    box-shadow: var(--shadow-sm);
+    height: 100%;
+}
+.panel-title {
+    font-family: 'Sora', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+    letter-spacing: -0.01em;
+}
+.panel-sub {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+    font-weight: 500;
+}
+
+/* ── MINI STATS ── */
 .mini-stat {
-    background: var(--maroon-soft);
-    border: 1px solid #e2c4cf;
-    border-radius: 14px;
-    padding: 12px 14px;
+    background: var(--crimson-tint);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
     margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
-.mini-stat-label { font-size:0.8rem; color:var(--muted); font-weight:600; margin-bottom:4px; }
-.mini-stat-value { font-size:1.55rem; font-weight:900; color:var(--maroon); }
+.mini-stat-label {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+.mini-stat-value {
+    font-family: 'Sora', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--crimson);
+    letter-spacing: -0.02em;
+}
 
-.section-head { font-size:1.15rem; font-weight:900; color:var(--text); margin:0; padding:0; }
-.section-sub  { font-size:0.86rem; color:var(--muted); margin-top:2px; margin-bottom:10px; }
-
-.filter-label { font-size:0.78rem; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:4px; }
-
-.chip { display:inline-block; padding:4px 11px; border-radius:999px; font-size:0.77rem; font-weight:800; white-space:nowrap; }
-.chip-lpj          { background:#e6f5ec; color:var(--success); border:1px solid #b0dfc0; }
-.chip-belum          { background:#fff4e0; color:var(--warning); border:1px solid #f0d49a; }
-.chip-jatuh          { background:#fde8ec; color:var(--danger);  border:1px solid #f0bfc9; }
-.chip-chat           { background:#eef4ff; color:var(--info);    border:1px solid #c7d7fe; }
-.chip-menunggu       { background:#eef2ff; color:#4338ca;        border:1px solid #c7d2fe; }
-.chip-follow         { background:#fff7e6; color:#b36b00;        border:1px solid #f1d193; }
-.chip-blacklist      { background:#111827; color:#fff;           border:1px solid #374151; }
-.chip-muted          { background:#f5f5f5; color:#6b7280;        border:1px solid #d1d5db; }
-.chip-konfirmasi     { background:#e0f2fe; color:#0369a1;        border:1px solid #7dd3fc; }
-.chip-sudah-followup      { background:#fef9c3; color:#854d0e;        border:1px solid #fde047; }
-.chip-lpj-diterima   { background:#dcfce7; color:#15803d;        border:1px solid #86efac; }
-.chip-bl-konfirmasi  { background:#1f2937; color:#f9fafb;        border:1px solid #6b7280; }
-.chip-belum-diisi    { background:#f3f4f6; color:#9ca3af;        border:1px solid #d1d5db; font-style:italic; }
-
-.tbl-wrap { border-radius:16px; border:1.5px solid var(--line); box-shadow:var(--shadow); overflow:hidden; }
+/* ── TABLE ── */
+.tbl-container { border-radius: var(--radius-md); border: 1.5px solid var(--border); box-shadow: var(--shadow-sm); overflow: hidden; }
 .tbl-scroll {
     max-height: 360px;
     overflow-y: auto;
     overflow-x: auto;
-    border-radius: 0 0 14px 14px;
 }
-.tbl-scroll::-webkit-scrollbar       { width:6px; height:6px; }
-.tbl-scroll::-webkit-scrollbar-track { background:#f5eaef; border-radius:10px; }
-.tbl-scroll::-webkit-scrollbar-thumb { background:var(--maroon-mid); border-radius:10px; }
-.tbl-scroll::-webkit-scrollbar-thumb:hover { background:var(--maroon); }
+.tbl-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
+.tbl-scroll::-webkit-scrollbar-track { background: var(--bg); }
+.tbl-scroll::-webkit-scrollbar-thumb { background: var(--border-dark); border-radius: 10px; }
+.tbl-scroll::-webkit-scrollbar-thumb:hover { background: var(--crimson-mid); }
 
-.tbl { width:100%; border-collapse:collapse; font-size:13.5px; }
-.tbl thead { position:sticky; top:0; z-index:2; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tbl thead { position: sticky; top: 0; z-index: 2; }
 .tbl th {
-    background: linear-gradient(180deg, var(--maroon) 0%, var(--maroon-dark) 100%);
-    color:#fff; font-weight:800; padding:11px 14px; text-align:left; white-space:nowrap; font-size:13px;
+    background: var(--crimson-dark);
+    color: rgba(255,255,255,0.92);
+    font-weight: 700;
+    padding: 11px 14px;
+    text-align: left;
+    white-space: nowrap;
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
-.tbl td { padding:10px 14px; border-bottom:1px solid #f2e2e8; color:var(--text); vertical-align:middle; white-space:nowrap; }
-.tbl tr:last-child td      { border-bottom:none; }
-.tbl tr:nth-child(even) td { background:#fffafc; }
-.tbl tr:hover td           { background:#fff5f8; }
+.tbl td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-primary);
+    vertical-align: middle;
+    white-space: nowrap;
+    font-weight: 500;
+}
+.tbl tr:last-child td { border-bottom: none; }
+.tbl tr:nth-child(even) td { background: var(--crimson-tint); }
+.tbl tr:hover td { background: var(--crimson-pale); }
 
-/* CTA ke database */
-.cta-database {
+/* ── CHIPS ── */
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; white-space: nowrap; letter-spacing: 0.01em; }
+.chip-lpj          { background: var(--success-bg); color: var(--success);  border: 1px solid var(--success-bdr); }
+.chip-belum        { background: var(--warning-bg); color: var(--warning);  border: 1px solid var(--warning-bdr); }
+.chip-jatuh        { background: var(--danger-bg);  color: var(--danger);   border: 1px solid var(--danger-bdr);  }
+.chip-chat         { background: var(--info-bg);    color: var(--info);     border: 1px solid var(--info-bdr);    }
+.chip-menunggu     { background: var(--indigo-bg);  color: var(--indigo);   border: 1px solid var(--indigo-bdr);  }
+.chip-follow       { background: var(--amber-bg);   color: var(--amber);    border: 1px solid var(--amber-bdr);   }
+.chip-blacklist    { background: #111827;            color: #f9fafb;         border: 1px solid #374151;            }
+.chip-muted        { background: #f5f5f5;            color: #6b7280;         border: 1px solid #e5e7eb;            }
+.chip-konfirmasi   { background: var(--info-bg);    color: var(--info);     border: 1px solid var(--info-bdr);    }
+.chip-sudah-followup { background: var(--amber-bg); color: var(--amber);    border: 1px solid var(--amber-bdr);   }
+.chip-lpj-diterima { background: var(--success-bg); color: var(--success);  border: 1px solid var(--success-bdr); }
+.chip-bl-konfirmasi { background: #1f2937;           color: #f9fafb;         border: 1px solid #6b7280;            }
+.chip-belum-diisi  { background: #f3f4f6;            color: #9ca3af;         border: 1px solid #d1d5db; font-style: italic; }
+
+/* ── SUB-SECTION HEADERS ── */
+.sub-section-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    background: linear-gradient(135deg, #fff8fa, #fdf0f4);
-    border: 1.5px solid #e8c8d4;
-    border-radius: 16px;
-    padding: 16px 22px;
-    margin-top: 18px;
+    gap: 8px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1.5px solid var(--border);
 }
-.cta-database-text { font-size:0.95rem; color:var(--text); }
-.cta-database-text b { color:var(--maroon); }
+.sub-section-icon {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem;
+}
+.sub-section-icon-danger { background: var(--danger-bg); }
+.sub-section-icon-success { background: var(--success-bg); }
+.sub-section-label {
+    font-weight: 700;
+    font-size: 0.88rem;
+    color: var(--text-primary);
+}
+.sub-section-count {
+    margin-left: auto;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 2px 9px;
+}
+
+/* ── DIVIDER ── */
+.divider { height: 1px; background: var(--border); margin: 20px 0; }
+
+/* ── EMPTY STATE ── */
+.empty-state {
+    text-align: center;
+    padding: 32px 20px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+.empty-icon { font-size: 2rem; margin-bottom: 8px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -282,23 +540,23 @@ def normalize_chat(val):
     return "Belum di Chat"
 
 def chip_status(val):
-    if val == "LPJ":       return '<span class="chip chip-lpj">LPJ</span>'
-    if val == "Jatuh Tempo": return '<span class="chip chip-jatuh">Jatuh Tempo</span>'
+    if val == "LPJ":         return '<span class="chip chip-lpj">✓ LPJ</span>'
+    if val == "Jatuh Tempo": return '<span class="chip chip-jatuh">⚠ Jatuh Tempo</span>'
     return '<span class="chip chip-belum">Belum LPJ</span>'
 
 def chip_aksi_prioritas(val, chat_normal=None):
     if chat_normal == "Belum di Chat":
-        return '<span class="chip chip-jatuh">Segera di Chat</span>'
+        return '<span class="chip chip-jatuh">Segera Hubungi</span>'
     if val == "Menunggu LPJ":  return '<span class="chip chip-menunggu">Menunggu LPJ</span>'
     if val == "Follow Up LPJ": return '<span class="chip chip-follow">Follow Up LPJ</span>'
-    if val == "BlackList":     return '<span class="chip chip-blacklist">BlackList</span>'
-    return '<span class="chip chip-muted">-</span>'
+    if val == "BlackList":     return '<span class="chip chip-blacklist">Blacklist</span>'
+    return '<span class="chip chip-muted">—</span>'
 
 def chip_klasifikasi_auto(val):
-    if val == "BlackList":     return '<span class="chip chip-blacklist">🤖 Auto: Blacklist</span>'
-    if val == "Follow Up LPJ": return '<span class="chip chip-follow">🤖 Auto: Follow Up</span>'
-    if val == "Menunggu LPJ":  return '<span class="chip chip-menunggu">🤖 Auto: Menunggu</span>'
-    return '<span class="chip chip-muted">-</span>'
+    if val == "BlackList":     return '<span class="chip chip-blacklist">Blacklist</span>'
+    if val == "Follow Up LPJ": return '<span class="chip chip-follow">Follow Up</span>'
+    if val == "Menunggu LPJ":  return '<span class="chip chip-menunggu">Menunggu</span>'
+    return '<span class="chip chip-muted">—</span>'
 
 def chip_tahap_followup(val):
     if not val or val in ["nan", "", "-"]:
@@ -313,7 +571,7 @@ def chip_tahap_followup(val):
         return '<span class="chip chip-sudah-followup">Sudah Followup</span>'
     if val == "Menunggu Balasan":
         return '<span class="chip chip-menunggu">Menunggu Balasan</span>'
-    return '<span class="chip chip-muted">-</span>'
+    return '<span class="chip chip-muted">—</span>'
 
 def df_to_html(df, max_height=360):
     rows = ""
@@ -322,7 +580,7 @@ def df_to_html(df, max_height=360):
         rows += f"<tr>{cells}</tr>"
     headers = "".join(f"<th>{c}</th>" for c in df.columns)
     return (
-        f'<div class="tbl-wrap">'
+        f'<div class="tbl-container">'
         f'<div class="tbl-scroll" style="max-height:{max_height}px">'
         f'<table class="tbl"><thead><tr>{headers}</tr></thead>'
         f'<tbody>{rows}</tbody></table>'
@@ -333,9 +591,9 @@ def detail_btn_html(nama):
     enc = urllib.parse.quote(nama)
     return (
         f'<a href="?detail={enc}" target="_self" '
-        f'style="display:inline-block;padding:5px 13px;border-radius:8px;'
-        f'background:#7c1f3f;color:#fff;font-size:12px;font-weight:700;'
-        f'text-decoration:none;white-space:nowrap;">🔍 Detail</a>'
+        f'style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:7px;'
+        f'background:var(--crimson);color:#fff;font-size:11.5px;font-weight:700;'
+        f'text-decoration:none;white-space:nowrap;letter-spacing:0.01em;">Detail →</a>'
     )
 
 def dismiss_btn_html(nama, sudah_dismiss=False):
@@ -344,9 +602,9 @@ def dismiss_btn_html(nama, sudah_dismiss=False):
     enc = urllib.parse.quote(nama)
     return (
         f'<a href="?dismiss={enc}" target="_self" '
-        f'style="display:inline-block;padding:5px 11px;border-radius:8px;'
-        f'background:#1b7a45;color:#fff;font-size:11px;font-weight:700;'
-        f'text-decoration:none;white-space:nowrap;">✅ Sudah Chat</a>'
+        f'style="display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:7px;'
+        f'background:var(--success);color:#fff;font-size:11px;font-weight:700;'
+        f'text-decoration:none;white-space:nowrap;">✓ Sudah Chat</a>'
     )
 
 def hitung_jeda_chat(tanggal_chat, chat_status, today):
@@ -441,7 +699,7 @@ data["Label Tampilan"]   = data.apply(
 )
 data = data.reset_index(drop=True)
 
-# ─── HITUNG NOTIFIKASI (untuk badge) ─────────────────────────────────────────
+# ─── HITUNG NOTIFIKASI ────────────────────────────────────────────────────────
 total_notif = len(data[
     (data["Status Pembayaran"] == "Belum LPJ") &
     (
@@ -468,57 +726,52 @@ if not notif_kritis.empty and not st.session_state.toast_shown:
 #  LAYOUT
 # ═════════════════════════════════════════════════════════════════════════════
 
-badge_html = f'<span class="notif-badge">{total_notif}</span>' if total_notif > 0 else ""
-
+# ── HERO HEADER ──────────────────────────────────────────────────────────────
 st.markdown(f"""
-<div class="page-header">
-    <div class="page-header-icon">&#x1F4CA;</div>
+<div class="hero-header">
+    <div class="hero-icon">📊</div>
     <div>
-        <div class="page-header-title">DASHBOARD BANTUAN</div>
-        <div class="page-header-sub">Monitoring status bantuan, status chat, dan prioritas tindak lanjut</div>
+        <div class="hero-eyebrow">Sistem Monitoring</div>
+        <div class="hero-title">Dashboard Bantuan</div>
+        <div class="hero-sub">Pantau status bantuan, progres LPJ, dan prioritas tindak lanjut secara real-time</div>
     </div>
-    <div class="page-header-right" style="display:flex;gap:10px;align-items:center;">
-        <span id="notif-placeholder"></span>
-    </div>
+    <div class="hero-right"></div>
 </div>
 """, unsafe_allow_html=True)
 
-_spacer, _notif_col, _refresh_col = st.columns([7, 1.2, 0.5], gap="small")
+_spacer, _notif_col, _refresh_col = st.columns([7, 1.5, 0.4], gap="small")
 with _notif_col:
-    if st.button(
-        f"&#x1F514; Notifikasi {'  ' + str(total_notif) if total_notif > 0 else ''}",
-        key="btn_notif",
-        use_container_width=True,
-        type="primary" if total_notif > 0 else "secondary",
-    ):
+    notif_label = f"🔔  Notifikasi  {total_notif}" if total_notif > 0 else "🔔  Notifikasi"
+    if st.button(notif_label, key="btn_notif", use_container_width=True,
+                 type="primary" if total_notif > 0 else "secondary"):
         st.switch_page("pages/notifikasi.py")
 with _refresh_col:
-    if st.button("&#x21BA;", key="btn_refresh", use_container_width=True, help="Refresh data dari Google Sheets"):
+    if st.button("↺", key="btn_refresh", use_container_width=True, help="Refresh data dari Google Sheets"):
         st.cache_data.clear()
         st.rerun()
 
-st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
 
 # ── FILTER ───────────────────────────────────────────────────────────────────
-f1, f2, f3, f4 = st.columns([2, 1, 1, 1], gap="medium")
+f1, f2, f3, f4 = st.columns([2.5, 1, 1, 1], gap="medium")
 
 with f2:
-    st.markdown('<div class="filter-label">TAHUN</div>', unsafe_allow_html=True)
+    st.markdown('<div class="filter-label">Tahun</div>', unsafe_allow_html=True)
     selected_tahun = st.selectbox("Tahun", ["Semua", 2023, 2024, 2025, 2026], label_visibility="collapsed")
 
 with f3:
-    st.markdown('<div class="filter-label">KONDISI</div>', unsafe_allow_html=True)
+    st.markdown('<div class="filter-label">Kondisi</div>', unsafe_allow_html=True)
     selected_status = st.selectbox("Kondisi", ["Semua", "LPJ", "Belum LPJ", "Jatuh Tempo"], label_visibility="collapsed")
 
 with f4:
-    st.markdown('<div class="filter-label">STATUS CHAT</div>', unsafe_allow_html=True)
+    st.markdown('<div class="filter-label">Status Chat</div>', unsafe_allow_html=True)
     selected_chat = st.selectbox(
         "Status Chat",
         ["Semua","Belum di Chat","Sudah di Chat","Menunggu LPJ","Follow Up LPJ","BlackList"],
         label_visibility="collapsed"
     )
 
-# ── BUILD FILTERED ────────────────────────────────────────────────────────────
+# ── BUILD FILTERED ─────────────────────────────────────────────────────────
 def make_filtered(tahun, status, chat):
     f = data.copy()
     if tahun != "Semua":    f = f[f["Tahun"] == tahun]
@@ -536,80 +789,81 @@ def make_filtered(tahun, status, chat):
 filtered = make_filtered(selected_tahun, selected_status, selected_chat)
 
 total_nominal_semua = filtered["Jumlah Bantuan (Rp)"].fillna(0).sum()
-total_nominal_lpj = filtered.loc[filtered["Status Pembayaran"]=="LPJ","Jumlah Bantuan (Rp)"].fillna(0).sum()
+total_nominal_lpj   = filtered.loc[filtered["Status Pembayaran"]=="LPJ","Jumlah Bantuan (Rp)"].fillna(0).sum()
 
-with f1:
-    st.markdown(f"""
-    <div class="kpi-wrap">
-        <div class="kpi-label">NOMINAL SUDAH LPJ / TOTAL NOMINAL LPJ</div>
-        <div class="kpi-value">
-            {fmt_rupiah(total_nominal_lpj)}
-            <div style="font-size:0.95rem;color:#8a6672;font-weight:600;margin-top:4px;">
-                dari {fmt_rupiah(total_nominal_semua)}
-            </div>
-        </div>
-        <div class="kpi-note">Total nominal bantuan yang sudah lpj</div>
-    </div>
-    """, unsafe_allow_html=True)
-
-# ── KPI CARDS ────────────────────────────────────────────────────────────────
 total_penerima    = len(filtered)
-total_lpj       = len(filtered[filtered["Status Pembayaran"]=="LPJ"])
-total_belum_lpj = len(filtered[filtered["Status Pembayaran"]=="Belum LPJ"])
+total_lpj         = len(filtered[filtered["Status Pembayaran"]=="LPJ"])
+total_belum_lpj   = len(filtered[filtered["Status Pembayaran"]=="Belum LPJ"])
 total_jatuh_tempo = len(filtered[filtered["Kondisi Tenggat"]=="Jatuh Tempo"])
 total_menunggu    = len(filtered[filtered["Klasifikasi Chat"]=="Menunggu LPJ"])
 total_follow_up   = len(filtered[filtered["Klasifikasi Chat"]=="Follow Up LPJ"])
 total_blacklist   = len(filtered[filtered["Klasifikasi Chat"]=="BlackList"])
 
-k1,k2,k3,k4,k5,k6 = st.columns(6, gap="medium")
-cards = [
-    ("Total Penerima",str(total_penerima),"Jumlah penerima bantuan"),
-    ("Sudah LPJ",str(total_lpj),"Selesai dikembalikan"),
-    ("Belum LPJ",str(total_belum_lpj),"Belum selesai"),
-    ("Jatuh Tempo",str(total_jatuh_tempo),"Perlu segera follow-up"),
-    ("Menunggu LPJ",str(total_menunggu),"Sudah 1 minggu setelah chat"),
-    ("Follow Up / BlackList",f"{total_follow_up} / {total_blacklist}","2 minggu / 3 minggu ke atas"),
+# ── NOMINAL + KPI ROW ────────────────────────────────────────────────────────
+st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+n_col, k1, k2, k3, k4, k5, k6 = st.columns([2.2, 1, 1, 1, 1, 1, 1], gap="small")
+
+with n_col:
+    st.markdown(f"""
+    <div class="nominal-card">
+        <div class="nominal-eyebrow">Realisasi LPJ</div>
+        <div class="nominal-value">{fmt_rupiah(total_nominal_lpj)}</div>
+        <div class="nominal-total">dari {fmt_rupiah(total_nominal_semua)} total</div>
+        <div class="nominal-note">Nominal bantuan yang telah dikembalikan</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+kpi_data = [
+    (k1, "Total Penerima", str(total_penerima), "", "Terdaftar dalam sistem", "", ""),
+    (k2, "Sudah LPJ", str(total_lpj), "", "Selesai dikembalikan", "kpi-card-accent-success", ""),
+    (k3, "Belum LPJ", str(total_belum_lpj), "", "Belum selesai", "kpi-card-accent-warning", ""),
+    (k4, "Jatuh Tempo", str(total_jatuh_tempo), "", "Perlu segera ditindak", "kpi-card-accent-warning", ""),
+    (k5, "Menunggu LPJ", str(total_menunggu), "", "Sudah 1 minggu setelah chat", "kpi-card-accent-indigo", ""),
+    (k6, "Follow Up / BL", f"{total_follow_up} / {total_blacklist}", "", "2 minggu / 3 minggu ke atas", "kpi-card-accent-amber", ""),
 ]
-for col,(label_txt,val,note) in zip([k1,k2,k3,k4,k5,k6],cards):
+
+for col, label, val, sub, note, accent, _ in kpi_data:
     with col:
+        accent_class = accent if accent else ""
         st.markdown(f"""
-        <div class="kpi-wrap">
-            <div class="kpi-label">{label_txt}</div>
+        <div class="kpi-card">
+            <div class="kpi-card-accent {accent_class}"></div>
+            <div class="kpi-label">{label}</div>
             <div class="kpi-value">{val}</div>
             <div class="kpi-note">{note}</div>
         </div>
         """, unsafe_allow_html=True)
 
-st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
+st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
-# ── CHARTS ───────────────────────────────────────────────────────────────────
-MAROON_COLORS = {"LPJ":"#7c1f3f","Belum LPJ":"#c07090","Jatuh Tempo":"#e8c0cf"}
+# ── CHARTS ──────────────────────────────────────────────────────────────────
+PALETTE = {"LPJ":"#0F7540","Belum LPJ":"#8B1A3A","Jatuh Tempo":"#B91C3A"}
 PLOTLY_BASE = dict(
     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-    margin=dict(t=8,b=8,l=0,r=0),
-    font=dict(family="DM Sans, sans-serif",color="#2a0d18"),
+    margin=dict(t=10, b=10, l=0, r=0),
+    font=dict(family="Plus Jakarta Sans, sans-serif", color="#1C0A12"),
 )
 
 chart_df = filtered["Status Pembayaran"].value_counts().reset_index()
 chart_df.columns = ["Status","Jumlah"]
 status_dist_df = (
     filtered["Label Tampilan"].value_counts()
-    .reindex(["LPJ","Belum LPJ","Jatuh Tempo"],fill_value=0).reset_index()
+    .reindex(["LPJ","Belum LPJ","Jatuh Tempo"], fill_value=0).reset_index()
 )
 status_dist_df.columns = ["Kategori","Jumlah"]
 
-c1,c2,c3 = st.columns(3, gap="medium")
+c1, c2, c3 = st.columns(3, gap="medium")
 
 with c1:
     with st.container(border=True):
-        st.markdown('<div class="panel-title">Komposisi Status</div>', unsafe_allow_html=True)
-        st.markdown('<div class="panel-sub">LPJ vs belum lpj</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Komposisi Status LPJ</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-sub">Perbandingan antara sudah dan belum LPJ</div>', unsafe_allow_html=True)
         if not chart_df.empty:
-            fig = px.pie(chart_df, names="Status", values="Jumlah", hole=0.62,
-                         color="Status", color_discrete_map=MAROON_COLORS)
-            fig.update_traces(textposition="inside", textinfo="percent",
-                              marker=dict(line=dict(color="white",width=3)))
-            fig.update_layout(**PLOTLY_BASE, height=280)
+            fig = px.pie(chart_df, names="Status", values="Jumlah", hole=0.65,
+                         color="Status", color_discrete_map=PALETTE)
+            fig.update_traces(textposition="inside", textinfo="percent+label",
+                              marker=dict(line=dict(color="white", width=3)))
+            fig.update_layout(**PLOTLY_BASE, height=250, showlegend=False)
             st.plotly_chart(fig, use_container_width=True, config={"displayModeBar":False})
         else:
             st.info("Tidak ada data.")
@@ -617,38 +871,38 @@ with c1:
 with c2:
     with st.container(border=True):
         st.markdown('<div class="panel-title">Distribusi Status</div>', unsafe_allow_html=True)
-        st.markdown('<div class="panel-sub">LPJ, belum lpj, dan jatuh tempo</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-sub">LPJ, belum LPJ, dan jatuh tempo</div>', unsafe_allow_html=True)
         if not status_dist_df.empty:
             fig2 = px.bar(status_dist_df, x="Kategori", y="Jumlah", color="Kategori",
-                          color_discrete_map=MAROON_COLORS)
-            fig2.update_layout(**PLOTLY_BASE, height=280, xaxis_title="", yaxis_title="Jumlah", showlegend=False)
-            fig2.update_traces(marker_line_width=0)
+                          color_discrete_map=PALETTE)
+            fig2.update_layout(**PLOTLY_BASE, height=250, xaxis_title="", yaxis_title="", showlegend=False)
+            fig2.update_traces(marker_line_width=0, marker_cornerradius=6)
             st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar":False})
         else:
             st.info("Tidak ada data.")
 
 with c3:
     with st.container(border=True):
-        st.markdown('<div class="panel-title">Ringkasan Cepat</div>', unsafe_allow_html=True)
-        st.markdown('<div class="panel-sub">Prioritas tindak lanjut</div>', unsafe_allow_html=True)
-        pct_jt = round((total_jatuh_tempo/total_penerima)*100,1) if total_penerima else 0
-        pct_fu = round((total_follow_up/total_penerima)*100,1)   if total_penerima else 0
-        pct_bl = round((total_blacklist/total_penerima)*100,1)   if total_penerima else 0
-        for label_ms, value_ms in [
-            ("Persentase Jatuh Tempo",f"{pct_jt}%"),
-            ("Persentase Follow Up LPJ",f"{pct_fu}%"),
-            ("Persentase BlackList",f"{pct_bl}%"),
+        st.markdown('<div class="panel-title">Indikator Risiko</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-sub">Persentase berdasarkan kategori tindak lanjut</div>', unsafe_allow_html=True)
+        pct_jt = round((total_jatuh_tempo/total_penerima)*100, 1) if total_penerima else 0
+        pct_fu = round((total_follow_up/total_penerima)*100, 1)   if total_penerima else 0
+        pct_bl = round((total_blacklist/total_penerima)*100, 1)   if total_penerima else 0
+        for lbl, val_pct in [
+            ("Jatuh Tempo", f"{pct_jt}%"),
+            ("Perlu Follow Up", f"{pct_fu}%"),
+            ("Potensi Blacklist", f"{pct_bl}%"),
         ]:
             st.markdown(f"""
             <div class="mini-stat">
-                <div class="mini-stat-label">{label_ms}</div>
-                <div class="mini-stat-value">{value_ms}</div>
+                <div class="mini-stat-label">{lbl}</div>
+                <div class="mini-stat-value">{val_pct}</div>
             </div>
             """, unsafe_allow_html=True)
 
-st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
-# ── TABEL PRIORITAS JATUH TEMPO ──────────────────────────────────────────────
+# ── TABEL PRIORITAS JATUH TEMPO ─────────────────────────────────────────────
 prioritas = (
     filtered[
         (filtered["Status Pembayaran"]=="Belum LPJ") &
@@ -658,11 +912,18 @@ prioritas = (
     .sort_values(["Terlambat Hari","Tenggat"], ascending=[False,True])
 )
 
-st.markdown('<div class="section-head">🔴 Penerima Bantuan Jatuh Tempo — Segera Hubungi</div>', unsafe_allow_html=True)
-st.markdown(f'<div class="section-sub">{len(prioritas)} penerima bantuan perlu segera dihubungi</div>', unsafe_allow_html=True)
+st.markdown(f"""
+<div class="section-wrapper">
+    <div class="section-title">
+        ⚠️ Penerima Bantuan Jatuh Tempo
+        <span class="section-badge">{len(prioritas)}</span>
+    </div>
+    <div class="section-desc">Daftar penerima yang melewati tenggat waktu dan perlu segera ditindaklanjuti</div>
+</div>
+""", unsafe_allow_html=True)
 
 if prioritas.empty:
-    st.success("✅ Tidak ada penerima bantuan yang jatuh tempo.")
+    st.success("✅ Tidak ada penerima bantuan yang jatuh tempo saat ini.")
 else:
     prioritas_belum_chat = prioritas[prioritas["Chat Normal"]=="Belum di Chat"].copy()
     prioritas_sudah_chat = prioritas[prioritas["Chat Normal"]=="Sudah di Chat"].copy()
@@ -670,13 +931,16 @@ else:
     col_kiri, col_kanan = st.columns(2, gap="large")
 
     with col_kiri:
-        st.markdown('<div class="section-head">📩 Segera di Chat</div>', unsafe_allow_html=True)
-        st.markdown(
-            f'<div class="section-sub">{len(prioritas_belum_chat)} penerima bantuan perlu segera dihubungi</div>',
-            unsafe_allow_html=True
-        )
+        st.markdown(f"""
+        <div class="sub-section-header">
+            <div class="sub-section-icon sub-section-icon-danger">📩</div>
+            <div class="sub-section-label">Belum Dihubungi</div>
+            <div class="sub-section-count">{len(prioritas_belum_chat)} orang</div>
+        </div>
+        """, unsafe_allow_html=True)
+
         if prioritas_belum_chat.empty:
-            st.info("Tidak ada penerima bantuan di kategori ini.")
+            st.markdown('<div class="empty-state"><div class="empty-icon">✅</div>Semua sudah dihubungi</div>', unsafe_allow_html=True)
         else:
             pv_belum = prioritas_belum_chat[[
                 "Nama Bantuan","Jumlah Bantuan (Rp)","No Hp Penerima",
@@ -684,25 +948,25 @@ else:
             ]].copy()
             pv_belum["Jumlah Bantuan (Rp)"] = pv_belum["Jumlah Bantuan (Rp)"].apply(fmt_rupiah)
             pv_belum["No Hp Penerima"]      = pv_belum["No Hp Penerima"].replace("","-")
-            pv_belum["Status Auto"]         = pv_belum.apply(
+            pv_belum["Status"]              = pv_belum.apply(
                 lambda r: chip_aksi_prioritas(r["Klasifikasi Chat"], r["Chat Normal"]), axis=1
             )
-            pv_belum["Tahap Manual"]        = pv_belum["Tahap Followup"].apply(chip_tahap_followup)
-            pv_belum["Detail"]              = prioritas_belum_chat["Nama Bantuan"].apply(detail_btn_html)
-            pv_belum = pv_belum[[
-                "Nama Bantuan","Jumlah Bantuan (Rp)","No Hp Penerima",
-                "Status Auto","Tahap Manual","Detail"
-            ]]
-            st.markdown(df_to_html(pv_belum, max_height=360), unsafe_allow_html=True)
+            pv_belum["Tahap"]               = pv_belum["Tahap Followup"].apply(chip_tahap_followup)
+            pv_belum[""]                    = prioritas_belum_chat["Nama Bantuan"].apply(detail_btn_html)
+            pv_belum = pv_belum[["Nama Bantuan","Jumlah Bantuan (Rp)","No Hp Penerima","Status","Tahap",""]]
+            st.markdown(df_to_html(pv_belum, max_height=340), unsafe_allow_html=True)
 
     with col_kanan:
-        st.markdown('<div class="section-head">💬 Sudah di Chat</div>', unsafe_allow_html=True)
-        st.markdown(
-            f'<div class="section-sub">{len(prioritas_sudah_chat)} penerima bantuan sudah dihubungi</div>',
-            unsafe_allow_html=True
-        )
+        st.markdown(f"""
+        <div class="sub-section-header">
+            <div class="sub-section-icon sub-section-icon-success">💬</div>
+            <div class="sub-section-label">Sudah Dihubungi</div>
+            <div class="sub-section-count">{len(prioritas_sudah_chat)} orang</div>
+        </div>
+        """, unsafe_allow_html=True)
+
         if prioritas_sudah_chat.empty:
-            st.info("Tidak ada penerima bantuan di kategori ini.")
+            st.markdown('<div class="empty-state"><div class="empty-icon">📭</div>Belum ada yang dihubungi</div>', unsafe_allow_html=True)
         else:
             pv_sudah = prioritas_sudah_chat[[
                 "Nama Bantuan","Jumlah Bantuan (Rp)","No Hp Penerima",
@@ -710,24 +974,25 @@ else:
             ]].copy()
             pv_sudah["Jumlah Bantuan (Rp)"] = pv_sudah["Jumlah Bantuan (Rp)"].apply(fmt_rupiah)
             pv_sudah["No Hp Penerima"]      = pv_sudah["No Hp Penerima"].replace("","-")
-            pv_sudah["Status Auto"]         = pv_sudah.apply(
+            pv_sudah["Status"]              = pv_sudah.apply(
                 lambda r: chip_aksi_prioritas(r["Klasifikasi Chat"], r["Chat Normal"]), axis=1
             )
-            pv_sudah["Tahap Manual"]        = pv_sudah["Tahap Followup"].apply(chip_tahap_followup)
-            pv_sudah["Detail"]              = prioritas_sudah_chat["Nama Bantuan"].apply(detail_btn_html)
-            pv_sudah = pv_sudah[[
-                "Nama Bantuan","Jumlah Bantuan (Rp)","No Hp Penerima",
-                "Status Auto","Tahap Manual","Detail"
-            ]]
-            st.markdown(df_to_html(pv_sudah, max_height=360), unsafe_allow_html=True)
+            pv_sudah["Tahap"]               = pv_sudah["Tahap Followup"].apply(chip_tahap_followup)
+            pv_sudah[""]                    = prioritas_sudah_chat["Nama Bantuan"].apply(detail_btn_html)
+            pv_sudah = pv_sudah[["Nama Bantuan","Jumlah Bantuan (Rp)","No Hp Penerima","Status","Tahap",""]]
+            st.markdown(df_to_html(pv_sudah, max_height=340), unsafe_allow_html=True)
 
-st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
+st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
 # ── CTA KE DATABASE ───────────────────────────────────────────────────────────
-st.markdown('<div class="section-head">📋 Data Lengkap Penerima Bantuan</div>', unsafe_allow_html=True)
-st.markdown('<div class="section-sub">Lihat semua data lengkap termasuk link dokumen di halaman Database.</div>', unsafe_allow_html=True)
+st.markdown("""
+<div class="section-wrapper">
+    <div class="section-title">📋 Data Lengkap</div>
+    <div class="section-desc">Lihat semua data penerima bantuan termasuk dokumen pendukung di halaman Database.</div>
+</div>
+""", unsafe_allow_html=True)
 
-if st.button("🗂️ Buka Database Lengkap →", key="btn_to_db", type="primary"):
+if st.button("Buka Database Lengkap →", key="btn_to_db", type="primary"):
     st.switch_page("pages/database.py")
 
-st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
+st.markdown("<div style='height:32px'></div>", unsafe_allow_html=True)
