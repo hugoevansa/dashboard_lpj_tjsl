@@ -3,13 +3,13 @@ import pandas as pd
 import requests
 from io import StringIO
 
+from sidebar_component import render_sidebar
+
 st.set_page_config(
     page_title="Database Bantuan",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
-
-from sidebar_component import render_sidebar
 
 # ─── SESSION STATE INIT ───────────────────────────────────────────────────────
 if "detail_nama" not in st.session_state:
