@@ -1,21 +1,12 @@
 """
-heatmap.py  ─  Peta Penyebaran Bantuan Indonesia  (v2 — Fixed & Enhanced)
-==========================================================================
-Simpan di folder  pages/  agar muncul di sidebar multi-page Streamlit.
-
-Install:
-    pip install streamlit pandas plotly requests
-
-Jalankan standalone:
-    streamlit run heatmap.py
-
-CHANGELOG v2:
-  - Fix: Sidebar double-navigation dihapus (custom nav HTML dibuang)
-  - Fix: Ranking card render sebagai teks HTML (pakai inline-style sepenuhnya)
-  - Fix: #MainMenu kembali terlihat (3-titik pojok kanan atas)
-  - Improve: Desain lebih hangat, cozy, & refined
-  - Improve: KPI cards hover-lift + shadow
-  - New: Animasi petani berjalan di sawah (sidebar bawah)
+heatmap.py  ─  Peta Penyebaran Bantuan Indonesia  (v3 — Full Fix)
+=================================================================
+CHANGELOG v3:
+  - FIX: Ranking menggunakan st.components.v1.html() agar HTML benar-benar dirender
+  - FIX: Bar chart warna beragam (gradient multi-color) + background card
+  - IMPROVE: Heatmap lebar penuh (lat/lon axis bounds Indonesia)
+  - IMPROVE: Garis batas provinsi lebih tebal & jelas (mirip grid wilayah)
+  - IMPROVE: Desain peta lebih maksimal, tinggi diperbesar
 """
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -26,8 +17,10 @@ import re
 import base64
 import requests
 import streamlit as st
+import streamlit.components.v1 as components   # ← FIX ranking
 import pandas as pd
 import plotly.graph_objects as go
+import numpy as np
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  PAGE CONFIG
@@ -54,8 +47,8 @@ P = {
     "card"     : "#FFFFFF",
     "muted"    : "#9C7B86",
     "text"     : "#2D1A20",
-    "warm1"    : "#FFF8F0",   # tambahan: warm cream
-    "warm2"    : "#FCE8D0",   # tambahan: peach hangat
+    "warm1"    : "#FFF8F0",
+    "warm2"    : "#FCE8D0",
 }
 
 MAP_COLORSCALE = [
@@ -67,8 +60,14 @@ MAP_COLORSCALE = [
     [1.00, "#3D0E21"],
 ]
 
+# Warna beragam untuk bar chart
+BAR_COLORS = [
+    "#C5547A","#8B2252","#3D0E21","#E8736A","#D4834A",
+    "#7B5EA7","#4A90C4","#2E8B57","#C89B3C","#6B1D3A",
+]
+
 # ─────────────────────────────────────────────────────────────────────────────
-#  CSS  ─ v2 (warmer, cozier, fixed)
+#  CSS
 # ─────────────────────────────────────────────────────────────────────────────
 st.markdown(f"""
 <style>
@@ -81,7 +80,6 @@ html, body, [class*="css"] {{
 }}
 .stApp {{ background-color: {P['bg']}; }}
 
-/* ══ HIDE STREAMLIT BRANDING (tapi BUKAN MainMenu/3-titik) ════════════ */
 footer,
 div[data-testid="stDecoration"] {{
     visibility: hidden !important;
@@ -99,8 +97,6 @@ section[data-testid="stSidebar"] > div:first-child {{
 section[data-testid="stSidebar"] * {{
     color: rgba(255,255,255,.85) !important;
 }}
-
-/* Streamlit auto-nav links styling */
 section[data-testid="stSidebar"] a[data-testid="stSidebarNavLink"] {{
     background: transparent !important;
     border-radius: 10px !important;
@@ -123,26 +119,14 @@ section[data-testid="stSidebar"] a[data-testid="stSidebarNavLink"][aria-current=
     border-left: 3px solid {P['rose300']} !important;
     font-weight: 700 !important;
 }}
-section[data-testid="stSidebar"] hr {{
-    border-color: rgba(255,255,255,.10) !important;
-    margin: 8px 0 !important;
-}}
-/* Nav section label */
-section[data-testid="stSidebar"] [data-testid="stSidebarNavSeparator"] {{
-    border-color: rgba(255,255,255,.10) !important;
-}}
 
-/* ══ SIDEBAR HEADER BRAND ═════════════════════════════════════════════ */
+/* ══ SIDEBAR BRAND ════════════════════════════════════════════════════ */
 .sb-brand {{
     padding: 20px 16px 12px;
     border-bottom: 1px solid rgba(255,255,255,.10);
     margin-bottom: 6px;
 }}
-.sb-brand-badge {{
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-}}
+.sb-brand-badge {{ display: inline-flex; align-items: center; gap: 10px; }}
 .sb-brand-icon {{
     width: 42px; height: 42px;
     background: linear-gradient(135deg, {P['accent']} 0%, {P['secondary']} 100%);
@@ -152,426 +136,176 @@ section[data-testid="stSidebar"] [data-testid="stSidebarNavSeparator"] {{
     box-shadow: 0 4px 14px rgba(197,84,122,.40);
     flex-shrink: 0;
 }}
-.sb-brand-title {{
-    font-size: 15px !important;
-    font-weight: 800 !important;
-    color: #fff !important;
-    letter-spacing: -.2px;
-    line-height: 1.2;
-}}
-.sb-brand-sub {{
-    font-size: 10.5px !important;
-    color: rgba(255,255,255,.48) !important;
-    font-weight: 400 !important;
-    margin-top: 2px;
-}}
+.sb-brand-title {{ font-size: 15px !important; font-weight: 800 !important; color: #fff !important; }}
+.sb-brand-sub {{ font-size: 10.5px !important; color: rgba(255,255,255,.48) !important; }}
 
-/* ══ PETANI ANIMATION  ════════════════════════════════════════════════ */
-@keyframes farmer-walk {{
-    0%   {{ left: -40px;  }}
-    100% {{ left: 110%;   }}
-}}
-@keyframes cloud-drift {{
-    0%   {{ transform: translateX(0); opacity:.6; }}
-    50%  {{ opacity:.9; }}
-    100% {{ transform: translateX(30px); opacity:.6; }}
-}}
-@keyframes rice-sway {{
-    0%,100% {{ transform: rotate(-3deg); }}
-    50%      {{ transform: rotate(3deg);  }}
-}}
-@keyframes sun-pulse {{
-    0%,100% {{ box-shadow: 0 0 0 0 rgba(255,200,0,.4); }}
-    50%     {{ box-shadow: 0 0 0 6px rgba(255,200,0,.0); }}
-}}
+/* ══ PETANI ANIMATION ═════════════════════════════════════════════════ */
+@keyframes farmer-walk  {{ 0% {{ left:-40px; }} 100% {{ left:110%; }} }}
+@keyframes cloud-drift  {{ 0%,100% {{ transform:translateX(0);opacity:.6; }} 50% {{ opacity:.9; }} }}
+@keyframes rice-sway    {{ 0%,100% {{ transform:rotate(-3deg); }} 50% {{ transform:rotate(3deg); }} }}
+@keyframes sun-pulse    {{ 0%,100% {{ box-shadow:0 0 0 0 rgba(255,200,0,.4); }} 50% {{ box-shadow:0 0 0 6px rgba(255,200,0,.0); }} }}
 
 .sawah-scene {{
-    position: relative;
-    margin: 10px 8px 6px;
-    height: 68px;
-    border-radius: 12px;
-    overflow: hidden;
-    background: linear-gradient(180deg,
-        #1a3a5c 0%, #1e4a72 30%,     /* langit malam */
-        #2d6a2d 60%, #1e4d1e 100%);  /* sawah hijau */
-    border: 1px solid rgba(255,255,255,.08);
+    position:relative; margin:10px 8px 6px; height:68px;
+    border-radius:12px; overflow:hidden;
+    background:linear-gradient(180deg,#1a3a5c 0%,#1e4a72 30%,#2d6a2d 60%,#1e4d1e 100%);
+    border:1px solid rgba(255,255,255,.08);
 }}
-
-/* Matahari / bulan kecil */
 .sawah-sun {{
-    position: absolute;
-    top: 6px; right: 14px;
-    width: 14px; height: 14px;
-    background: radial-gradient(circle, #FFD700, #FFA500);
-    border-radius: 50%;
-    animation: sun-pulse 2.5s ease-in-out infinite;
+    position:absolute; top:6px; right:14px;
+    width:14px; height:14px;
+    background:radial-gradient(circle,#FFD700,#FFA500);
+    border-radius:50%; animation:sun-pulse 2.5s ease-in-out infinite;
 }}
-
-/* Awan */
-.sawah-cloud {{
-    position: absolute;
-    top: 8px; left: 20px;
-    font-size: 13px;
-    animation: cloud-drift 5s ease-in-out infinite;
-    opacity: .65;
-}}
-.sawah-cloud2 {{
-    position: absolute;
-    top: 4px; left: 50%;
-    font-size: 10px;
-    animation: cloud-drift 7s ease-in-out 1.5s infinite;
-    opacity: .5;
-}}
-
-/* Tanaman padi bergerak */
+.sawah-cloud  {{ position:absolute; top:8px; left:20px; font-size:13px; animation:cloud-drift 5s ease-in-out infinite; opacity:.65; }}
+.sawah-cloud2 {{ position:absolute; top:4px; left:50%; font-size:10px; animation:cloud-drift 7s ease-in-out 1.5s infinite; opacity:.5; }}
 .sawah-rice {{
-    position: absolute;
-    bottom: 1px;
-    font-size: 15px;
-    animation: rice-sway 2s ease-in-out infinite;
-    display: inline-block;
-    transform-origin: bottom center;
+    position:absolute; bottom:1px; font-size:15px;
+    animation:rice-sway 2s ease-in-out infinite;
+    display:inline-block; transform-origin:bottom center;
 }}
-
-/* Petani berjalan */
 .sawah-farmer {{
-    position: absolute;
-    bottom: 4px;
-    left: -40px;
-    font-size: 20px;
-    animation: farmer-walk 6s linear infinite;
-    filter: drop-shadow(0 1px 2px rgba(0,0,0,.5));
+    position:absolute; bottom:4px; left:-40px; font-size:20px;
+    animation:farmer-walk 6s linear infinite;
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,.5));
 }}
-
-/* ══ SIDEBAR BOTTOM LOGO ══════════════════════════════════════════════ */
-.sb-logo-footer {{
-    padding: 10px 14px 14px;
-    border-top: 1px solid rgba(255,255,255,.08);
-    margin-top: auto;
-}}
-.sb-logo-row {{
-    display: flex; align-items: center; gap: 10px;
-}}
-.sb-logo-img {{
-    width: 34px; height: 34px;
-    border-radius: 8px; object-fit: cover;
-    flex-shrink: 0;
-}}
-.sb-logo-name {{
-    font-size: 12.5px !important;
-    font-weight: 700 !important;
-    color: rgba(255,255,255,.88) !important;
-    line-height: 1.3;
-}}
-.sb-logo-ver {{
-    font-size: 10px !important;
-    color: rgba(255,255,255,.38) !important;
-}}
+.sb-logo-footer {{ padding:10px 14px 14px; border-top:1px solid rgba(255,255,255,.08); }}
+.sb-logo-row {{ display:flex; align-items:center; gap:10px; }}
+.sb-logo-name {{ font-size:12.5px !important; font-weight:700 !important; color:rgba(255,255,255,.88) !important; }}
+.sb-logo-ver  {{ font-size:10px !important; color:rgba(255,255,255,.38) !important; }}
 
 /* ══ BANNER ═══════════════════════════════════════════════════════════ */
 .banner {{
-    background: linear-gradient(135deg,
-        {P['deep']} 0%,
-        {P['primary']} 45%,
-        {P['secondary']} 80%,
-        {P['accent']} 100%);
-    padding: 26px 36px 26px 30px;
-    border-radius: 18px;
-    color: #fff;
+    background: linear-gradient(135deg,{P['deep']} 0%,{P['primary']} 45%,{P['secondary']} 80%,{P['accent']} 100%);
+    padding: 26px 36px 26px 30px; border-radius: 18px; color: #fff;
     margin-bottom: 22px;
-    box-shadow:
-        0 8px 32px rgba(61,14,33,.30),
-        0 2px 8px rgba(61,14,33,.20),
-        inset 0 1px 0 rgba(255,255,255,.12);
+    box-shadow: 0 8px 32px rgba(61,14,33,.30), 0 2px 8px rgba(61,14,33,.20), inset 0 1px 0 rgba(255,255,255,.12);
     display: flex; align-items: center; gap: 20px;
     position: relative; overflow: hidden;
 }}
-/* Decorative circles */
 .banner::before {{
-    content: ""; position: absolute;
-    right: -60px; top: -60px;
-    width: 240px; height: 240px;
-    border-radius: 50%;
-    background: rgba(255,255,255,.06);
-    pointer-events: none;
-}}
-.banner::after {{
-    content: ""; position: absolute;
-    right: 60px; bottom: -80px;
-    width: 180px; height: 180px;
-    border-radius: 50%;
-    background: rgba(255,255,255,.04);
-    pointer-events: none;
+    content:""; position:absolute; right:-60px; top:-60px;
+    width:240px; height:240px; border-radius:50%;
+    background:rgba(255,255,255,.06); pointer-events:none;
 }}
 .banner-icon {{
-    font-size: 38px; line-height: 1;
-    background: rgba(255,255,255,.18);
-    padding: 12px 14px;
-    border-radius: 14px;
-    flex-shrink: 0;
-    box-shadow: 0 4px 12px rgba(0,0,0,.20),
-                inset 0 1px 0 rgba(255,255,255,.25);
-    backdrop-filter: blur(4px);
+    font-size:38px; line-height:1;
+    background:rgba(255,255,255,.18); padding:12px 14px; border-radius:14px;
+    flex-shrink:0; box-shadow:0 4px 12px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.25);
 }}
-.banner h1 {{
-    margin: 0; font-size: 22px; font-weight: 800;
-    letter-spacing: -.4px; text-transform: uppercase;
-    text-shadow: 0 2px 8px rgba(0,0,0,.20);
-}}
-.banner p {{
-    margin: 6px 0 0; font-size: 13px;
-    opacity: .78; font-weight: 400;
-    line-height: 1.5;
-}}
+.banner h1 {{ margin:0; font-size:22px; font-weight:800; letter-spacing:-.4px; text-transform:uppercase; }}
+.banner p  {{ margin:6px 0 0; font-size:13px; opacity:.78; }}
 
 /* ══ FILTER BAR ═══════════════════════════════════════════════════════ */
 .filter-wrap {{
-    background: {P['card']};
-    border-radius: 16px;
-    padding: 16px 24px 12px;
-    margin-bottom: 20px;
-    box-shadow:
-        0 4px 20px rgba(107,29,58,.10),
-        0 1px 4px rgba(107,29,58,.06);
-    border: 1px solid {P['rose100']};
+    background:{P['card']}; border-radius:16px; padding:16px 24px 12px;
+    margin-bottom:20px;
+    box-shadow:0 4px 20px rgba(107,29,58,.10),0 1px 4px rgba(107,29,58,.06);
+    border:1px solid {P['rose100']};
 }}
 div[data-testid="stSelectbox"] label,
 div[data-testid="stRadio"] label {{
-    color: {P['primary']} !important;
-    font-weight: 700 !important;
-    font-size: 11px !important;
-    text-transform: uppercase !important;
-    letter-spacing: .8px !important;
+    color:{P['primary']} !important; font-weight:700 !important;
+    font-size:11px !important; text-transform:uppercase !important; letter-spacing:.8px !important;
 }}
-div[data-testid="stRadio"] > div {{
-    flex-direction: row !important;
-    gap: 6px !important;
-    flex-wrap: wrap;
-}}
+div[data-testid="stRadio"] > div {{ flex-direction:row !important; gap:6px !important; flex-wrap:wrap; }}
 div[data-testid="stRadio"] > div > label {{
-    background: {P['rose100']};
-    border: 1.5px solid {P['rose200']};
-    border-radius: 24px;
-    padding: 5px 18px !important;
-    font-size: 12px !important;
-    font-weight: 600 !important;
-    color: {P['primary']} !important;
-    text-transform: none !important;
-    letter-spacing: 0 !important;
-    cursor: pointer;
-    transition: all .18s;
-    box-shadow: 0 1px 4px rgba(107,29,58,.08);
+    background:{P['rose100']}; border:1.5px solid {P['rose200']}; border-radius:24px;
+    padding:5px 18px !important; font-size:12px !important; font-weight:600 !important;
+    color:{P['primary']} !important; text-transform:none !important;
+    cursor:pointer; transition:all .18s; box-shadow:0 1px 4px rgba(107,29,58,.08);
 }}
 div[data-testid="stRadio"] > div > label:hover {{
-    background: {P['rose200']};
-    border-color: {P['accent']};
-    transform: translateY(-1px);
-    box-shadow: 0 3px 8px rgba(107,29,58,.14);
+    background:{P['rose200']}; border-color:{P['accent']};
+    transform:translateY(-1px); box-shadow:0 3px 8px rgba(107,29,58,.14);
 }}
 div[data-testid="stRadio"] > div > label:has(input:checked) {{
-    background: linear-gradient(135deg, {P['primary']}, {P['secondary']});
-    border-color: {P['primary']};
-    color: #fff !important;
-    box-shadow: 0 3px 10px rgba(107,29,58,.30);
-    transform: translateY(-1px);
+    background:linear-gradient(135deg,{P['primary']},{P['secondary']});
+    border-color:{P['primary']}; color:#fff !important;
+    box-shadow:0 3px 10px rgba(107,29,58,.30); transform:translateY(-1px);
 }}
-
 div[data-testid="stSelectbox"] > div > div {{
-    border-radius: 10px !important;
-    border-color: {P['rose200']} !important;
-    background: {P['bg']} !important;
-    font-size: 13px !important;
-    box-shadow: 0 1px 4px rgba(107,29,58,.08) !important;
-    transition: box-shadow .15s, border-color .15s !important;
-}}
-div[data-testid="stSelectbox"] > div > div:focus-within {{
-    border-color: {P['accent']} !important;
-    box-shadow: 0 0 0 3px rgba(197,84,122,.15), 0 2px 8px rgba(107,29,58,.12) !important;
+    border-radius:10px !important; border-color:{P['rose200']} !important;
+    background:{P['bg']} !important; font-size:13px !important;
+    box-shadow:0 1px 4px rgba(107,29,58,.08) !important;
 }}
 
 /* ══ KPI CARDS ════════════════════════════════════════════════════════ */
 .kpi-grid {{
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 14px;
-    margin-bottom: 22px;
+    display:grid; grid-template-columns:repeat(5,1fr);
+    gap:14px; margin-bottom:22px;
 }}
-@media(max-width:900px) {{ .kpi-grid {{ grid-template-columns: repeat(2,1fr); }} }}
-
 .kpi {{
-    background: {P['card']};
-    border-radius: 16px;
-    padding: 18px 20px 16px;
-    border-left: 5px solid {P['primary']};
-    box-shadow:
-        0 4px 20px rgba(107,29,58,.10),
-        0 1px 4px rgba(107,29,58,.06);
-    border: 1px solid {P['rose100']};
-    border-left: 5px solid {P['primary']};
-    transition: transform .20s ease, box-shadow .20s ease;
-    cursor: default;
-    position: relative;
-    overflow: hidden;
+    background:{P['card']}; border-radius:16px; padding:18px 20px 16px;
+    box-shadow:0 4px 20px rgba(107,29,58,.10),0 1px 4px rgba(107,29,58,.06);
+    border:1px solid {P['rose100']}; border-left:5px solid {P['primary']};
+    transition:transform .20s ease,box-shadow .20s ease; cursor:default;
+    position:relative; overflow:hidden;
 }}
 .kpi::before {{
-    content: "";
-    position: absolute;
-    top: -20px; right: -20px;
-    width: 80px; height: 80px;
-    border-radius: 50%;
-    background: radial-gradient(circle, {P['rose100']} 0%, transparent 70%);
-    pointer-events: none;
+    content:""; position:absolute; top:-20px; right:-20px;
+    width:80px; height:80px; border-radius:50%;
+    background:radial-gradient(circle,{P['rose100']} 0%,transparent 70%); pointer-events:none;
 }}
-.kpi:hover {{
-    transform: translateY(-4px);
-    box-shadow:
-        0 10px 32px rgba(107,29,58,.16),
-        0 2px 8px rgba(107,29,58,.10);
-}}
-.kpi-icon {{
-    font-size: 22px;
-    margin-bottom: 8px;
-    display: block;
-}}
-.kpi-val {{
-    font-size: 26px;
-    font-weight: 800;
-    color: {P['primary']};
-    line-height: 1.1;
-    letter-spacing: -.6px;
-}}
-.kpi-lbl {{
-    font-size: 10px;
-    font-weight: 700;
-    color: {P['muted']};
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-top: 6px;
-}}
+.kpi:hover {{ transform:translateY(-4px); box-shadow:0 10px 32px rgba(107,29,58,.16),0 2px 8px rgba(107,29,58,.10); }}
+.kpi-icon {{ font-size:22px; margin-bottom:8px; display:block; }}
+.kpi-val  {{ font-size:26px; font-weight:800; color:{P['primary']}; line-height:1.1; letter-spacing:-.6px; }}
+.kpi-lbl  {{ font-size:10px; font-weight:700; color:{P['muted']}; text-transform:uppercase; letter-spacing:1px; margin-top:6px; }}
 
 /* ══ SECTION HEADER ═══════════════════════════════════════════════════ */
 .sec {{
-    background: {P['card']};
-    border-left: 5px solid {P['primary']};
-    border-radius: 12px;
-    padding: 13px 20px;
-    margin: 22px 0 14px;
-    box-shadow:
-        0 4px 16px rgba(107,29,58,.08),
-        0 1px 4px rgba(107,29,58,.05);
-    border: 1px solid {P['rose100']};
-    border-left: 5px solid {P['primary']};
-    display: flex; align-items: center; gap: 10px;
+    background:{P['card']}; border-radius:12px; padding:13px 20px; margin:22px 0 14px;
+    box-shadow:0 4px 16px rgba(107,29,58,.08),0 1px 4px rgba(107,29,58,.05);
+    border:1px solid {P['rose100']}; border-left:5px solid {P['primary']};
+    display:flex; align-items:center; gap:10px;
 }}
-.sec h3 {{
-    margin: 0;
-    color: {P['primary']};
-    font-size: 14px;
-    font-weight: 800;
-    letter-spacing: -.1px;
-    flex: 1;
-}}
-.sec span {{
-    font-size: 11.5px;
-    color: {P['muted']};
-    font-weight: 400;
-}}
+.sec h3 {{ margin:0; color:{P['primary']}; font-size:14px; font-weight:800; flex:1; }}
+.sec span {{ font-size:11.5px; color:{P['muted']}; font-weight:400; }}
 
-/* ══ TABLE INFO BAR ═══════════════════════════════════════════════════ */
+/* ══ TABLE ════════════════════════════════════════════════════════════ */
 .tbl-info {{
-    background: linear-gradient(90deg, {P['rose100']}, #fff8fb);
-    border-radius: 10px;
-    padding: 10px 18px;
-    font-size: 12.5px;
-    color: {P['text']};
-    margin-bottom: 12px;
-    border: 1px solid {P['rose200']};
-    box-shadow: 0 1px 4px rgba(107,29,58,.06);
+    background:linear-gradient(90deg,{P['rose100']},#fff8fb);
+    border-radius:10px; padding:10px 18px; font-size:12.5px;
+    color:{P['text']}; margin-bottom:12px;
+    border:1px solid {P['rose200']}; box-shadow:0 1px 4px rgba(107,29,58,.06);
 }}
-.tbl-info b {{ color: {P['primary']}; }}
-
-/* ══ TABEL ════════════════════════════════════════════════════════════ */
+.tbl-info b {{ color:{P['primary']}; }}
 .bantuan-table-wrap {{
-    border-radius: 14px;
-    overflow: hidden;
-    box-shadow:
-        0 6px 24px rgba(107,29,58,.13),
-        0 1px 4px rgba(107,29,58,.08);
-    border: 1px solid {P['rose200']};
+    border-radius:14px; overflow:hidden;
+    box-shadow:0 6px 24px rgba(107,29,58,.13),0 1px 4px rgba(107,29,58,.08);
+    border:1px solid {P['rose200']};
 }}
-.bantuan-table {{
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-    font-family: 'Plus Jakarta Sans', sans-serif;
-}}
-.bantuan-table thead tr {{
-    background: linear-gradient(90deg, {P['primary']}, {P['secondary']});
-    color: #fff;
-}}
-.bantuan-table thead th {{
-    padding: 13px 18px;
-    text-align: left;
-    font-weight: 700;
-    font-size: 11px;
-    letter-spacing: .6px;
-    text-transform: uppercase;
-    border: none;
-    white-space: nowrap;
-}}
-.bantuan-table tbody tr {{
-    border-bottom: 1px solid {P['rose100']};
-    transition: background .12s;
-}}
-.bantuan-table tbody tr:nth-child(even) {{
-    background: #fdf6f8;
-}}
-.bantuan-table tbody tr:hover {{
-    background: {P['rose100']} !important;
-}}
-.bantuan-table tbody td {{
-    padding: 11px 18px;
-    color: {P['text']};
-    vertical-align: middle;
-    border: none;
-}}
-.bantuan-table .td-nama    {{ font-weight: 700; color: {P['primary']}; max-width: 260px; }}
-.bantuan-table .td-nominal {{ font-weight: 700; color: {P['secondary']}; white-space: nowrap; }}
-.bantuan-table .td-muted   {{ font-size: 12px; color: {P['muted']}; white-space: nowrap; }}
-.bantuan-table .td-tgl     {{ font-size: 12px; color: {P['text']}; white-space: nowrap; }}
+.bantuan-table {{ width:100%; border-collapse:collapse; font-size:13px; }}
+.bantuan-table thead tr {{ background:linear-gradient(90deg,{P['primary']},{P['secondary']}); color:#fff; }}
+.bantuan-table thead th {{ padding:13px 18px; text-align:left; font-weight:700; font-size:11px; letter-spacing:.6px; text-transform:uppercase; border:none; white-space:nowrap; }}
+.bantuan-table tbody tr {{ border-bottom:1px solid {P['rose100']}; transition:background .12s; }}
+.bantuan-table tbody tr:nth-child(even) {{ background:#fdf6f8; }}
+.bantuan-table tbody tr:hover {{ background:{P['rose100']} !important; }}
+.bantuan-table tbody td {{ padding:11px 18px; color:{P['text']}; vertical-align:middle; border:none; }}
+.bantuan-table .td-nama    {{ font-weight:700; color:{P['primary']}; max-width:260px; }}
+.bantuan-table .td-nominal {{ font-weight:700; color:{P['secondary']}; white-space:nowrap; }}
+.bantuan-table .td-muted   {{ font-size:12px; color:{P['muted']}; white-space:nowrap; }}
+.bantuan-table .td-tgl     {{ font-size:12px; color:{P['text']}; white-space:nowrap; }}
 
-/* ══ DOWNLOAD BUTTON ══════════════════════════════════════════════════ */
+/* ══ DOWNLOAD ═════════════════════════════════════════════════════════ */
 .stDownloadButton > button {{
-    background: linear-gradient(135deg, {P['primary']}, {P['secondary']}) !important;
-    color: #fff !important;
-    border: none !important;
-    border-radius: 10px !important;
-    font-weight: 700 !important;
-    padding: 9px 22px !important;
-    font-size: 13px !important;
-    box-shadow: 0 4px 14px rgba(107,29,58,.25) !important;
-    transition: all .18s !important;
+    background:linear-gradient(135deg,{P['primary']},{P['secondary']}) !important;
+    color:#fff !important; border:none !important; border-radius:10px !important;
+    font-weight:700 !important; padding:9px 22px !important; font-size:13px !important;
+    box-shadow:0 4px 14px rgba(107,29,58,.25) !important; transition:all .18s !important;
 }}
 .stDownloadButton > button:hover {{
-    background: linear-gradient(135deg, {P['deep']}, {P['primary']}) !important;
-    box-shadow: 0 6px 20px rgba(107,29,58,.35) !important;
-    transform: translateY(-2px) !important;
+    background:linear-gradient(135deg,{P['deep']},{P['primary']}) !important;
+    box-shadow:0 6px 20px rgba(107,29,58,.35) !important; transform:translateY(-2px) !important;
 }}
 </style>
 """, unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  SIDEBAR RENDERER  v2 — FIX double-nav: hapus custom nav HTML, keep logo only
+#  SIDEBAR
 # ─────────────────────────────────────────────────────────────────────────────
 def render_sidebar() -> None:
-    """
-    FIXED: Hanya menampilkan brand-header dan logo footer.
-    Navigasi halaman dibiarkan ke Streamlit otomatis (pages/).
-    Ini menghilangkan masalah double-navigation.
-    """
-
-    # ── Brand header di atas sidebar ──────────────────────────────────
     st.sidebar.markdown("""
     <div class="sb-brand">
         <div class="sb-brand-badge">
@@ -584,32 +318,24 @@ def render_sidebar() -> None:
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Animasi Sawah + Petani berjalan ───────────────────────────────
-    # Padi ditempatkan pada berbagai posisi horizontal
     padi_positions = [4, 14, 22, 32, 42, 52, 62, 72, 82, 92]
     padi_html = "".join(
         f'<span class="sawah-rice" style="left:{p}%; animation-delay:{i*0.3:.1f}s;">🌾</span>'
         for i, p in enumerate(padi_positions)
     )
-
     st.sidebar.markdown(f"""
     <div class="sawah-scene">
-        <!-- Langit -->
         <div class="sawah-sun"></div>
         <div class="sawah-cloud">☁️</div>
         <div class="sawah-cloud2">☁️</div>
-        <!-- Padi & Petani -->
         {padi_html}
         <div class="sawah-farmer" title="Petani kita berjalan di sawah 🧑‍🌾">🧑‍🌾</div>
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Logo footer ────────────────────────────────────────────────────
     logo_b64: str | None = None
     for candidate in [
-        "Dokumentasi/DummyLogo.png",
-        "dokumentasi/DummyLogo.png",
-        "DummyLogo.png",
+        "Dokumentasi/DummyLogo.png", "dokumentasi/DummyLogo.png", "DummyLogo.png",
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "Dokumentasi", "DummyLogo.png"),
     ]:
         if os.path.exists(candidate):
@@ -617,18 +343,19 @@ def render_sidebar() -> None:
                 logo_b64 = base64.b64encode(fh.read()).decode()
             break
 
-    if logo_b64:
-        logo_content = f'<img class="sb-logo-img" src="data:image/png;base64,{logo_b64}" alt="logo">'
-    else:
-        logo_content = '<div style="font-size:26px;line-height:1;flex-shrink:0;">🌾</div>'
-
+    logo_content = (
+        f'<img class="sb-logo-img" src="data:image/png;base64,{logo_b64}" alt="logo" '
+        f'style="width:34px;height:34px;border-radius:8px;object-fit:cover;flex-shrink:0;">'
+        if logo_b64 else
+        '<div style="font-size:26px;line-height:1;flex-shrink:0;">🌾</div>'
+    )
     st.sidebar.markdown(f"""
     <div class="sb-logo-footer">
         <div class="sb-logo-row">
             {logo_content}
             <div>
                 <div class="sb-logo-name">Spasial Bantuan</div>
-                <div class="sb-logo-ver">v2.0 · Indonesia</div>
+                <div class="sb-logo-ver">v3.0 · Indonesia</div>
             </div>
         </div>
     </div>
@@ -856,7 +583,7 @@ def load_geojson():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  BUILD MAP
+#  BUILD MAP  ─ v3: lebar penuh, batas provinsi tebal & jelas
 # ─────────────────────────────────────────────────────────────────────────────
 def build_map(df_f: pd.DataFrame, geojson, prop_key: str) -> go.Figure:
     prov_agg = (
@@ -876,7 +603,7 @@ def build_map(df_f: pd.DataFrame, geojson, prop_key: str) -> go.Figure:
     kab_agg["lon"] = kab_agg["Kab/Kota"].map(lambda k: KOTA_COORDS.get(k,(None,None))[1])
     kab_ok = kab_agg.dropna(subset=["lat","lon"]).copy()
     mx = kab_ok["Total"].max() or 1
-    kab_ok["sz"] = (kab_ok["Total"] / mx) ** 0.5 * 24 + 6
+    kab_ok["sz"] = (kab_ok["Total"] / mx) ** 0.5 * 28 + 7
 
     fig = go.Figure()
 
@@ -889,14 +616,18 @@ def build_map(df_f: pd.DataFrame, geojson, prop_key: str) -> go.Figure:
             colorscale=MAP_COLORSCALE,
             zmin=0,
             zmax=float(prov_agg["Total"].max() or 1),
-            marker_line_color="#ffffff",
-            marker_line_width=0.9,
+            # ── GARIS BATAS PROVINSI TEBAL & JELAS ──
+            marker_line_color="#5C1230",     # garis gelap kontras
+            marker_line_width=1.8,           # lebih tebal → mirip grid wilayah
             colorbar=dict(
                 title=dict(text="Total<br>Nominal", font=dict(size=10, color=P["primary"])),
                 tickformat=".2s",
-                x=1.01, thickness=13, len=0.50,
+                x=1.005, thickness=14, len=0.55,
                 tickfont=dict(size=9, color=P["text"]),
-                bgcolor="rgba(255,255,255,.85)",
+                bgcolor="rgba(255,255,255,.88)",
+                bordercolor=P["rose200"],
+                borderwidth=1,
+                outlinewidth=0,
             ),
             customdata=prov_agg[["Provinsi","Bantuan","Total","HoverKab"]].values,
             hovertemplate=(
@@ -920,9 +651,10 @@ def build_map(df_f: pd.DataFrame, geojson, prop_key: str) -> go.Figure:
             colorscale=MAP_COLORSCALE,
             cmin=0,
             cmax=float(kab_ok["Total"].max() or 1),
-            opacity=0.82,
-            line=dict(color="#fff", width=0.8),
+            opacity=0.85,
+            line=dict(color="#fff", width=1.2),
             showscale=False,
+            symbol="circle",
         ),
         customdata=kab_ok[["Kab/Kota","Provinsi","Bantuan","Total"]].values,
         hovertemplate=(
@@ -936,26 +668,31 @@ def build_map(df_f: pd.DataFrame, geojson, prop_key: str) -> go.Figure:
     ))
 
     fig.update_layout(
+        # ── GEO: dikunci ke bounding box Indonesia → lebar penuh ──────────
         geo=dict(
             scope="asia",
-            center=dict(lat=-2.5, lon=118.0),
-            projection_scale=3.9,
-            showland=True,    landcolor="#F5EAF0",
-            showocean=True,   oceancolor="#E8F4FC",
-            showcountries=True, countrycolor="#D8C8D0",
-            showcoastlines=True, coastlinecolor="#C0AEB8",
-            showlakes=True,   lakecolor="#E8F4FC",
+            # Gunakan lonaxis/lataxis agar peta TERKUNCI ke wilayah Indonesia
+            lonaxis=dict(range=[94.5, 141.5]),   # batas lon Indonesia
+            lataxis=dict(range=[-11.5, 6.5]),    # batas lat Indonesia
+            showland=True,    landcolor="#F0EAF0",
+            showocean=True,   oceancolor="#D6EEF8",
+            showcountries=True, countrycolor="#BBA8B8",
+            showcoastlines=True, coastlinecolor="#A090A0",
+            showlakes=True,   lakecolor="#D6EEF8",
+            showrivers=True,  rivercolor="#C0DCEC",
             showframe=False,  bgcolor="rgba(0,0,0,0)",
+            resolution=50,    # lebih detail
         ),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=0, r=0, t=0, b=0),
-        height=530,
+        margin=dict(l=0, r=0, t=8, b=0),
+        height=600,   # lebih tinggi
         legend=dict(
-            x=0.01, y=0.98,
-            bgcolor="rgba(255,255,255,.90)",
+            x=0.01, y=0.04,
+            bgcolor="rgba(255,255,255,.92)",
             bordercolor=P["rose300"], borderwidth=1,
             font=dict(size=11, color=P["text"]),
+            title=dict(text="<b>Layer</b>", font=dict(size=11, color=P["primary"])),
         ),
         hoverlabel=dict(
             bgcolor=P["deep"], font_color="#fff", font_size=12,
@@ -967,7 +704,7 @@ def build_map(df_f: pd.DataFrame, geojson, prop_key: str) -> go.Figure:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  CHART: Top 10 Provinsi horizontal bar
+#  CHART: Top 10 Provinsi  ─ v3: warna beragam + card background
 # ─────────────────────────────────────────────────────────────────────────────
 def chart_top_prov(df_f: pd.DataFrame) -> go.Figure:
     top = (
@@ -977,14 +714,24 @@ def chart_top_prov(df_f: pd.DataFrame) -> go.Figure:
         .tail(10)
         .reset_index()
     )
+
+    # Warna beragam — gradient dari merah muda ke ungu-gelap
+    n = len(top)
+    palette_full = [
+        "#E8736A","#D4834A","#C8960C","#7B9E3C",
+        "#2E8B57","#4A90C4","#7B5EA7","#C5547A",
+        "#8B2252","#3D0E21",
+    ]
+    bar_colors = palette_full[:n] if n <= len(palette_full) else (palette_full * 3)[:n]
+
     fig = go.Figure(go.Bar(
         x=top["Total"],
         y=top["Provinsi"],
         orientation="h",
         marker=dict(
-            color=top["Total"],
-            colorscale=MAP_COLORSCALE,
-            line=dict(color="rgba(0,0,0,0)"),
+            color=bar_colors,
+            line=dict(color="rgba(255,255,255,.40)", width=1.2),
+            opacity=0.92,
         ),
         customdata=top[["Bantuan","Total"]].values,
         hovertemplate=(
@@ -993,32 +740,38 @@ def chart_top_prov(df_f: pd.DataFrame) -> go.Figure:
             "Total Nominal  : Rp %{customdata[1]:,.0f}"
             "<extra></extra>"
         ),
+        text=[fmt_rp_compact(v) for v in top["Total"]],
+        textposition="outside",
+        textfont=dict(size=10, color=P["text"], family="Plus Jakarta Sans"),
     ))
     fig.update_layout(
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=0, r=16, t=4, b=0),
-        height=360,
+        paper_bgcolor="#FFFFFF",       # ← background kotak putih
+        plot_bgcolor="#FAFAFA",        # ← area plot sedikit abu
+        margin=dict(l=0, r=80, t=10, b=10),
+        height=370,
         xaxis=dict(
-            showgrid=True, gridcolor="#F0E4E8",
-            tickformat=".2s", tickfont=dict(size=10), zeroline=False,
+            showgrid=True,
+            gridcolor="#F0E4E8",
+            gridwidth=1,
+            tickformat=".2s",
+            tickfont=dict(size=10, color=P["muted"]),
+            zeroline=False,
+            showline=False,
         ),
-        yaxis=dict(showgrid=False, tickfont=dict(size=11, color=P["text"])),
+        yaxis=dict(
+            showgrid=False,
+            tickfont=dict(size=11.5, color=P["text"], family="Plus Jakarta Sans"),
+        ),
         hoverlabel=dict(bgcolor=P["deep"], font_color="#fff", font_size=11),
+        uniformtext=dict(minsize=8, mode="hide"),
     )
     return fig
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  RANKING  — FIX: gunakan inline style PENUH, tidak pakai CSS class
-#  Ini mencegah Streamlit mengubah HTML menjadi teks mentah
+#  RANKING  ─ v3 FIX: gunakan st.components.v1.html() → tidak ada raw HTML
 # ─────────────────────────────────────────────────────────────────────────────
 def render_ranking(df_f: pd.DataFrame, top_n: int = 10) -> None:
-    """
-    FIXED: Render ranking card langsung lewat st.markdown dengan inline styles.
-    Tidak lagi mengembalikan string HTML panjang ke dalam st.columns
-    yang bisa menyebabkan Streamlit merender teks mentah.
-    """
     rank = (
         df_f.groupby("Provinsi")
         .agg(Bantuan=("Nominal","count"), Total=("Nominal","sum"))
@@ -1027,66 +780,68 @@ def render_ranking(df_f: pd.DataFrame, top_n: int = 10) -> None:
         .reset_index()
     )
 
-    medal_bg  = {1:"#C8960C", 2:"#7A8694", 3:"#A0522D"}
-    C = P  # shorthand
+    C = P
+    medal_bg = {1:"#C8960C", 2:"#9E9E9E", 3:"#A0522D"}
 
     rows_html = ""
     for i, row in enumerate(rank.itertuples(), start=1):
-        num_bg  = medal_bg.get(i, C["primary"])
+        num_bg = medal_bg.get(i, C["primary"])
         rows_html += f"""
-        <div style="
-            display:flex; align-items:center; gap:10px;
-            padding:8px 0;
-            border-bottom:1px solid {C['rose100']};
-        ">
-            <div style="
-                font-size:11.5px; font-weight:800; color:#fff;
-                background:{num_bg};
-                border-radius:50%;
-                min-width:28px; height:28px;
-                display:flex; align-items:center; justify-content:center;
-                flex-shrink:0;
-                box-shadow:0 2px 6px rgba(0,0,0,.18);
-            ">{i}</div>
-            <div style="flex:1; min-width:0;">
-                <div style="
-                    font-size:12.5px; font-weight:700;
-                    color:{C['text']};
-                    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-                ">{row.Provinsi}</div>
-                <div style="font-size:11px; color:{C['muted']}; margin-top:1px;">
+        <div style="display:flex;align-items:center;gap:10px;
+                    padding:9px 0;border-bottom:1px solid #F8D7DA;">
+            <div style="font-size:11.5px;font-weight:800;color:#fff;
+                        background:{num_bg};border-radius:50%;
+                        min-width:28px;height:28px;
+                        display:flex;align-items:center;justify-content:center;
+                        flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.18);">
+                {i}
+            </div>
+            <div style="flex:1;min-width:0;">
+                <div style="font-size:12.5px;font-weight:700;color:{C['text']};
+                            white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                    {row.Provinsi}
+                </div>
+                <div style="font-size:11px;color:{C['muted']};margin-top:1px;">
                     {int(row.Bantuan)} bantuan
                 </div>
             </div>
-            <div style="
-                font-size:12px; font-weight:800;
-                color:{C['primary']};
-                white-space:nowrap; text-align:right; flex-shrink:0;
-            ">{fmt_rp_compact(row.Total)}</div>
+            <div style="font-size:12px;font-weight:800;color:{C['primary']};
+                        white-space:nowrap;text-align:right;flex-shrink:0;">
+                {fmt_rp_compact(row.Total)}
+            </div>
         </div>"""
 
     full_html = f"""
-    <div style="
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset="utf-8">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+      * {{ box-sizing:border-box; margin:0; padding:0; }}
+      body {{
+        font-family:'Plus Jakarta Sans',sans-serif;
         background:#fff;
         border-radius:16px;
         padding:18px 20px;
-        box-shadow:0 4px 20px rgba(107,29,58,.11), 0 1px 4px rgba(107,29,58,.07);
-        border:1px solid {C['rose100']};
-        height:100%;
-    ">
-        <div style="
-            font-size:13px; font-weight:800;
-            color:{C['primary']}; margin-bottom:14px;
-            padding-bottom:10px;
-            border-bottom:2px solid {C['rose100']};
-            display:flex; align-items:center; gap:8px;
-        ">
-            🏆 Ranking Provinsi Terbanyak
-        </div>
-        {rows_html}
-    </div>"""
+        overflow:hidden;
+      }}
+    </style>
+    </head>
+    <body>
+      <div style="font-size:13px;font-weight:800;color:{C['primary']};
+                  margin-bottom:14px;padding-bottom:10px;
+                  border-bottom:2px solid {C['rose100']};
+                  display:flex;align-items:center;gap:8px;">
+          🏆 Ranking Provinsi Terbanyak
+      </div>
+      {rows_html}
+    </body>
+    </html>
+    """
 
-    st.markdown(full_html, unsafe_allow_html=True)
+    # ← Ini yang paling penting: pakai components.html bukan st.markdown
+    components.html(full_html, height=430, scrolling=True)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1129,7 +884,6 @@ def render_table_html(df_t: pd.DataFrame) -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 def main() -> None:
 
-    # ── Sidebar ────────────────────────────────────────────────────────────
     render_sidebar()
 
     # ── Banner ─────────────────────────────────────────────────────────────
@@ -1149,22 +903,13 @@ def main() -> None:
     with st.spinner("🗺️ Memuat GeoJSON …"):
         geojson, prop_key = load_geojson()
 
-    # ═══════════════════════════════════════════════════════════════════════
-    #  SECTION 1 — FILTER + KPI + HEATMAP
-    # ═══════════════════════════════════════════════════════════════════════
-
     # ── Filter Tahun ───────────────────────────────────────────────────────
     st.markdown('<div class="filter-wrap">', unsafe_allow_html=True)
     fc1, fc2 = st.columns([4, 4])
     with fc1:
         avail_years = sorted([int(y) for y in df["Tahun"].dropna().unique()])
         year_labels = ["Semua"] + [str(y) for y in avail_years]
-        sel_year = st.radio(
-            "📅 Filter Tahun",
-            options=year_labels,
-            horizontal=True,
-            key="map_year",
-        )
+        sel_year = st.radio("📅 Filter Tahun", options=year_labels, horizontal=True, key="map_year")
     with fc2:
         if sel_year != "Semua":
             st.markdown(
@@ -1202,10 +947,9 @@ def main() -> None:
                 <div class="kpi-val">{val}</div>
                 <div class="kpi-lbl">{lbl}</div>
             </div>""", unsafe_allow_html=True)
-
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # ── Heatmap Section Header ─────────────────────────────────────────────
+    # ── Heatmap ────────────────────────────────────────────────────────────
     st.markdown(f"""
     <div class="sec">
         <h3>🗺️ Heatmap Interaktif Penyebaran Bantuan
@@ -1223,12 +967,11 @@ def main() -> None:
                 "displayModeBar": True,
                 "modeBarButtonsToRemove": ["select2d","lasso2d"],
                 "toImageButtonOptions": {"filename":"peta_bantuan"},
+                "scrollZoom": True,
             },
         )
 
-    # ═══════════════════════════════════════════════════════════════════════
-    #  SECTION 2 — ANALITIK: Bar chart + Ranking (FIXED)
-    # ═══════════════════════════════════════════════════════════════════════
+    # ── Analitik ───────────────────────────────────────────────────────────
     st.markdown(f"""
     <div class="sec">
         <h3>📊 Analitik Distribusi
@@ -1239,17 +982,17 @@ def main() -> None:
     col_bar, col_rank = st.columns([3, 2], gap="medium")
 
     with col_bar:
-        # Wrap bar chart in a styled card
+        # Card wrapper untuk bar chart
         st.markdown(f"""
         <div style="
             background:#fff;
             border-radius:16px;
-            padding:16px 18px 4px;
-            box-shadow:0 4px 20px rgba(107,29,58,.10), 0 1px 4px rgba(107,29,58,.06);
+            padding:16px 18px 6px;
+            box-shadow:0 4px 20px rgba(107,29,58,.10),0 1px 4px rgba(107,29,58,.06);
             border:1px solid {P['rose100']};
-            margin-bottom:6px;
+            margin-bottom:4px;
         ">
-            <div style="font-size:13px;font-weight:800;color:{P['primary']};margin-bottom:2px;">
+            <div style="font-size:13px;font-weight:800;color:{P['primary']};margin-bottom:4px;">
                 📊 Top 10 Provinsi — Total Nominal Bantuan
             </div>
         </div>""", unsafe_allow_html=True)
@@ -1260,12 +1003,18 @@ def main() -> None:
         )
 
     with col_rank:
-        # FIX: gunakan fungsi render_ranking (inline style, bukan CSS class)
+        # Card wrapper ranking
+        st.markdown(f"""
+        <div style="
+            background:#fff;border-radius:16px;
+            padding:14px 16px 4px;
+            box-shadow:0 4px 20px rgba(107,29,58,.10),0 1px 4px rgba(107,29,58,.06);
+            border:1px solid {P['rose100']};
+        ">
+        </div>""", unsafe_allow_html=True)
         render_ranking(df_map, top_n=10)
 
-    # ═══════════════════════════════════════════════════════════════════════
-    #  SECTION 3 — TABEL DATA BANTUAN
-    # ═══════════════════════════════════════════════════════════════════════
+    # ── Tabel ──────────────────────────────────────────────────────────────
     st.markdown(f"""
     <div class="sec" style="margin-top:28px;">
         <h3>📋 Tabel Data Bantuan
@@ -1273,16 +1022,10 @@ def main() -> None:
         </h3>
     </div>""", unsafe_allow_html=True)
 
-    # ── Filter tabel ──────────────────────────────────────────────────────
     st.markdown('<div class="filter-wrap">', unsafe_allow_html=True)
     tf1, tf2, tf3 = st.columns([1, 2, 2])
-
     with tf1:
-        tbl_year = st.selectbox(
-            "📅 Tahun",
-            options=["Semua"] + [str(y) for y in avail_years],
-            key="tbl_year",
-        )
+        tbl_year = st.selectbox("📅 Tahun", options=["Semua"] + [str(y) for y in avail_years], key="tbl_year")
     with tf2:
         prov_list = ["Semua"] + sorted(df["Provinsi"].dropna().unique())
         tbl_prov = st.selectbox("🏙️ Provinsi", prov_list, key="tbl_prov")
@@ -1292,14 +1035,9 @@ def main() -> None:
             if tbl_prov != "Semua"
             else df["Kab/Kota"].dropna().unique()
         )
-        tbl_kab = st.selectbox(
-            "📍 Kab/Kota",
-            ["Semua"] + sorted(kab_pool),
-            key="tbl_kab",
-        )
+        tbl_kab = st.selectbox("📍 Kab/Kota", ["Semua"] + sorted(kab_pool), key="tbl_kab")
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Apply filters
     df_tbl = df.copy()
     if tbl_year != "Semua":
         df_tbl = df_tbl[df_tbl["Tahun"] == int(tbl_year)]
@@ -1320,7 +1058,6 @@ def main() -> None:
     df_show = df_tbl[[c for c in COLS5 if c in df_tbl.columns]].reset_index(drop=True)
     render_table_html(df_show)
 
-    # ── Download ──────────────────────────────────────────────────────────
     csv_bytes = df_tbl.to_csv(index=False).encode("utf-8")
     dl1, _, dl2 = st.columns([2, 5, 2])
     with dl1:
@@ -1337,13 +1074,12 @@ def main() -> None:
             unsafe_allow_html=True,
         )
 
-    # ── Footer ────────────────────────────────────────────────────────────
     st.markdown(
         f"<hr style='border:none;border-top:1.5px solid {P['rose100']};margin:36px 0 12px;'>"
         f"<p style='text-align:center;font-size:11.5px;color:{P['muted']};line-height:1.8;'>"
         f"📡 Data real-time dari Google Sheets"
         f"&nbsp;·&nbsp; Peta: GeoJSON Indonesia (superpikar)"
-        f"&nbsp;·&nbsp; 🌾 Spasial Bantuan v2.0"
+        f"&nbsp;·&nbsp; 🌾 Spasial Bantuan v3.0"
         f"</p>",
         unsafe_allow_html=True,
     )
