@@ -839,6 +839,9 @@ for col, label, val, sub, note, accent, _ in kpi_data:
 st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
 # ── CHARTS ──────────────────────────────────────────────────────────────────
+import streamlit.components.v1 as components
+import math
+
 PALETTE_BAR = {"LPJ":"#5E0F26","Belum LPJ":"#8B1A3A","Jatuh Tempo":"#C4617F"}
 PLOTLY_BASE = dict(
     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
@@ -852,68 +855,70 @@ status_dist_df = (
 )
 status_dist_df.columns = ["Kategori","Jumlah"]
 
-# Helper: SVG circular gauge (maroon theme)
-def circular_gauge_svg(pct, label, color_main="#8B1A3A", color_track="#EAD8DF", size=110):
+def make_gauge_html(items):
     """
-    Generates an SVG circular gauge indicator (like a donut ring progress).
-    pct: 0-100 float
+    items: list of (label, pct_float, color_hex, count_int)
+    Returns a full HTML string with embedded SVG ring gauges.
     """
-    import math
-    r = 40
-    cx = cy = size // 2
-    stroke = 9
-    circumference = 2 * math.pi * r
-    fill_len = circumference * min(pct, 100) / 100
-    gap_len  = circumference - fill_len
-    # Start from top (-90deg) → rotate transform
-    pct_text = f"{pct:.1f}%".replace(".0%", "%")
-    svg = f"""
-    <svg width="{size}" height="{size}" viewBox="0 0 {size} {size}" xmlns="http://www.w3.org/2000/svg">
-      <!-- Track -->
-      <circle cx="{cx}" cy="{cy}" r="{r}"
-        fill="none" stroke="{color_track}" stroke-width="{stroke}"
-        stroke-linecap="round"/>
-      <!-- Progress -->
-      <circle cx="{cx}" cy="{cy}" r="{r}"
-        fill="none" stroke="{color_main}" stroke-width="{stroke}"
-        stroke-linecap="round"
-        stroke-dasharray="{fill_len:.2f} {gap_len:.2f}"
-        transform="rotate(-90 {cx} {cy})"/>
-      <!-- Percentage text -->
-      <text x="{cx}" y="{cy+1}" text-anchor="middle" dominant-baseline="middle"
-        font-family="Sora, sans-serif" font-size="13" font-weight="800" fill="#1C0A12">{pct_text}</text>
-    </svg>"""
-    return svg
+    def one_gauge(pct, color, size=110, stroke=10, track="#EAD8DF"):
+        r = (size - stroke * 2) / 2
+        cx = cy = size / 2
+        circ = 2 * math.pi * r
+        pct = max(0, min(100, pct))
+        fill = circ * pct / 100
+        gap  = circ - fill
+        pct_txt = f"{pct:.1f}".rstrip("0").rstrip(".") + "%"
+        return f"""
+        <svg width="{size}" height="{size}" viewBox="0 0 {size} {size}" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="{cx}" cy="{cy}" r="{r}" fill="none"
+            stroke="{track}" stroke-width="{stroke}" stroke-linecap="round"/>
+          <circle cx="{cx}" cy="{cy}" r="{r}" fill="none"
+            stroke="{color}" stroke-width="{stroke}" stroke-linecap="round"
+            stroke-dasharray="{fill:.3f} {gap:.3f}"
+            transform="rotate(-90 {cx} {cy})"/>
+          <text x="{cx}" y="{cy+1}" text-anchor="middle" dominant-baseline="middle"
+            font-family="Sora, sans-serif" font-size="14" font-weight="800" fill="#1C0A12">{pct_txt}</text>
+        </svg>"""
 
-pct_lpj = round((total_lpj / total_penerima) * 100, 1) if total_penerima else 0
-pct_jt  = round((total_jatuh_tempo / total_penerima) * 100, 1) if total_penerima else 0
-pct_fu  = round((total_follow_up / total_penerima) * 100, 1)   if total_penerima else 0
-pct_bl  = round((total_blacklist / total_penerima) * 100, 1)   if total_penerima else 0
+    cards = ""
+    for label, pct, color, count in items:
+        svg = one_gauge(pct, color)
+        cards += f"""
+        <div style="text-align:center;flex:1;min-width:90px;">
+          {svg}
+          <div style="font-size:11px;font-weight:700;color:{color};margin-top:5px;
+                      letter-spacing:0.05em;text-transform:uppercase;line-height:1.3;">{label}</div>
+          <div style="font-size:12px;font-weight:600;color:#9E7080;margin-top:2px;">{count} orang</div>
+        </div>"""
 
-c1, c2, c3 = st.columns(3, gap="medium")
+    return f"""
+    <html><head>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@800&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet">
+    <style>body{{margin:0;padding:0;background:transparent;font-family:'Plus Jakarta Sans',sans-serif;}}</style>
+    </head><body>
+    <div style="display:flex;align-items:flex-start;justify-content:space-around;
+                padding:8px 4px 10px 4px;gap:8px;flex-wrap:wrap;">
+      {cards}
+    </div>
+    </body></html>"""
+
+pct_lpj    = round((total_lpj / total_penerima) * 100, 1)          if total_penerima else 0
+pct_belum  = round((total_belum_lpj / total_penerima) * 100, 1)    if total_penerima else 0
+pct_jt     = round((total_jatuh_tempo / total_penerima) * 100, 1)  if total_penerima else 0
+pct_fu     = round((total_follow_up / total_penerima) * 100, 1)    if total_penerima else 0
+pct_bl     = round((total_blacklist / total_penerima) * 100, 1)    if total_penerima else 0
+
+c1, c2, c3 = st.columns([1, 1, 1], gap="medium")
 
 with c1:
     with st.container(border=True):
         st.markdown('<div class="panel-title">Indikator Realisasi LPJ</div>', unsafe_allow_html=True)
         st.markdown('<div class="panel-sub">Persentase penerima yang telah menyelesaikan LPJ</div>', unsafe_allow_html=True)
-
-        gauge_lpj   = circular_gauge_svg(pct_lpj,  "LPJ",        color_main="#5E0F26")
-        gauge_belum = circular_gauge_svg(100 - pct_lpj, "Belum", color_main="#C4617F")
-
-        st.markdown(f"""
-        <div style="display:flex;align-items:center;justify-content:space-around;padding:10px 0 6px 0;gap:8px;flex-wrap:wrap;">
-            <div style="text-align:center;">
-                {gauge_lpj}
-                <div style="font-size:0.72rem;font-weight:700;color:#5E0F26;margin-top:4px;letter-spacing:0.04em;text-transform:uppercase;">Sudah LPJ</div>
-                <div style="font-size:0.78rem;font-weight:600;color:#9E7080;">{total_lpj} orang</div>
-            </div>
-            <div style="text-align:center;">
-                {gauge_belum}
-                <div style="font-size:0.72rem;font-weight:700;color:#C4617F;margin-top:4px;letter-spacing:0.04em;text-transform:uppercase;">Belum LPJ</div>
-                <div style="font-size:0.78rem;font-weight:600;color:#9E7080;">{total_belum_lpj} orang</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        html_gauge = make_gauge_html([
+            ("Sudah LPJ",  pct_lpj,   "#5E0F26", total_lpj),
+            ("Belum LPJ",  pct_belum, "#B5476A", total_belum_lpj),
+        ])
+        components.html(html_gauge, height=180, scrolling=False)
 
 with c2:
     with st.container(border=True):
@@ -922,7 +927,7 @@ with c2:
         if not status_dist_df.empty:
             fig2 = px.bar(status_dist_df, x="Kategori", y="Jumlah", color="Kategori",
                           color_discrete_map=PALETTE_BAR)
-            fig2.update_layout(**PLOTLY_BASE, height=258, xaxis_title="", yaxis_title="", showlegend=False)
+            fig2.update_layout(**PLOTLY_BASE, height=180, xaxis_title="", yaxis_title="", showlegend=False)
             fig2.update_traces(marker_line_width=0, marker_cornerradius=6)
             st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar":False})
         else:
@@ -932,23 +937,12 @@ with c3:
     with st.container(border=True):
         st.markdown('<div class="panel-title">Indikator Risiko Tindak Lanjut</div>', unsafe_allow_html=True)
         st.markdown('<div class="panel-sub">Proporsi berdasarkan urgensi tindak lanjut</div>', unsafe_allow_html=True)
-
-        risk_items = [
-            ("Jatuh Tempo",     pct_jt,  "#8B1A3A", total_jatuh_tempo),
-            ("Perlu Follow Up", pct_fu,  "#A8355A", total_follow_up),
-            ("Potensi Blacklist",pct_bl, "#C4617F", total_blacklist),
-        ]
-        gauge_html = '<div style="display:flex;align-items:center;justify-content:space-around;padding:10px 0 4px 0;flex-wrap:wrap;gap:8px;">'
-        for lbl, pct, clr, cnt in risk_items:
-            g = circular_gauge_svg(pct, lbl, color_main=clr, size=100)
-            gauge_html += f"""
-            <div style="text-align:center;">
-                {g}
-                <div style="font-size:0.7rem;font-weight:700;color:{clr};margin-top:4px;letter-spacing:0.03em;text-transform:uppercase;">{lbl}</div>
-                <div style="font-size:0.76rem;font-weight:600;color:#9E7080;">{cnt} orang</div>
-            </div>"""
-        gauge_html += '</div>'
-        st.markdown(gauge_html, unsafe_allow_html=True)
+        html_risk = make_gauge_html([
+            ("Jatuh Tempo",      pct_jt, "#8B1A3A", total_jatuh_tempo),
+            ("Follow Up",        pct_fu, "#A8355A", total_follow_up),
+            ("Blacklist",        pct_bl, "#C4617F", total_blacklist),
+        ])
+        components.html(html_risk, height=180, scrolling=False)
 
 st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
