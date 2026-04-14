@@ -535,7 +535,7 @@ total_nominal_lpj = filtered.loc[filtered["Status Pembayaran"]=="LPJ","Jumlah Ba
 with f1:
     st.markdown(f"""
     <div class="kpi-wrap">
-        <div class="kpi-label">UANG LUNAS / TOTAL</div>
+        <div class="kpi-label">NOMINAL SUDAH LPJ / TOTAL NOMINAL LPJ</div>
         <div class="kpi-value">
             {fmt_rupiah(total_nominal_lpj)}
             <div style="font-size:0.95rem;color:#8a6672;font-weight:600;margin-top:4px;">
