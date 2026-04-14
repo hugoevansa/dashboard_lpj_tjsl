@@ -323,7 +323,7 @@ data = data.rename(columns={k:v for k,v in aliases.items() if k in data.columns}
 
 # Tambahkan kolom Tahap Followup & Catatan Followup ke required_cols
 required_cols = ["Nama Bantuan","Jumlah Bantuan (Rp)","Tanggal Dibantu","Tenggat",
-                 "PIC","No Hp Penerima","Kab / Kota","Provinsi",
+                 "PIC","No Hp Penerima","Kab/Kota","Provinsi",
                  "Status","Chat","Status Chat",
                  "Tahap Followup","Catatan Followup"]
 for col in required_cols:
@@ -332,7 +332,7 @@ for col in required_cols:
 data["Nama Bantuan"]        = data["Nama Bantuan"].astype(str).str.strip()
 data["PIC"]                 = data["PIC"].astype(str).str.strip()
 data["No Hp Penerima"]      = clean_phone(data["No Hp Penerima"])
-data["Kab / Kota"]          = data["Kab / Kota"].astype(str).str.strip().replace("nan", "")
+data["Kab/Kota"]          = data["Kab/Kota"].astype(str).str.strip().replace("nan", "")
 data["Provinsi"]            = data["Provinsi"].astype(str).str.strip().replace("nan", "")
 data["Status"]              = data["Status"].astype(str).str.strip()
 data["Chat"]                = data["Chat"].astype(str).str.strip()
@@ -468,8 +468,8 @@ if nama_filter and len(table_df) >= 1:
                 <div class="detail-field-value">{no_hp}</div>
             </div>
             <div class="detail-field">
-                <div class="detail-field-label">Kab / Kota</div>
-                <div class="detail-field-value">{r['Kab / Kota'] if r['Kab / Kota'] else '—'}</div>
+                <div class="detail-field-label">Kab/Kota</div>
+                <div class="detail-field-value">{r['Kab/Kota'] if r['Kab/Kota'] else '—'}</div>
             </div>
             <div class="detail-field">
                 <div class="detail-field-label">Provinsi</div>
@@ -542,7 +542,7 @@ if search:
         table_df["Nama Bantuan"].astype(str).str.lower().str.contains(kw, na=False) |
         table_df["PIC"].astype(str).str.lower().str.contains(kw, na=False) |
         table_df["No Hp Penerima"].astype(str).str.lower().str.contains(kw, na=False) |
-        table_df["Kab / Kota"].astype(str).str.lower().str.contains(kw, na=False) |
+        table_df["Kab/Kota"].astype(str).str.lower().str.contains(kw, na=False) |
         table_df["Provinsi"].astype(str).str.lower().str.contains(kw, na=False) |
         table_df["Label Tampilan"].astype(str).str.lower().str.contains(kw, na=False) |
         table_df["Chat Normal"].astype(str).str.lower().str.contains(kw, na=False) |
@@ -566,7 +566,7 @@ disp = table_df[[
     "Tenggat",
     "PIC",
     "No Hp Penerima",
-    "Kab / Kota",
+    "Kab/Kota",
     "Provinsi",
     "Tahun",
     "Label Tampilan",
@@ -583,7 +583,7 @@ disp["Tenggat"] = disp["Tenggat"].apply(fmt_tgl)
 disp["Tanggal Chat"] = disp["Tanggal Chat"].apply(fmt_tgl)
 
 disp["No Hp Penerima"] = disp["No Hp Penerima"].replace("", "-")
-disp["Kab / Kota"] = disp["Kab / Kota"].replace("", "-").replace("nan", "-")
+disp["Kab/Kota"] = disp["Kab/Kota"].replace("", "-").replace("nan", "-")
 disp["Provinsi"] = disp["Provinsi"].replace("", "-").replace("nan", "-")
 disp["Tahun"] = disp["Tahun"].replace("", "-").replace("nan", "-")
 
@@ -608,7 +608,7 @@ disp = disp[[
     "Tenggat",
     "PIC",
     "No Hp Penerima",
-    "Kab / Kota",
+    "Kab/Kota",
     "Provinsi",
     "Tahun",
     "Tanggal Chat",
