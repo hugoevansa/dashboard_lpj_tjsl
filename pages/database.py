@@ -323,7 +323,8 @@ data = data.rename(columns={k:v for k,v in aliases.items() if k in data.columns}
 
 # Tambahkan kolom Tahap Followup & Catatan Followup ke required_cols
 required_cols = ["Nama Bantuan","Jumlah Bantuan (Rp)","Tanggal Dibantu","Tenggat",
-                 "PIC","No Hp Penerima","Status","Chat","Status Chat",
+                 "PIC","No Hp Penerima","Kab / Kota","Provinsi",
+                 "Status","Chat","Status Chat",
                  "Tahap Followup","Catatan Followup"]
 for col in required_cols:
     if col not in data.columns: data[col] = ""
@@ -331,6 +332,8 @@ for col in required_cols:
 data["Nama Bantuan"]        = data["Nama Bantuan"].astype(str).str.strip()
 data["PIC"]                 = data["PIC"].astype(str).str.strip()
 data["No Hp Penerima"]      = clean_phone(data["No Hp Penerima"])
+data["Kab / Kota"]          = data["Kab / Kota"].astype(str).str.strip().replace("nan", "")
+data["Provinsi"]            = data["Provinsi"].astype(str).str.strip().replace("nan", "")
 data["Status"]              = data["Status"].astype(str).str.strip()
 data["Chat"]                = data["Chat"].astype(str).str.strip()
 data["Status Chat"]         = data["Status Chat"].astype(str).str.strip()
@@ -338,7 +341,8 @@ data["Jumlah Bantuan (Rp)"] = clean_currency(data["Jumlah Bantuan (Rp)"])
 data["Tanggal Dibantu"]     = pd.to_datetime(data["Tanggal Dibantu"], errors="coerce", dayfirst=True)
 data["Tenggat"]             = pd.to_datetime(data["Tenggat"], errors="coerce", dayfirst=True)
 data["Tanggal Chat"]        = pd.to_datetime(data["Status Chat"], errors="coerce", dayfirst=True)
-data["Tahun"]               = data["Tanggal Dibantu"].dt.year
+data["Tahun"] = data["Tanggal Dibantu"].dt.year
+data["Tahun"] = data["Tahun"].apply(lambda x: str(int(x)) if pd.notna(x) else "-")
 data["Status Pembayaran"]   = data["Status"].apply(normalize_status)
 data["Chat Normal"]         = data["Chat"].apply(normalize_chat)
 
@@ -530,6 +534,8 @@ if search:
         table_df["Nama Bantuan"].astype(str).str.lower().str.contains(kw, na=False) |
         table_df["PIC"].astype(str).str.lower().str.contains(kw, na=False) |
         table_df["No Hp Penerima"].astype(str).str.lower().str.contains(kw, na=False) |
+        table_df["Kab / Kota"].astype(str).str.lower().str.contains(kw, na=False) |
+        table_df["Provinsi"].astype(str).str.lower().str.contains(kw, na=False) |
         table_df["Label Tampilan"].astype(str).str.lower().str.contains(kw, na=False) |
         table_df["Chat Normal"].astype(str).str.lower().str.contains(kw, na=False) |
         table_df["Label Jeda Chat"].astype(str).str.lower().str.contains(kw, na=False) |
@@ -547,8 +553,10 @@ st.markdown(f'<div class="section-sub">{total_label}</div>', unsafe_allow_html=T
 # ── Build tabel tampilan ──────────────────────────────────────────────────────
 disp = table_df[[
     "Nama Bantuan","Jumlah Bantuan (Rp)","Tanggal Dibantu","Tenggat",
-    "PIC","No Hp Penerima","Tahun","Label Tampilan","Klasifikasi Chat",
+    "PIC","No Hp Penerima","Kab / Kota","Provinsi","Tahun",
+    "Label Tampilan","Klasifikasi Chat",
     "Label Jeda Chat","Tanggal Chat","Tahap Followup","Catatan Followup"
+]].copy()
 ]].copy()
 
 disp["Jumlah Bantuan (Rp)"] = disp["Jumlah Bantuan (Rp)"].apply(fmt_rupiah)
@@ -556,6 +564,9 @@ disp["Tanggal Dibantu"]     = disp["Tanggal Dibantu"].apply(fmt_tgl)
 disp["Tenggat"]             = disp["Tenggat"].apply(fmt_tgl)
 disp["Tanggal Chat"]        = disp["Tanggal Chat"].apply(fmt_tgl)
 disp["No Hp Penerima"]      = disp["No Hp Penerima"].replace("","-")
+disp["Kab / Kota"]          = disp["Kab / Kota"].replace("", "-").replace("nan", "-")
+disp["Provinsi"]            = disp["Provinsi"].replace("", "-").replace("nan", "-")
+disp["Tahun"]               = disp["Tahun"].replace("", "-").replace("nan", "-")
 disp["Status"]              = disp["Label Tampilan"].apply(chip_status)
 disp["Status Auto"]         = disp["Klasifikasi Chat"].apply(chip_klasifikasi_auto)
 disp["Tahap Manual"]        = disp["Tahap Followup"].apply(chip_tahap_followup)
@@ -566,8 +577,8 @@ disp = disp.drop(columns=["Label Tampilan","Klasifikasi Chat","Label Jeda Chat",
                            "Tahap Followup","Catatan Followup"])
 disp = disp[[
     "Nama Bantuan","Jumlah Bantuan (Rp)","Tanggal Dibantu","Tenggat",
-    "PIC","No Hp Penerima","Tahun","Tanggal Chat","Jeda Chat",
-    "Status","Status Auto","Tahap Manual","Catatan"
+    "PIC","No Hp Penerima","Kab / Kota","Provinsi","Tahun",
+    "Tanggal Chat","Jeda Chat","Status","Status Auto","Tahap Manual","Catatan"
 ]]
 
 st.markdown(df_to_html(disp, max_height=480), unsafe_allow_html=True)
