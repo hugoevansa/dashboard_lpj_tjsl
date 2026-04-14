@@ -90,7 +90,6 @@ div[data-baseweb="input"] > div {
 .chip-follow         { background:#fff7e6; color:#b36b00;        border:1px solid #f1d193; }
 .chip-blacklist      { background:#111827; color:#fff;           border:1px solid #374151; }
 .chip-muted          { background:#f5f5f5; color:#6b7280;        border:1px solid #d1d5db; }
-/* Chip tambahan untuk Tahap Followup manual */
 .chip-konfirmasi     { background:#e0f2fe; color:#0369a1;        border:1px solid #7dd3fc; }
 .chip-sudah-followup      { background:#fef9c3; color:#854d0e;        border:1px solid #fde047; }
 .chip-lpj-diterima   { background:#dcfce7; color:#15803d;        border:1px solid #86efac; }
@@ -114,6 +113,40 @@ div[data-baseweb="input"] > div {
 .tbl tr:nth-child(even) td { background:#fffafc; }
 .tbl tr:hover td { background:#fff5f8; }
 
+/* Tombol link Google Drive */
+.btn-gdrive {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #1a73e8;
+    color: #fff;
+    text-decoration: none;
+    font-size: 15px;
+    transition: background 0.18s, transform 0.12s;
+    border: none;
+}
+.btn-gdrive:hover {
+    background: #1557b0;
+    transform: scale(1.1);
+    color: #fff;
+}
+.btn-gdrive-empty {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #f3f4f6;
+    color: #d1d5db;
+    font-size: 15px;
+    cursor: default;
+    border: 1px dashed #d1d5db;
+}
+
 .detail-card {
     background: #fff;
     border-radius: 20px;
@@ -133,7 +166,6 @@ div[data-baseweb="input"] > div {
 .detail-field-label { font-size:0.72rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:5px; }
 .detail-field-value { font-size:0.98rem; font-weight:700; color:var(--text); word-break:break-word; }
 
-/* Box khusus untuk Tahap Followup & Catatan di detail card */
 .detail-followup-box {
     margin-top: 16px;
     padding: 16px 18px;
@@ -232,7 +264,6 @@ def chip_status(val):
     return '<span class="chip chip-belum">Belum LPJ</span>'
 
 def chip_klasifikasi_auto(val):
-    """Chip otomatis berdasarkan waktu chat"""
     if val == "BlackList":     return '<span class="chip chip-blacklist">🤖 Auto: Blacklist</span>'
     if val == "Follow Up LPJ": return '<span class="chip chip-follow">🤖 Auto: Follow Up</span>'
     if val == "Menunggu LPJ":  return '<span class="chip chip-menunggu">🤖 Auto: Menunggu</span>'
@@ -247,7 +278,6 @@ def chip_aksi_database(val, chat_normal=None):
     return '<span class="chip chip-muted">-</span>'
 
 def chip_tahap_followup(val):
-    """Chip untuk status manual yang diisi oleh pengguna"""
     if not val or val in ["nan", "", "-"]:
         return '<span class="chip chip-belum-diisi">Belum diisi</span>'
     if val == "Blacklist Dikonfirmasi":
@@ -261,6 +291,17 @@ def chip_tahap_followup(val):
     if val == "Menunggu Balasan":
         return '<span class="chip chip-menunggu">Menunggu Balasan</span>'
     return '<span class="chip chip-muted">-</span>'
+
+def link_btn_html(url):
+    """Tombol ikon link Google Drive — tampil ikon kalau ada URL, abu-abu kalau kosong."""
+    val = str(url).strip()
+    if not val or val in ["nan", "", "-", "None"]:
+        return '<span class="btn-gdrive-empty" title="Tidak ada link">🔗</span>'
+    return (
+        f'<a href="{val}" target="_blank" class="btn-gdrive" title="Buka dokumen">'
+        f'🔗'
+        f'</a>'
+    )
 
 def df_to_html(df, max_height=480):
     rows = ""
@@ -321,22 +362,22 @@ aliases = {
 }
 data = data.rename(columns={k:v for k,v in aliases.items() if k in data.columns})
 
-# Tambahkan kolom Tahap Followup & Catatan Followup ke required_cols
 required_cols = ["Nama Bantuan","Jumlah Bantuan (Rp)","Tanggal Dibantu","Tenggat",
                  "PIC","No Hp Penerima","Kab/Kota","Provinsi",
                  "Status","Chat","Status Chat",
-                 "Tahap Followup","Catatan Followup"]
+                 "Tahap Followup","Catatan Followup","Link"]
 for col in required_cols:
     if col not in data.columns: data[col] = ""
 
 data["Nama Bantuan"]        = data["Nama Bantuan"].astype(str).str.strip()
 data["PIC"]                 = data["PIC"].astype(str).str.strip()
 data["No Hp Penerima"]      = clean_phone(data["No Hp Penerima"])
-data["Kab/Kota"]          = data["Kab/Kota"].astype(str).str.strip().replace("nan", "")
+data["Kab/Kota"]            = data["Kab/Kota"].astype(str).str.strip().replace("nan", "")
 data["Provinsi"]            = data["Provinsi"].astype(str).str.strip().replace("nan", "")
 data["Status"]              = data["Status"].astype(str).str.strip()
 data["Chat"]                = data["Chat"].astype(str).str.strip()
 data["Status Chat"]         = data["Status Chat"].astype(str).str.strip()
+data["Link"]                = data["Link"].astype(str).str.strip().replace("nan", "")
 data["Jumlah Bantuan (Rp)"] = clean_currency(data["Jumlah Bantuan (Rp)"])
 data["Tanggal Dibantu"]     = pd.to_datetime(data["Tanggal Dibantu"], errors="coerce", dayfirst=True)
 data["Tenggat"]             = pd.to_datetime(data["Tenggat"], errors="coerce", dayfirst=True)
@@ -346,7 +387,6 @@ data["Tahun"] = data["Tahun"].apply(lambda x: str(int(x)) if pd.notna(x) else "-
 data["Status Pembayaran"]   = data["Status"].apply(normalize_status)
 data["Chat Normal"]         = data["Chat"].apply(normalize_chat)
 
-# Normalisasi kolom Tahap Followup (manual)
 data["Tahap Followup"] = data["Tahap Followup"].astype(str).str.strip()
 data["Tahap Followup"] = data["Tahap Followup"].apply(
     lambda x: x if x in VALID_TAHAP else ""
@@ -432,8 +472,8 @@ if nama_filter and len(table_df) >= 1:
     jeda_chat   = r["Label Jeda Chat"] if r["Label Jeda Chat"] else "—"
     no_hp       = r["No Hp Penerima"] if r["No Hp Penerima"] else "—"
     tahun_str   = str(int(r["Tahun"])) if pd.notna(r["Tahun"]) else "—"
+    link_val    = str(r.get("Link", "") or "").strip()
 
-    # Tahap Followup manual
     tahap_val   = str(r.get("Tahap Followup","") or "")
     catatan_val = str(r.get("Catatan Followup","") or "").strip()
 
@@ -441,12 +481,22 @@ if nama_filter and len(table_df) >= 1:
     chip_auto   = chip_klasifikasi_auto(r["Klasifikasi Chat"])
     chip_manual = chip_tahap_followup(tahap_val)
 
-    # Tampilan catatan
     catatan_display = (
         f'<div class="detail-catatan-text">📝 {catatan_val}</div>'
         if catatan_val and catatan_val not in ["nan","","-"] else
         '<div style="font-size:0.85rem;color:var(--muted);font-style:italic;">Tidak ada catatan</div>'
     )
+
+    # Tampilan link di detail card
+    if link_val and link_val not in ["nan", "", "-", "None"]:
+        link_display = (
+            f'<a href="{link_val}" target="_blank" class="btn-gdrive" '
+            f'style="width:auto;padding:6px 14px;border-radius:10px;font-size:13px;font-weight:700;'
+            f'text-decoration:none;display:inline-flex;align-items:center;gap:6px;">'
+            f'🔗 Buka Dokumen</a>'
+        )
+    else:
+        link_display = '<span style="font-size:0.85rem;color:var(--muted);font-style:italic;">Tidak ada link dokumen</span>'
 
     st.markdown(f"""
     <div class="detail-card">
@@ -499,8 +549,11 @@ if nama_filter and len(table_df) >= 1:
                 <div class="detail-field-label">Tahun</div>
                 <div class="detail-field-value">{tahun_str}</div>
             </div>
+            <div class="detail-field">
+                <div class="detail-field-label">Dokumen / Link</div>
+                <div class="detail-field-value">{link_display}</div>
+            </div>
         </div>
-        <!-- Blok Tahap Followup Manual -->
         <div class="detail-followup-box">
             <div class="detail-followup-title">📌 Tahap Followup Manual (diisi oleh kamu)</div>
             <div class="detail-followup-row">
@@ -560,6 +613,7 @@ st.markdown(f'<div class="section-sub">{total_label}</div>', unsafe_allow_html=T
 
 # ── Build tabel tampilan ──────────────────────────────────────────────────────
 disp = table_df[[
+    "Link",
     "Nama Bantuan",
     "Jumlah Bantuan (Rp)",
     "Tanggal Dibantu",
@@ -578,22 +632,24 @@ disp = table_df[[
 ]].copy()
 
 disp["Jumlah Bantuan (Rp)"] = disp["Jumlah Bantuan (Rp)"].apply(fmt_rupiah)
-disp["Tanggal Dibantu"] = disp["Tanggal Dibantu"].apply(fmt_tgl)
-disp["Tenggat"] = disp["Tenggat"].apply(fmt_tgl)
-disp["Tanggal Chat"] = disp["Tanggal Chat"].apply(fmt_tgl)
+disp["Tanggal Dibantu"]     = disp["Tanggal Dibantu"].apply(fmt_tgl)
+disp["Tenggat"]             = disp["Tenggat"].apply(fmt_tgl)
+disp["Tanggal Chat"]        = disp["Tanggal Chat"].apply(fmt_tgl)
+disp["No Hp Penerima"]      = disp["No Hp Penerima"].replace("", "-")
+disp["Kab/Kota"]            = disp["Kab/Kota"].replace("", "-").replace("nan", "-")
+disp["Provinsi"]            = disp["Provinsi"].replace("", "-").replace("nan", "-")
+disp["Tahun"]               = disp["Tahun"].replace("", "-").replace("nan", "-")
+disp["Status"]              = disp["Label Tampilan"].apply(chip_status)
+disp["Status Auto"]         = disp["Klasifikasi Chat"].apply(chip_klasifikasi_auto)
+disp["Tahap Manual"]        = disp["Tahap Followup"].apply(chip_tahap_followup)
+disp["Catatan"]             = disp["Catatan Followup"].replace("", "-").replace("nan", "-")
+disp["Jeda Chat"]           = disp["Label Jeda Chat"].replace("", "-")
 
-disp["No Hp Penerima"] = disp["No Hp Penerima"].replace("", "-")
-disp["Kab/Kota"] = disp["Kab/Kota"].replace("", "-").replace("nan", "-")
-disp["Provinsi"] = disp["Provinsi"].replace("", "-").replace("nan", "-")
-disp["Tahun"] = disp["Tahun"].replace("", "-").replace("nan", "-")
-
-disp["Status"] = disp["Label Tampilan"].apply(chip_status)
-disp["Status Auto"] = disp["Klasifikasi Chat"].apply(chip_klasifikasi_auto)
-disp["Tahap Manual"] = disp["Tahap Followup"].apply(chip_tahap_followup)
-disp["Catatan"] = disp["Catatan Followup"].replace("", "-").replace("nan", "-")
-disp["Jeda Chat"] = disp["Label Jeda Chat"].replace("", "-")
+# Kolom Link → ikon tombol, header "Dok."
+disp["Dok."] = disp["Link"].apply(link_btn_html)
 
 disp = disp.drop(columns=[
+    "Link",
     "Label Tampilan",
     "Klasifikasi Chat",
     "Label Jeda Chat",
@@ -602,6 +658,7 @@ disp = disp.drop(columns=[
 ])
 
 disp = disp[[
+    "Dok.",
     "Nama Bantuan",
     "Jumlah Bantuan (Rp)",
     "Tanggal Dibantu",
