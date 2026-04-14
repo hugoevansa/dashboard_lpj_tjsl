@@ -1,12 +1,14 @@
 """
-heatmap.py  ─  Peta Penyebaran Bantuan Indonesia  (v3 — Full Fix)
-=================================================================
-CHANGELOG v3:
-  - FIX: Ranking menggunakan st.components.v1.html() agar HTML benar-benar dirender
-  - FIX: Bar chart warna beragam (gradient multi-color) + background card
-  - IMPROVE: Heatmap lebar penuh (lat/lon axis bounds Indonesia)
-  - IMPROVE: Garis batas provinsi lebih tebal & jelas (mirip grid wilayah)
-  - IMPROVE: Desain peta lebih maksimal, tinggi diperbesar
+heatmap.py  ─  Peta Penyebaran Bantuan Indonesia  (v4 — GADM2 Grid Lines)
+=========================================================================
+Simpan di folder  pages/  (nama file sebaran.py sesuai nama asli di repo).
+
+CHANGELOG v4:
+  - NEW: Menggunakan gadm41_IDN_2.json (batas kabupaten/kota) untuk peta
+  - NEW: Setiap provinsi dibagi garis-garis batas kabupaten (grid effect)
+  - NEW: Province name mapping GADM → data (Jakarta Raya → DKI Jakarta, dst)
+  - KEEP: Fix ranking (components.html), bar chart warna beragam
+  - KEEP: Semua desain & fitur dari v3
 """
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -14,13 +16,13 @@ CHANGELOG v3:
 # ─────────────────────────────────────────────────────────────────────────────
 import os
 import re
+import json
 import base64
 import requests
 import streamlit as st
-import streamlit.components.v1 as components   # ← FIX ranking
+import streamlit.components.v1 as components
 import pandas as pd
 import plotly.graph_objects as go
-import numpy as np
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  PAGE CONFIG
@@ -47,159 +49,154 @@ P = {
     "card"     : "#FFFFFF",
     "muted"    : "#9C7B86",
     "text"     : "#2D1A20",
-    "warm1"    : "#FFF8F0",
-    "warm2"    : "#FCE8D0",
 }
 
 MAP_COLORSCALE = [
-    [0.00, "#FBF0F3"],
-    [0.15, "#F8D7DA"],
-    [0.35, "#E8A0B4"],
-    [0.60, "#C5547A"],
-    [0.80, "#8B2252"],
+    [0.00, "#FDF0F4"],
+    [0.10, "#F8D7DA"],
+    [0.30, "#E8A0B4"],
+    [0.55, "#C5547A"],
+    [0.78, "#8B2252"],
     [1.00, "#3D0E21"],
 ]
 
-# Warna beragam untuk bar chart
-BAR_COLORS = [
-    "#C5547A","#8B2252","#3D0E21","#E8736A","#D4834A",
-    "#7B5EA7","#4A90C4","#2E8B57","#C89B3C","#6B1D3A",
-]
+# ─────────────────────────────────────────────────────────────────────────────
+#  GADM NAME_1 → nama provinsi di data spreadsheet
+# ─────────────────────────────────────────────────────────────────────────────
+GADM_TO_DATA: dict[str, str] = {
+    "Aceh"                      : "Aceh",
+    "Bali"                      : "Bali",
+    "Bangka-Belitung"           : "Kepulauan Bangka Belitung",
+    "Kepulauan Bangka Belitung" : "Kepulauan Bangka Belitung",
+    "Banten"                    : "Banten",
+    "Bengkulu"                  : "Bengkulu",
+    "Gorontalo"                 : "Gorontalo",
+    "Jakarta Raya"              : "DKI Jakarta",
+    "DKI Jakarta"               : "DKI Jakarta",
+    "Jambi"                     : "Jambi",
+    "Jawa Barat"                : "Jawa Barat",
+    "Jawa Tengah"               : "Jawa Tengah",
+    "Jawa Timur"                : "Jawa Timur",
+    "Kalimantan Barat"          : "Kalimantan Barat",
+    "Kalimantan Selatan"        : "Kalimantan Selatan",
+    "Kalimantan Tengah"         : "Kalimantan Tengah",
+    "Kalimantan Timur"          : "Kalimantan Timur",
+    "Kalimantan Utara"          : "Kalimantan Utara",
+    "Kepulauan Riau"            : "Kepulauan Riau",
+    "Lampung"                   : "Lampung",
+    "Maluku"                    : "Maluku",
+    "Maluku Utara"              : "Maluku Utara",
+    "Nusa Tenggara Barat"       : "Nusa Tenggara Barat",
+    "Nusa Tenggara Timur"       : "Nusa Tenggara Timur",
+    "Papua"                     : "Papua",
+    "Papua Barat"               : "Papua Barat",
+    "Irian Jaya Barat"          : "Papua Barat",
+    "Riau"                      : "Riau",
+    "Sulawesi Barat"            : "Sulawesi Barat",
+    "Sulawesi Selatan"          : "Sulawesi Selatan",
+    "Sulawesi Tengah"           : "Sulawesi Tengah",
+    "Sulawesi Tenggara"         : "Sulawesi Tenggara",
+    "Sulawesi Utara"            : "Sulawesi Utara",
+    "Sumatera Barat"            : "Sumatera Barat",
+    "Sumatera Selatan"          : "Sumatera Selatan",
+    "Sumatera Utara"            : "Sumatera Utara",
+    "Yogyakarta"                : "DI Yogyakarta",
+    "DI Yogyakarta"             : "DI Yogyakarta",
+}
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  CSS
 # ─────────────────────────────────────────────────────────────────────────────
 st.markdown(f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
 *, *::before, *::after {{ box-sizing: border-box; }}
-
-html, body, [class*="css"] {{
-    font-family: 'Plus Jakarta Sans', sans-serif !important;
-}}
+html, body, [class*="css"] {{ font-family: 'Plus Jakarta Sans', sans-serif !important; }}
 .stApp {{ background-color: {P['bg']}; }}
-
-footer,
-div[data-testid="stDecoration"] {{
-    visibility: hidden !important;
-}}
+footer, div[data-testid="stDecoration"] {{ visibility: hidden !important; }}
 
 /* ══ SIDEBAR ══════════════════════════════════════════════════════════ */
 section[data-testid="stSidebar"] {{
     background: linear-gradient(180deg, {P['deep']} 0%, #2A0818 60%, #1E0512 100%) !important;
-    border-right: none;
-    box-shadow: 4px 0 24px rgba(61,14,33,.35);
+    border-right: none; box-shadow: 4px 0 24px rgba(61,14,33,.35);
 }}
-section[data-testid="stSidebar"] > div:first-child {{
-    padding-top: 0 !important;
-}}
-section[data-testid="stSidebar"] * {{
-    color: rgba(255,255,255,.85) !important;
-}}
+section[data-testid="stSidebar"] > div:first-child {{ padding-top: 0 !important; }}
+section[data-testid="stSidebar"] * {{ color: rgba(255,255,255,.85) !important; }}
 section[data-testid="stSidebar"] a[data-testid="stSidebarNavLink"] {{
-    background: transparent !important;
-    border-radius: 10px !important;
-    padding: 9px 14px !important;
-    margin: 2px 8px !important;
-    font-size: 13.5px !important;
-    font-weight: 500 !important;
+    background: transparent !important; border-radius: 10px !important;
+    padding: 9px 14px !important; margin: 2px 8px !important;
+    font-size: 13.5px !important; font-weight: 500 !important;
     transition: background .18s, transform .1s !important;
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
+    display: flex !important; align-items: center !important; gap: 8px !important;
 }}
 section[data-testid="stSidebar"] a[data-testid="stSidebarNavLink"]:hover {{
-    background: rgba(255,255,255,.12) !important;
-    transform: translateX(3px);
+    background: rgba(255,255,255,.12) !important; transform: translateX(3px);
 }}
 section[data-testid="stSidebar"] a[aria-current="page"],
 section[data-testid="stSidebar"] a[data-testid="stSidebarNavLink"][aria-current="page"] {{
     background: rgba(197,84,122,.35) !important;
-    border-left: 3px solid {P['rose300']} !important;
-    font-weight: 700 !important;
+    border-left: 3px solid {P['rose300']} !important; font-weight: 700 !important;
 }}
 
-/* ══ SIDEBAR BRAND ════════════════════════════════════════════════════ */
-.sb-brand {{
-    padding: 20px 16px 12px;
-    border-bottom: 1px solid rgba(255,255,255,.10);
-    margin-bottom: 6px;
-}}
+/* ── Brand ── */
+.sb-brand {{ padding: 20px 16px 12px; border-bottom: 1px solid rgba(255,255,255,.10); margin-bottom: 6px; }}
 .sb-brand-badge {{ display: inline-flex; align-items: center; gap: 10px; }}
 .sb-brand-icon {{
     width: 42px; height: 42px;
     background: linear-gradient(135deg, {P['accent']} 0%, {P['secondary']} 100%);
-    border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 22px;
-    box-shadow: 0 4px 14px rgba(197,84,122,.40);
-    flex-shrink: 0;
+    border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    font-size: 22px; box-shadow: 0 4px 14px rgba(197,84,122,.40); flex-shrink: 0;
 }}
 .sb-brand-title {{ font-size: 15px !important; font-weight: 800 !important; color: #fff !important; }}
-.sb-brand-sub {{ font-size: 10.5px !important; color: rgba(255,255,255,.48) !important; }}
+.sb-brand-sub   {{ font-size: 10.5px !important; color: rgba(255,255,255,.48) !important; }}
 
-/* ══ PETANI ANIMATION ═════════════════════════════════════════════════ */
-@keyframes farmer-walk  {{ 0% {{ left:-40px; }} 100% {{ left:110%; }} }}
+/* ── Petani ── */
+@keyframes farmer-walk {{ 0% {{ left:-40px; }} 100% {{ left:110%; }} }}
 @keyframes cloud-drift  {{ 0%,100% {{ transform:translateX(0);opacity:.6; }} 50% {{ opacity:.9; }} }}
 @keyframes rice-sway    {{ 0%,100% {{ transform:rotate(-3deg); }} 50% {{ transform:rotate(3deg); }} }}
 @keyframes sun-pulse    {{ 0%,100% {{ box-shadow:0 0 0 0 rgba(255,200,0,.4); }} 50% {{ box-shadow:0 0 0 6px rgba(255,200,0,.0); }} }}
-
 .sawah-scene {{
-    position:relative; margin:10px 8px 6px; height:68px;
-    border-radius:12px; overflow:hidden;
+    position:relative; margin:10px 8px 6px; height:68px; border-radius:12px; overflow:hidden;
     background:linear-gradient(180deg,#1a3a5c 0%,#1e4a72 30%,#2d6a2d 60%,#1e4d1e 100%);
     border:1px solid rgba(255,255,255,.08);
 }}
-.sawah-sun {{
-    position:absolute; top:6px; right:14px;
-    width:14px; height:14px;
-    background:radial-gradient(circle,#FFD700,#FFA500);
-    border-radius:50%; animation:sun-pulse 2.5s ease-in-out infinite;
-}}
+.sawah-sun {{ position:absolute; top:6px; right:14px; width:14px; height:14px;
+              background:radial-gradient(circle,#FFD700,#FFA500); border-radius:50%;
+              animation:sun-pulse 2.5s ease-in-out infinite; }}
 .sawah-cloud  {{ position:absolute; top:8px; left:20px; font-size:13px; animation:cloud-drift 5s ease-in-out infinite; opacity:.65; }}
 .sawah-cloud2 {{ position:absolute; top:4px; left:50%; font-size:10px; animation:cloud-drift 7s ease-in-out 1.5s infinite; opacity:.5; }}
-.sawah-rice {{
-    position:absolute; bottom:1px; font-size:15px;
-    animation:rice-sway 2s ease-in-out infinite;
-    display:inline-block; transform-origin:bottom center;
-}}
-.sawah-farmer {{
-    position:absolute; bottom:4px; left:-40px; font-size:20px;
-    animation:farmer-walk 6s linear infinite;
-    filter:drop-shadow(0 1px 2px rgba(0,0,0,.5));
-}}
+.sawah-rice   {{ position:absolute; bottom:1px; font-size:15px;
+                 animation:rice-sway 2s ease-in-out infinite; display:inline-block; transform-origin:bottom center; }}
+.sawah-farmer {{ position:absolute; bottom:4px; left:-40px; font-size:20px;
+                 animation:farmer-walk 6s linear infinite; filter:drop-shadow(0 1px 2px rgba(0,0,0,.5)); }}
 .sb-logo-footer {{ padding:10px 14px 14px; border-top:1px solid rgba(255,255,255,.08); }}
-.sb-logo-row {{ display:flex; align-items:center; gap:10px; }}
-.sb-logo-name {{ font-size:12.5px !important; font-weight:700 !important; color:rgba(255,255,255,.88) !important; }}
-.sb-logo-ver  {{ font-size:10px !important; color:rgba(255,255,255,.38) !important; }}
+.sb-logo-row    {{ display:flex; align-items:center; gap:10px; }}
+.sb-logo-name   {{ font-size:12.5px !important; font-weight:700 !important; color:rgba(255,255,255,.88) !important; }}
+.sb-logo-ver    {{ font-size:10px !important; color:rgba(255,255,255,.38) !important; }}
 
-/* ══ BANNER ═══════════════════════════════════════════════════════════ */
+/* ══ BANNER ════════════════════════════════════════════════════════════ */
 .banner {{
     background: linear-gradient(135deg,{P['deep']} 0%,{P['primary']} 45%,{P['secondary']} 80%,{P['accent']} 100%);
-    padding: 26px 36px 26px 30px; border-radius: 18px; color: #fff;
-    margin-bottom: 22px;
-    box-shadow: 0 8px 32px rgba(61,14,33,.30), 0 2px 8px rgba(61,14,33,.20), inset 0 1px 0 rgba(255,255,255,.12);
-    display: flex; align-items: center; gap: 20px;
-    position: relative; overflow: hidden;
+    padding: 26px 36px 26px 30px; border-radius: 18px; color: #fff; margin-bottom: 22px;
+    box-shadow: 0 8px 32px rgba(61,14,33,.30), inset 0 1px 0 rgba(255,255,255,.12);
+    display: flex; align-items: center; gap: 20px; position: relative; overflow: hidden;
 }}
 .banner::before {{
-    content:""; position:absolute; right:-60px; top:-60px;
-    width:240px; height:240px; border-radius:50%;
-    background:rgba(255,255,255,.06); pointer-events:none;
+    content:""; position:absolute; right:-60px; top:-60px; width:240px; height:240px;
+    border-radius:50%; background:rgba(255,255,255,.06); pointer-events:none;
 }}
 .banner-icon {{
-    font-size:38px; line-height:1;
-    background:rgba(255,255,255,.18); padding:12px 14px; border-radius:14px;
-    flex-shrink:0; box-shadow:0 4px 12px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.25);
+    font-size:38px; line-height:1; background:rgba(255,255,255,.18); padding:12px 14px;
+    border-radius:14px; flex-shrink:0;
+    box-shadow:0 4px 12px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.25);
 }}
 .banner h1 {{ margin:0; font-size:22px; font-weight:800; letter-spacing:-.4px; text-transform:uppercase; }}
 .banner p  {{ margin:6px 0 0; font-size:13px; opacity:.78; }}
 
-/* ══ FILTER BAR ═══════════════════════════════════════════════════════ */
+/* ══ FILTER ════════════════════════════════════════════════════════════ */
 .filter-wrap {{
-    background:{P['card']}; border-radius:16px; padding:16px 24px 12px;
-    margin-bottom:20px;
+    background:{P['card']}; border-radius:16px; padding:16px 24px 12px; margin-bottom:20px;
     box-shadow:0 4px 20px rgba(107,29,58,.10),0 1px 4px rgba(107,29,58,.06);
     border:1px solid {P['rose100']};
 }}
@@ -230,11 +227,8 @@ div[data-testid="stSelectbox"] > div > div {{
     box-shadow:0 1px 4px rgba(107,29,58,.08) !important;
 }}
 
-/* ══ KPI CARDS ════════════════════════════════════════════════════════ */
-.kpi-grid {{
-    display:grid; grid-template-columns:repeat(5,1fr);
-    gap:14px; margin-bottom:22px;
-}}
+/* ══ KPI ═══════════════════════════════════════════════════════════════ */
+.kpi-grid {{ display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-bottom:22px; }}
 .kpi {{
     background:{P['card']}; border-radius:16px; padding:18px 20px 16px;
     box-shadow:0 4px 20px rgba(107,29,58,.10),0 1px 4px rgba(107,29,58,.06);
@@ -243,31 +237,30 @@ div[data-testid="stSelectbox"] > div > div {{
     position:relative; overflow:hidden;
 }}
 .kpi::before {{
-    content:""; position:absolute; top:-20px; right:-20px;
-    width:80px; height:80px; border-radius:50%;
-    background:radial-gradient(circle,{P['rose100']} 0%,transparent 70%); pointer-events:none;
+    content:""; position:absolute; top:-20px; right:-20px; width:80px; height:80px;
+    border-radius:50%; background:radial-gradient(circle,{P['rose100']} 0%,transparent 70%);
+    pointer-events:none;
 }}
-.kpi:hover {{ transform:translateY(-4px); box-shadow:0 10px 32px rgba(107,29,58,.16),0 2px 8px rgba(107,29,58,.10); }}
+.kpi:hover {{ transform:translateY(-4px); box-shadow:0 10px 32px rgba(107,29,58,.16); }}
 .kpi-icon {{ font-size:22px; margin-bottom:8px; display:block; }}
 .kpi-val  {{ font-size:26px; font-weight:800; color:{P['primary']}; line-height:1.1; letter-spacing:-.6px; }}
 .kpi-lbl  {{ font-size:10px; font-weight:700; color:{P['muted']}; text-transform:uppercase; letter-spacing:1px; margin-top:6px; }}
 
-/* ══ SECTION HEADER ═══════════════════════════════════════════════════ */
+/* ══ SECTION HEADER ════════════════════════════════════════════════════ */
 .sec {{
     background:{P['card']}; border-radius:12px; padding:13px 20px; margin:22px 0 14px;
     box-shadow:0 4px 16px rgba(107,29,58,.08),0 1px 4px rgba(107,29,58,.05);
     border:1px solid {P['rose100']}; border-left:5px solid {P['primary']};
     display:flex; align-items:center; gap:10px;
 }}
-.sec h3 {{ margin:0; color:{P['primary']}; font-size:14px; font-weight:800; flex:1; }}
+.sec h3  {{ margin:0; color:{P['primary']}; font-size:14px; font-weight:800; flex:1; }}
 .sec span {{ font-size:11.5px; color:{P['muted']}; font-weight:400; }}
 
-/* ══ TABLE ════════════════════════════════════════════════════════════ */
+/* ══ TABLE ══════════════════════════════════════════════════════════════ */
 .tbl-info {{
     background:linear-gradient(90deg,{P['rose100']},#fff8fb);
-    border-radius:10px; padding:10px 18px; font-size:12.5px;
-    color:{P['text']}; margin-bottom:12px;
-    border:1px solid {P['rose200']}; box-shadow:0 1px 4px rgba(107,29,58,.06);
+    border-radius:10px; padding:10px 18px; font-size:12.5px; color:{P['text']};
+    margin-bottom:12px; border:1px solid {P['rose200']}; box-shadow:0 1px 4px rgba(107,29,58,.06);
 }}
 .tbl-info b {{ color:{P['primary']}; }}
 .bantuan-table-wrap {{
@@ -287,7 +280,7 @@ div[data-testid="stSelectbox"] > div > div {{
 .bantuan-table .td-muted   {{ font-size:12px; color:{P['muted']}; white-space:nowrap; }}
 .bantuan-table .td-tgl     {{ font-size:12px; color:{P['text']}; white-space:nowrap; }}
 
-/* ══ DOWNLOAD ═════════════════════════════════════════════════════════ */
+/* ══ DOWNLOAD ═══════════════════════════════════════════════════════════ */
 .stDownloadButton > button {{
     background:linear-gradient(135deg,{P['primary']},{P['secondary']}) !important;
     color:#fff !important; border:none !important; border-radius:10px !important;
@@ -295,7 +288,6 @@ div[data-testid="stSelectbox"] > div > div {{
     box-shadow:0 4px 14px rgba(107,29,58,.25) !important; transition:all .18s !important;
 }}
 .stDownloadButton > button:hover {{
-    background:linear-gradient(135deg,{P['deep']},{P['primary']}) !important;
     box-shadow:0 6px 20px rgba(107,29,58,.35) !important; transform:translateY(-2px) !important;
 }}
 </style>
@@ -308,56 +300,56 @@ div[data-testid="stSelectbox"] > div > div {{
 def render_sidebar() -> None:
     st.sidebar.markdown("""
     <div class="sb-brand">
-        <div class="sb-brand-badge">
-            <div class="sb-brand-icon">🗺️</div>
-            <div>
-                <div class="sb-brand-title">Spasial Bantuan</div>
-                <div class="sb-brand-sub">Dashboard Distribusi Indonesia</div>
-            </div>
+      <div class="sb-brand-badge">
+        <div class="sb-brand-icon">🗺️</div>
+        <div>
+          <div class="sb-brand-title">Spasial Bantuan</div>
+          <div class="sb-brand-sub">Dashboard Distribusi Indonesia</div>
         </div>
+      </div>
     </div>
     """, unsafe_allow_html=True)
 
-    padi_positions = [4, 14, 22, 32, 42, 52, 62, 72, 82, 92]
+    padi_pos  = [4, 14, 22, 32, 42, 52, 62, 72, 82, 92]
     padi_html = "".join(
-        f'<span class="sawah-rice" style="left:{p}%; animation-delay:{i*0.3:.1f}s;">🌾</span>'
-        for i, p in enumerate(padi_positions)
+        f'<span class="sawah-rice" style="left:{p}%;animation-delay:{i*0.3:.1f}s;">🌾</span>'
+        for i, p in enumerate(padi_pos)
     )
     st.sidebar.markdown(f"""
     <div class="sawah-scene">
-        <div class="sawah-sun"></div>
-        <div class="sawah-cloud">☁️</div>
-        <div class="sawah-cloud2">☁️</div>
-        {padi_html}
-        <div class="sawah-farmer" title="Petani kita berjalan di sawah 🧑‍🌾">🧑‍🌾</div>
+      <div class="sawah-sun"></div>
+      <div class="sawah-cloud">☁️</div>
+      <div class="sawah-cloud2">☁️</div>
+      {padi_html}
+      <div class="sawah-farmer">🧑‍🌾</div>
     </div>
     """, unsafe_allow_html=True)
 
     logo_b64: str | None = None
-    for candidate in [
+    this_dir = os.path.dirname(os.path.abspath(__file__))
+    for c in [
         "Dokumentasi/DummyLogo.png", "dokumentasi/DummyLogo.png", "DummyLogo.png",
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "Dokumentasi", "DummyLogo.png"),
+        os.path.join(this_dir, "Dokumentasi", "DummyLogo.png"),
     ]:
-        if os.path.exists(candidate):
-            with open(candidate, "rb") as fh:
+        if os.path.exists(c):
+            with open(c, "rb") as fh:
                 logo_b64 = base64.b64encode(fh.read()).decode()
             break
 
-    logo_content = (
-        f'<img class="sb-logo-img" src="data:image/png;base64,{logo_b64}" alt="logo" '
-        f'style="width:34px;height:34px;border-radius:8px;object-fit:cover;flex-shrink:0;">'
-        if logo_b64 else
-        '<div style="font-size:26px;line-height:1;flex-shrink:0;">🌾</div>'
+    logo_html = (
+        f'<img src="data:image/png;base64,{logo_b64}" alt="logo" '
+        'style="width:34px;height:34px;border-radius:8px;object-fit:cover;flex-shrink:0;">'
+        if logo_b64 else '<div style="font-size:26px;line-height:1;flex-shrink:0;">🌾</div>'
     )
     st.sidebar.markdown(f"""
     <div class="sb-logo-footer">
-        <div class="sb-logo-row">
-            {logo_content}
-            <div>
-                <div class="sb-logo-name">Spasial Bantuan</div>
-                <div class="sb-logo-ver">v3.0 · Indonesia</div>
-            </div>
+      <div class="sb-logo-row">
+        {logo_html}
+        <div>
+          <div class="sb-logo-name">Spasial Bantuan</div>
+          <div class="sb-logo-ver">v4.0 · Indonesia</div>
         </div>
+      </div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -471,37 +463,15 @@ KOTA_COORDS: dict[str, tuple[float, float]] = {
     "Nabire":(-3.37,135.50),"Biak":(-1.18,136.10),"Wamena":(-4.09,138.95),
 }
 
-PROV_GEO: dict[str, str] = {
-    "Aceh":"Aceh","Sumatera Utara":"Sumatera Utara","Sumatera Barat":"Sumatera Barat",
-    "Riau":"Riau","Jambi":"Jambi","Sumatera Selatan":"Sumatera Selatan",
-    "Bengkulu":"Bengkulu","Lampung":"Lampung",
-    "Kepulauan Bangka Belitung":"Kepulauan Bangka Belitung",
-    "Kepulauan Riau":"Kepulauan Riau","DKI Jakarta":"DKI Jakarta",
-    "Jawa Barat":"Jawa Barat","Jawa Tengah":"Jawa Tengah",
-    "DI Yogyakarta":"DI Yogyakarta","Jawa Timur":"Jawa Timur","Banten":"Banten",
-    "Bali":"Bali","Nusa Tenggara Barat":"Nusa Tenggara Barat",
-    "Nusa Tenggara Timur":"Nusa Tenggara Timur",
-    "Kalimantan Barat":"Kalimantan Barat","Kalimantan Tengah":"Kalimantan Tengah",
-    "Kalimantan Selatan":"Kalimantan Selatan","Kalimantan Timur":"Kalimantan Timur",
-    "Kalimantan Utara":"Kalimantan Utara","Sulawesi Utara":"Sulawesi Utara",
-    "Gorontalo":"Gorontalo","Sulawesi Tengah":"Sulawesi Tengah",
-    "Sulawesi Barat":"Sulawesi Barat","Sulawesi Selatan":"Sulawesi Selatan",
-    "Sulawesi Tenggara":"Sulawesi Tenggara","Maluku":"Maluku",
-    "Maluku Utara":"Maluku Utara","Papua Barat":"Papua Barat","Papua":"Papua",
-}
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  HELPERS
 # ─────────────────────────────────────────────────────────────────────────────
 def parse_rp(v) -> float:
-    if pd.isna(v):
-        return 0.0
+    if pd.isna(v): return 0.0
     cleaned = re.sub(r"[Rp\s\.]", "", str(v)).replace(",", "")
-    try:
-        return float(cleaned)
-    except ValueError:
-        return 0.0
+    try:    return float(cleaned)
+    except: return 0.0
 
 
 def fmt_rp(v: float) -> str:
@@ -509,12 +479,9 @@ def fmt_rp(v: float) -> str:
 
 
 def fmt_rp_compact(v: float) -> str:
-    if v >= 1e12:
-        return f"Rp {v/1e12:.2f} T"
-    if v >= 1e9:
-        return f"Rp {v/1e9:.1f} M"
-    if v >= 1e6:
-        return f"Rp {v/1e6:.0f} jt"
+    if v >= 1e12: return f"Rp {v/1e12:.2f} T"
+    if v >= 1e9:  return f"Rp {v/1e9:.1f} M"
+    if v >= 1e6:  return f"Rp {v/1e6:.0f} jt"
     return fmt_rp(v)
 
 
@@ -526,29 +493,24 @@ def build_kab_hover(prov: str, df: pd.DataFrame) -> str:
         .sort_values("total", ascending=False)
         .reset_index()
     )
-    if sub.empty:
-        return ""
+    if sub.empty: return ""
     lines = ["<br><b>📍 Rincian Kab/Kota:</b>"]
     for _, row in sub.head(8).iterrows():
-        lines.append(
-            f"&nbsp;&nbsp;• {row['Kab/Kota']}"
-            f" → <b>{int(row['n'])}</b> bantuan | {fmt_rp(row['total'])}"
-        )
+        lines.append(f"&nbsp;&nbsp;• {row['Kab/Kota']} → <b>{int(row['n'])}</b> bantuan | {fmt_rp(row['total'])}")
     if len(sub) > 8:
         lines.append(f"&nbsp;&nbsp;<i>...dan {len(sub)-8} lainnya</i>")
     return "<br>".join(lines)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  DATA & GEOJSON
+#  DATA & GEOJSON LOADING
 # ─────────────────────────────────────────────────────────────────────────────
 SHEET_CSV = (
     "https://docs.google.com/spreadsheets/d/"
     "1wi4id0XqYlTuw_KO89-cOLSPTFAQ6ODv_tH09LK_2Ao/export?format=csv&gid=0"
 )
-GEOJSON_URL = (
-    "https://raw.githubusercontent.com/superpikar/indonesia-geojson/"
-    "master/indonesia.geojson"
+GEOJSON_FALLBACK_URL = (
+    "https://raw.githubusercontent.com/superpikar/indonesia-geojson/master/indonesia.geojson"
 )
 
 
@@ -564,10 +526,34 @@ def load_data() -> pd.DataFrame:
     return df
 
 
+@st.cache_data(ttl=86400, show_spinner=False)
+def load_gadm2() -> dict | None:
+    """
+    Load gadm41_IDN_2.json dari filesystem (repo root / parent dir).
+    File ini berisi batas kabupaten/kota level-2 GADM Indonesia.
+    """
+    this_dir = os.path.dirname(os.path.abspath(__file__))
+    candidates = [
+        "gadm41_IDN_2.json",
+        os.path.join(this_dir, "gadm41_IDN_2.json"),
+        os.path.join(this_dir, "..", "gadm41_IDN_2.json"),
+        os.path.join(this_dir, "..", "..", "gadm41_IDN_2.json"),
+    ]
+    for raw_path in candidates:
+        path = os.path.normpath(raw_path)
+        if os.path.exists(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception as e:
+                st.warning(f"⚠️ Gagal membaca {path}: {e}")
+    return None
+
+
 @st.cache_data(ttl=3600, show_spinner=False)
-def load_geojson():
+def load_geojson_fallback():
     try:
-        r = requests.get(GEOJSON_URL, timeout=20)
+        r = requests.get(GEOJSON_FALLBACK_URL, timeout=20)
         r.raise_for_status()
         gj = r.json()
         props = gj["features"][0].get("properties", {}) if gj.get("features") else {}
@@ -577,23 +563,28 @@ def load_geojson():
                 prop_key = k
                 break
         return gj, prop_key
-    except Exception as exc:
-        st.warning(f"⚠️ GeoJSON tidak dapat dimuat: {exc}")
+    except Exception:
         return None, None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  BUILD MAP  ─ v3: lebar penuh, batas provinsi tebal & jelas
+#  BUILD MAP  ─ v4: GADM2 kabupaten grid lines + provinsi coloring
 # ─────────────────────────────────────────────────────────────────────────────
-def build_map(df_f: pd.DataFrame, geojson, prop_key: str) -> go.Figure:
+def build_map(df_f: pd.DataFrame, gadm2: dict | None,
+              geojson_fb=None, prop_key_fb: str = "state") -> go.Figure:
+
+    # ── Agregasi provinsi ─────────────────────────────────────────────────
     prov_agg = (
         df_f.groupby("Provinsi")
         .agg(Bantuan=("Nominal","count"), Total=("Nominal","sum"))
         .reset_index()
     )
-    prov_agg["GeoName"]  = prov_agg["Provinsi"].map(PROV_GEO).fillna(prov_agg["Provinsi"])
-    prov_agg["HoverKab"] = prov_agg["Provinsi"].apply(lambda p: build_kab_hover(p, df_f))
+    prov_agg["HoverKab"]  = prov_agg["Provinsi"].apply(lambda p: build_kab_hover(p, df_f))
+    prov_total_map        = prov_agg.set_index("Provinsi")["Total"].to_dict()
+    prov_count_map        = prov_agg.set_index("Provinsi")["Bantuan"].to_dict()
+    z_max = float(prov_agg["Total"].max() or 1)
 
+    # ── Agregasi kab/kota untuk dot marker ───────────────────────────────
     kab_agg = (
         df_f.groupby(["Kab/Kota","Provinsi"])
         .agg(Bantuan=("Nominal","count"), Total=("Nominal","sum"))
@@ -603,96 +594,145 @@ def build_map(df_f: pd.DataFrame, geojson, prop_key: str) -> go.Figure:
     kab_agg["lon"] = kab_agg["Kab/Kota"].map(lambda k: KOTA_COORDS.get(k,(None,None))[1])
     kab_ok = kab_agg.dropna(subset=["lat","lon"]).copy()
     mx = kab_ok["Total"].max() or 1
-    kab_ok["sz"] = (kab_ok["Total"] / mx) ** 0.5 * 28 + 7
+    kab_ok["sz"] = (kab_ok["Total"] / mx) ** 0.5 * 26 + 7
 
     fig = go.Figure()
 
-    if geojson:
+    # ══════════════════════════════════════════════════════════════════════
+    #  MODE A: GADM2  → setiap kabupaten diwarnai sesuai total provinsinya
+    #  Efek: grid lines antar kabupaten terlihat jelas, warna seragam per provinsi
+    # ══════════════════════════════════════════════════════════════════════
+    if gadm2 and gadm2.get("features"):
+        features = gadm2["features"]
+        locs, z_vals, custom = [], [], []
+
+        for feat in features:
+            props  = feat.get("properties") or {}
+            gid2   = props.get("GID_2", "")
+            n1_raw = props.get("NAME_1", "")
+            n2     = props.get("NAME_2", "")
+            if not gid2:
+                continue
+
+            # Mapping nama GADM → nama di data
+            prov_data  = GADM_TO_DATA.get(n1_raw, n1_raw)
+            total_val  = prov_total_map.get(prov_data, 0.0)
+            count_val  = prov_count_map.get(prov_data, 0)
+            hover_kab  = build_kab_hover(prov_data, df_f) if total_val > 0 else ""
+
+            locs.append(gid2)
+            z_vals.append(total_val)
+            custom.append([prov_data, n2, count_val, total_val, hover_kab])
+
         fig.add_trace(go.Choropleth(
-            geojson=geojson,
-            featureidkey=f"properties.{prop_key}",
-            locations=prov_agg["GeoName"],
-            z=prov_agg["Total"],
-            colorscale=MAP_COLORSCALE,
-            zmin=0,
-            zmax=float(prov_agg["Total"].max() or 1),
-            # ── GARIS BATAS PROVINSI TEBAL & JELAS ──
-            marker_line_color="#5C1230",     # garis gelap kontras
-            marker_line_width=1.8,           # lebih tebal → mirip grid wilayah
+            geojson      = gadm2,
+            featureidkey = "properties.GID_2",
+            locations    = locs,
+            z            = z_vals,
+            colorscale   = MAP_COLORSCALE,
+            zmin=0, zmax=z_max,
+            # ── Garis kabupaten: tipis tapi terlihat → grid effect ──────
+            marker_line_color = "#5A1228",
+            marker_line_width = 0.45,
+            colorbar = dict(
+                title      = dict(text="Total<br>Nominal", font=dict(size=10, color=P["primary"])),
+                tickformat = ".2s",
+                x=1.005, thickness=14, len=0.55,
+                tickfont   = dict(size=9, color=P["text"]),
+                bgcolor    = "rgba(255,255,255,.92)",
+                bordercolor= P["rose200"], borderwidth=1, outlinewidth=0,
+            ),
+            customdata    = custom,
+            hovertemplate = (
+                "<b>🏛️ %{customdata[0]}</b>  ›  %{customdata[1]}<br>"
+                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br>"
+                "📦 Bantuan Provinsi : <b>%{customdata[2]}</b><br>"
+                "💰 Total Provinsi   : <b>Rp %{customdata[3]:,.0f}</b>"
+                "%{customdata[4]}"
+                "<extra></extra>"
+            ),
+            name       = "Peta Kab/Kota (GADM2)",
+            showlegend = True,
+        ))
+
+    # ══════════════════════════════════════════════════════════════════════
+    #  MODE B: fallback → provinsi-level
+    # ══════════════════════════════════════════════════════════════════════
+    elif geojson_fb:
+        fig.add_trace(go.Choropleth(
+            geojson      = geojson_fb,
+            featureidkey = f"properties.{prop_key_fb}",
+            locations    = prov_agg["Provinsi"],
+            z            = prov_agg["Total"],
+            colorscale   = MAP_COLORSCALE,
+            zmin=0, zmax=z_max,
+            marker_line_color="#5A1228", marker_line_width=1.5,
             colorbar=dict(
                 title=dict(text="Total<br>Nominal", font=dict(size=10, color=P["primary"])),
-                tickformat=".2s",
-                x=1.005, thickness=14, len=0.55,
+                tickformat=".2s", x=1.005, thickness=14, len=0.55,
                 tickfont=dict(size=9, color=P["text"]),
-                bgcolor="rgba(255,255,255,.88)",
-                bordercolor=P["rose200"],
-                borderwidth=1,
-                outlinewidth=0,
+                bgcolor="rgba(255,255,255,.92)", bordercolor=P["rose200"],
+                borderwidth=1, outlinewidth=0,
             ),
             customdata=prov_agg[["Provinsi","Bantuan","Total","HoverKab"]].values,
             hovertemplate=(
-                "<b>🏛️ %{customdata[0]}</b><br>"
-                "━━━━━━━━━━━━━━━━━━━━━━━━<br>"
-                "📦 Total Bantuan : <b>%{customdata[1]}</b> bantuan<br>"
-                "💰 Total Nominal : <b>Rp %{z:,.0f}</b><br>"
-                "%{customdata[3]}"
-                "<extra></extra>"
+                "<b>🏛️ %{customdata[0]}</b><br>━━━━━━━━━━━━━━━━━━━━━━━━<br>"
+                "📦 Bantuan : <b>%{customdata[1]}</b><br>"
+                "💰 Total   : <b>Rp %{z:,.0f}</b><br>"
+                "%{customdata[3]}<extra></extra>"
             ),
-            name="Provinsi",
+            name="Provinsi (fallback)",
         ))
 
-    fig.add_trace(go.Scattergeo(
-        lat=kab_ok["lat"],
-        lon=kab_ok["lon"],
-        mode="markers",
-        marker=dict(
-            size=kab_ok["sz"],
-            color=kab_ok["Total"],
-            colorscale=MAP_COLORSCALE,
-            cmin=0,
-            cmax=float(kab_ok["Total"].max() or 1),
-            opacity=0.85,
-            line=dict(color="#fff", width=1.2),
-            showscale=False,
-            symbol="circle",
-        ),
-        customdata=kab_ok[["Kab/Kota","Provinsi","Bantuan","Total"]].values,
-        hovertemplate=(
-            "<b>📍 %{customdata[0]}</b><br>"
-            "Provinsi     : %{customdata[1]}<br>"
-            "Jml Bantuan  : <b>%{customdata[2]}</b> bantuan<br>"
-            "Total Nominal: <b>Rp %{customdata[3]:,.0f}</b>"
-            "<extra></extra>"
-        ),
-        name="Kab/Kota",
-    ))
+    # ── Dot marker kab/kota ───────────────────────────────────────────────
+    if not kab_ok.empty:
+        fig.add_trace(go.Scattergeo(
+            lat=kab_ok["lat"], lon=kab_ok["lon"],
+            mode="markers",
+            marker=dict(
+                size=kab_ok["sz"],
+                color=kab_ok["Total"],
+                colorscale=MAP_COLORSCALE,
+                cmin=0, cmax=float(kab_ok["Total"].max() or 1),
+                opacity=0.88,
+                line=dict(color="#fff", width=1.4),
+                showscale=False,
+            ),
+            customdata=kab_ok[["Kab/Kota","Provinsi","Bantuan","Total"]].values,
+            hovertemplate=(
+                "<b>📍 %{customdata[0]}</b><br>"
+                "Provinsi : %{customdata[1]}<br>"
+                "Bantuan  : <b>%{customdata[2]}</b><br>"
+                "Nominal  : <b>Rp %{customdata[3]:,.0f}</b>"
+                "<extra></extra>"
+            ),
+            name="Titik Data Bantuan",
+        ))
 
+    # ── Layout: locked ke bounding box Indonesia ──────────────────────────
     fig.update_layout(
-        # ── GEO: dikunci ke bounding box Indonesia → lebar penuh ──────────
         geo=dict(
-            scope="asia",
-            # Gunakan lonaxis/lataxis agar peta TERKUNCI ke wilayah Indonesia
-            lonaxis=dict(range=[94.5, 141.5]),   # batas lon Indonesia
-            lataxis=dict(range=[-11.5, 6.5]),    # batas lat Indonesia
-            showland=True,    landcolor="#F0EAF0",
-            showocean=True,   oceancolor="#D6EEF8",
-            showcountries=True, countrycolor="#BBA8B8",
-            showcoastlines=True, coastlinecolor="#A090A0",
-            showlakes=True,   lakecolor="#D6EEF8",
-            showrivers=True,  rivercolor="#C0DCEC",
-            showframe=False,  bgcolor="rgba(0,0,0,0)",
-            resolution=50,    # lebih detail
+            scope          = "asia",
+            lonaxis        = dict(range=[94.5, 141.5]),
+            lataxis        = dict(range=[-11.5,   6.5]),
+            showland       = True,  landcolor     = "#EDE3E8",
+            showocean      = True,  oceancolor    = "#CCE5F2",
+            showcountries  = True,  countrycolor  = "#B0A0B0",
+            showcoastlines = True,  coastlinecolor= "#9A8AA0",
+            showlakes      = True,  lakecolor     = "#CCE5F2",
+            showrivers     = True,  rivercolor    = "#B8D8EC",
+            showframe      = False, bgcolor       = "rgba(0,0,0,0)",
+            resolution     = 50,
         ),
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor = "rgba(0,0,0,0)",
+        plot_bgcolor  = "rgba(0,0,0,0)",
         margin=dict(l=0, r=0, t=8, b=0),
-        height=600,   # lebih tinggi
+        height=630,
         legend=dict(
             x=0.01, y=0.04,
-            bgcolor="rgba(255,255,255,.92)",
+            bgcolor="rgba(255,255,255,.93)",
             bordercolor=P["rose300"], borderwidth=1,
             font=dict(size=11, color=P["text"]),
-            title=dict(text="<b>Layer</b>", font=dict(size=11, color=P["primary"])),
         ),
         hoverlabel=dict(
             bgcolor=P["deep"], font_color="#fff", font_size=12,
@@ -704,7 +744,7 @@ def build_map(df_f: pd.DataFrame, geojson, prop_key: str) -> go.Figure:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  CHART: Top 10 Provinsi  ─ v3: warna beragam + card background
+#  CHART: Top 10 Provinsi — warna beragam
 # ─────────────────────────────────────────────────────────────────────────────
 def chart_top_prov(df_f: pd.DataFrame) -> go.Figure:
     top = (
@@ -714,54 +754,33 @@ def chart_top_prov(df_f: pd.DataFrame) -> go.Figure:
         .tail(10)
         .reset_index()
     )
-
-    # Warna beragam — gradient dari merah muda ke ungu-gelap
-    n = len(top)
-    palette_full = [
+    palette = [
         "#E8736A","#D4834A","#C8960C","#7B9E3C",
-        "#2E8B57","#4A90C4","#7B5EA7","#C5547A",
-        "#8B2252","#3D0E21",
+        "#2E8B57","#4A90C4","#7B5EA7","#C5547A","#8B2252","#3D0E21",
     ]
-    bar_colors = palette_full[:n] if n <= len(palette_full) else (palette_full * 3)[:n]
+    n = len(top)
+    bar_colors = (palette * 3)[:n]
 
     fig = go.Figure(go.Bar(
-        x=top["Total"],
-        y=top["Provinsi"],
-        orientation="h",
-        marker=dict(
-            color=bar_colors,
-            line=dict(color="rgba(255,255,255,.40)", width=1.2),
-            opacity=0.92,
-        ),
+        x=top["Total"], y=top["Provinsi"], orientation="h",
+        marker=dict(color=bar_colors, line=dict(color="rgba(255,255,255,.35)", width=1), opacity=0.93),
         customdata=top[["Bantuan","Total"]].values,
-        hovertemplate=(
-            "<b>%{y}</b><br>"
-            "Jumlah Bantuan : %{customdata[0]}<br>"
-            "Total Nominal  : Rp %{customdata[1]:,.0f}"
-            "<extra></extra>"
-        ),
+        hovertemplate="<b>%{y}</b><br>Bantuan : %{customdata[0]}<br>Nominal : Rp %{customdata[1]:,.0f}<extra></extra>",
         text=[fmt_rp_compact(v) for v in top["Total"]],
         textposition="outside",
-        textfont=dict(size=10, color=P["text"], family="Plus Jakarta Sans"),
+        textfont=dict(size=10, color=P["text"]),
     ))
     fig.update_layout(
-        paper_bgcolor="#FFFFFF",       # ← background kotak putih
-        plot_bgcolor="#FAFAFA",        # ← area plot sedikit abu
-        margin=dict(l=0, r=80, t=10, b=10),
-        height=370,
+        paper_bgcolor="#FFFFFF",
+        plot_bgcolor="#F8F2F5",
+        margin=dict(l=0, r=90, t=10, b=10),
+        height=380,
         xaxis=dict(
-            showgrid=True,
-            gridcolor="#F0E4E8",
-            gridwidth=1,
-            tickformat=".2s",
-            tickfont=dict(size=10, color=P["muted"]),
-            zeroline=False,
-            showline=False,
+            showgrid=True, gridcolor="#ECD8E0", gridwidth=1,
+            tickformat=".2s", tickfont=dict(size=10, color=P["muted"]),
+            zeroline=False, showline=False,
         ),
-        yaxis=dict(
-            showgrid=False,
-            tickfont=dict(size=11.5, color=P["text"], family="Plus Jakarta Sans"),
-        ),
+        yaxis=dict(showgrid=False, tickfont=dict(size=11.5, color=P["text"])),
         hoverlabel=dict(bgcolor=P["deep"], font_color="#fff", font_size=11),
         uniformtext=dict(minsize=8, mode="hide"),
     )
@@ -769,7 +788,7 @@ def chart_top_prov(df_f: pd.DataFrame) -> go.Figure:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  RANKING  ─ v3 FIX: gunakan st.components.v1.html() → tidak ada raw HTML
+#  RANKING — components.html
 # ─────────────────────────────────────────────────────────────────────────────
 def render_ranking(df_f: pd.DataFrame, top_n: int = 10) -> None:
     rank = (
@@ -779,69 +798,40 @@ def render_ranking(df_f: pd.DataFrame, top_n: int = 10) -> None:
         .head(top_n)
         .reset_index()
     )
-
+    medal = {1:"#C8960C", 2:"#9E9E9E", 3:"#A0522D"}
     C = P
-    medal_bg = {1:"#C8960C", 2:"#9E9E9E", 3:"#A0522D"}
 
     rows_html = ""
     for i, row in enumerate(rank.itertuples(), start=1):
-        num_bg = medal_bg.get(i, C["primary"])
+        bg = medal.get(i, C["primary"])
         rows_html += f"""
-        <div style="display:flex;align-items:center;gap:10px;
-                    padding:9px 0;border-bottom:1px solid #F8D7DA;">
-            <div style="font-size:11.5px;font-weight:800;color:#fff;
-                        background:{num_bg};border-radius:50%;
-                        min-width:28px;height:28px;
-                        display:flex;align-items:center;justify-content:center;
-                        flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.18);">
-                {i}
-            </div>
-            <div style="flex:1;min-width:0;">
-                <div style="font-size:12.5px;font-weight:700;color:{C['text']};
-                            white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                    {row.Provinsi}
-                </div>
-                <div style="font-size:11px;color:{C['muted']};margin-top:1px;">
-                    {int(row.Bantuan)} bantuan
-                </div>
-            </div>
-            <div style="font-size:12px;font-weight:800;color:{C['primary']};
-                        white-space:nowrap;text-align:right;flex-shrink:0;">
-                {fmt_rp_compact(row.Total)}
-            </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #F8D7DA;">
+          <div style="font-size:11px;font-weight:800;color:#fff;background:{bg};border-radius:50%;
+                      min-width:26px;height:26px;display:flex;align-items:center;justify-content:center;
+                      flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,.2);">{i}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12.5px;font-weight:700;color:{C['text']};
+                        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{row.Provinsi}</div>
+            <div style="font-size:11px;color:{C['muted']};margin-top:1px;">{int(row.Bantuan)} bantuan</div>
+          </div>
+          <div style="font-size:12px;font-weight:800;color:{C['primary']};white-space:nowrap;flex-shrink:0;">
+            {fmt_rp_compact(row.Total)}
+          </div>
         </div>"""
 
-    full_html = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-    <meta charset="utf-8">
+    html = f"""<!DOCTYPE html><html><head><meta charset="utf-8">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <style>
-      * {{ box-sizing:border-box; margin:0; padding:0; }}
-      body {{
-        font-family:'Plus Jakarta Sans',sans-serif;
-        background:#fff;
-        border-radius:16px;
-        padding:18px 20px;
-        overflow:hidden;
-      }}
-    </style>
-    </head>
-    <body>
-      <div style="font-size:13px;font-weight:800;color:{C['primary']};
-                  margin-bottom:14px;padding-bottom:10px;
-                  border-bottom:2px solid {C['rose100']};
-                  display:flex;align-items:center;gap:8px;">
-          🏆 Ranking Provinsi Terbanyak
-      </div>
-      {rows_html}
-    </body>
-    </html>
-    """
+    <style>*{{box-sizing:border-box;margin:0;padding:0;}}
+    body{{font-family:'Plus Jakarta Sans',sans-serif;background:#fff;padding:16px 18px;overflow:hidden;}}</style>
+    </head><body>
+    <div style="font-size:13px;font-weight:800;color:{C['primary']};margin-bottom:12px;padding-bottom:10px;
+                border-bottom:2px solid {C['rose100']};display:flex;align-items:center;gap:8px;">
+      🏆 Ranking Provinsi Terbanyak
+    </div>
+    {rows_html}
+    </body></html>"""
 
-    # ← Ini yang paling penting: pakai components.html bukan st.markdown
-    components.html(full_html, height=430, scrolling=True)
+    components.html(html, height=440, scrolling=True)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -855,28 +845,18 @@ def render_table_html(df_t: pd.DataFrame) -> None:
         "Kab/Kota"           : ("td-muted",   "Kab / Kota"),
         "Tanggal Dibantu"    : ("td-tgl",     "Tanggal"),
     }
-    avail = [c for c in col_map if c in df_t.columns]
-    header_cells = "".join(f"<th>{col_map[c][1]}</th>" for c in avail)
-    body = ""
+    avail  = [c for c in col_map if c in df_t.columns]
+    header = "".join(f"<th>{col_map[c][1]}</th>" for c in avail)
+    body   = ""
     for row in df_t[avail].itertuples(index=False):
-        cells = "".join(
-            f'<td class="{col_map[avail[i]][0]}">{str(val)}</td>'
-            for i, val in enumerate(row)
-        )
+        cells = "".join(f'<td class="{col_map[avail[i]][0]}">{str(val)}</td>' for i, val in enumerate(row))
         body += f"<tr>{cells}</tr>\n"
-
-    html = f"""
-    <div class="bantuan-table-wrap">
-        <table class="bantuan-table">
-            <thead><tr>{header_cells}</tr></thead>
-            <tbody>{body}</tbody>
-        </table>
-    </div>"""
-
-    st.markdown(
-        f'<div style="max-height:460px;overflow-y:auto;border-radius:14px;">{html}</div>',
-        unsafe_allow_html=True,
+    html = (
+        f'<div class="bantuan-table-wrap"><table class="bantuan-table">'
+        f'<thead><tr>{header}</tr></thead><tbody>{body}</tbody></table></div>'
     )
+    st.markdown(f'<div style="max-height:460px;overflow-y:auto;border-radius:14px;">{html}</div>',
+                unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -886,30 +866,35 @@ def main() -> None:
 
     render_sidebar()
 
-    # ── Banner ─────────────────────────────────────────────────────────────
     st.markdown("""
     <div class="banner">
-        <div class="banner-icon">🗺️</div>
-        <div>
-            <h1>Peta Penyebaran Bantuan Indonesia</h1>
-            <p>Visualisasi spasial distribusi bantuan per Provinsi &amp;
-               Kabupaten/Kota di seluruh Indonesia</p>
-        </div>
+      <div class="banner-icon">🗺️</div>
+      <div>
+        <h1>Peta Penyebaran Bantuan Indonesia</h1>
+        <p>Visualisasi spasial distribusi bantuan per Provinsi &amp; Kabupaten/Kota di seluruh Indonesia</p>
+      </div>
     </div>""", unsafe_allow_html=True)
 
-    # ── Load data ──────────────────────────────────────────────────────────
-    with st.spinner("⏳ Memuat data …"):
+    # ── Load ───────────────────────────────────────────────────────────────
+    with st.spinner("⏳ Memuat data spreadsheet …"):
         df = load_data()
-    with st.spinner("🗺️ Memuat GeoJSON …"):
-        geojson, prop_key = load_geojson()
+
+    with st.spinner("🗺️ Memuat gadm41_IDN_2.json …"):
+        gadm2 = load_gadm2()
+
+    geojson_fb, prop_key_fb = None, "state"
+    if gadm2 is None:
+        st.info("ℹ️ gadm41_IDN_2.json tidak ditemukan secara lokal — menggunakan peta provinsi (fallback).")
+        with st.spinner("🗺️ Memuat GeoJSON fallback …"):
+            geojson_fb, prop_key_fb = load_geojson_fallback()
 
     # ── Filter Tahun ───────────────────────────────────────────────────────
     st.markdown('<div class="filter-wrap">', unsafe_allow_html=True)
     fc1, fc2 = st.columns([4, 4])
     with fc1:
         avail_years = sorted([int(y) for y in df["Tahun"].dropna().unique()])
-        year_labels = ["Semua"] + [str(y) for y in avail_years]
-        sel_year = st.radio("📅 Filter Tahun", options=year_labels, horizontal=True, key="map_year")
+        sel_year    = st.radio("📅 Filter Tahun", options=["Semua"] + [str(y) for y in avail_years],
+                               horizontal=True, key="map_year")
     with fc2:
         if sel_year != "Semua":
             st.markdown(
@@ -920,9 +905,7 @@ def main() -> None:
             )
     st.markdown("</div>", unsafe_allow_html=True)
 
-    df_map = df.copy()
-    if sel_year != "Semua":
-        df_map = df_map[df_map["Tahun"] == int(sel_year)]
+    df_map = df[df["Tahun"] == int(sel_year)].copy() if sel_year != "Semua" else df.copy()
 
     # ── KPI ────────────────────────────────────────────────────────────────
     total_nom  = df_map["Nominal"].sum()
@@ -941,32 +924,34 @@ def main() -> None:
     ]
     for col, (icon, val, lbl) in zip(st.columns(5), kpis):
         with col:
-            st.markdown(f"""
-            <div class="kpi">
-                <span class="kpi-icon">{icon}</span>
-                <div class="kpi-val">{val}</div>
-                <div class="kpi-lbl">{lbl}</div>
-            </div>""", unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="kpi"><span class="kpi-icon">{icon}</span>'
+                f'<div class="kpi-val">{val}</div>'
+                f'<div class="kpi-lbl">{lbl}</div></div>',
+                unsafe_allow_html=True,
+            )
     st.markdown("</div>", unsafe_allow_html=True)
 
     # ── Heatmap ────────────────────────────────────────────────────────────
+    map_mode = "GADM Level-2 · Batas Kabupaten/Kota" if gadm2 else "Provinsi (fallback)"
     st.markdown(f"""
     <div class="sec">
-        <h3>🗺️ Heatmap Interaktif Penyebaran Bantuan
-            <span>— Arahkan kursor ke Provinsi untuk detail bantuan &amp; nominal per Kab/Kota</span>
-        </h3>
+      <h3>🗺️ Heatmap Interaktif Penyebaran Bantuan
+        <span>— {map_mode} · Hover untuk detail</span>
+      </h3>
     </div>""", unsafe_allow_html=True)
 
     if df_map.empty:
         st.info("Tidak ada data untuk tahun yang dipilih.")
     else:
-        fig_map = build_map(df_map, geojson, prop_key or "state")
+        with st.spinner("🎨 Membangun peta …"):
+            fig_map = build_map(df_map, gadm2, geojson_fb, prop_key_fb or "state")
         st.plotly_chart(
             fig_map, use_container_width=True,
             config={
                 "displayModeBar": True,
                 "modeBarButtonsToRemove": ["select2d","lasso2d"],
-                "toImageButtonOptions": {"filename":"peta_bantuan"},
+                "toImageButtonOptions": {"filename":"peta_bantuan","scale":2},
                 "scrollZoom": True,
             },
         )
@@ -974,99 +959,68 @@ def main() -> None:
     # ── Analitik ───────────────────────────────────────────────────────────
     st.markdown(f"""
     <div class="sec">
-        <h3>📊 Analitik Distribusi
-            <span>— Top 10 nominal &amp; ranking provinsi penerima bantuan terbanyak</span>
-        </h3>
+      <h3>📊 Analitik Distribusi
+        <span>— Top 10 nominal &amp; ranking provinsi penerima bantuan terbanyak</span>
+      </h3>
     </div>""", unsafe_allow_html=True)
 
     col_bar, col_rank = st.columns([3, 2], gap="medium")
-
     with col_bar:
-        # Card wrapper untuk bar chart
         st.markdown(f"""
-        <div style="
-            background:#fff;
-            border-radius:16px;
-            padding:16px 18px 6px;
-            box-shadow:0 4px 20px rgba(107,29,58,.10),0 1px 4px rgba(107,29,58,.06);
-            border:1px solid {P['rose100']};
-            margin-bottom:4px;
-        ">
-            <div style="font-size:13px;font-weight:800;color:{P['primary']};margin-bottom:4px;">
-                📊 Top 10 Provinsi — Total Nominal Bantuan
-            </div>
+        <div style="background:#fff;border-radius:16px;padding:14px 18px 4px;
+                    box-shadow:0 4px 20px rgba(107,29,58,.10),0 1px 4px rgba(107,29,58,.06);
+                    border:1px solid {P['rose100']};margin-bottom:4px;">
+          <div style="font-size:13px;font-weight:800;color:{P['primary']};margin-bottom:2px;">
+            📊 Top 10 Provinsi — Total Nominal Bantuan
+          </div>
         </div>""", unsafe_allow_html=True)
-        st.plotly_chart(
-            chart_top_prov(df_map),
-            use_container_width=True,
-            config={"displayModeBar": False},
-        )
+        st.plotly_chart(chart_top_prov(df_map), use_container_width=True,
+                        config={"displayModeBar": False})
 
     with col_rank:
-        # Card wrapper ranking
-        st.markdown(f"""
-        <div style="
-            background:#fff;border-radius:16px;
-            padding:14px 16px 4px;
-            box-shadow:0 4px 20px rgba(107,29,58,.10),0 1px 4px rgba(107,29,58,.06);
-            border:1px solid {P['rose100']};
-        ">
-        </div>""", unsafe_allow_html=True)
         render_ranking(df_map, top_n=10)
 
     # ── Tabel ──────────────────────────────────────────────────────────────
     st.markdown(f"""
     <div class="sec" style="margin-top:28px;">
-        <h3>📋 Tabel Data Bantuan
-            <span>— Gunakan filter di bawah untuk menyaring data</span>
-        </h3>
+      <h3>📋 Tabel Data Bantuan
+        <span>— Filter di bawah untuk menyaring data</span>
+      </h3>
     </div>""", unsafe_allow_html=True)
 
     st.markdown('<div class="filter-wrap">', unsafe_allow_html=True)
     tf1, tf2, tf3 = st.columns([1, 2, 2])
     with tf1:
-        tbl_year = st.selectbox("📅 Tahun", options=["Semua"] + [str(y) for y in avail_years], key="tbl_year")
+        tbl_year = st.selectbox("📅 Tahun", ["Semua"] + [str(y) for y in avail_years], key="tbl_year")
     with tf2:
         prov_list = ["Semua"] + sorted(df["Provinsi"].dropna().unique())
-        tbl_prov = st.selectbox("🏙️ Provinsi", prov_list, key="tbl_prov")
+        tbl_prov  = st.selectbox("🏙️ Provinsi", prov_list, key="tbl_prov")
     with tf3:
         kab_pool = (
             df[df["Provinsi"] == tbl_prov]["Kab/Kota"].dropna().unique()
-            if tbl_prov != "Semua"
-            else df["Kab/Kota"].dropna().unique()
+            if tbl_prov != "Semua" else df["Kab/Kota"].dropna().unique()
         )
         tbl_kab = st.selectbox("📍 Kab/Kota", ["Semua"] + sorted(kab_pool), key="tbl_kab")
     st.markdown("</div>", unsafe_allow_html=True)
 
     df_tbl = df.copy()
-    if tbl_year != "Semua":
-        df_tbl = df_tbl[df_tbl["Tahun"] == int(tbl_year)]
-    if tbl_prov != "Semua":
-        df_tbl = df_tbl[df_tbl["Provinsi"] == tbl_prov]
-    if tbl_kab != "Semua":
-        df_tbl = df_tbl[df_tbl["Kab/Kota"] == tbl_kab]
+    if tbl_year != "Semua": df_tbl = df_tbl[df_tbl["Tahun"] == int(tbl_year)]
+    if tbl_prov != "Semua": df_tbl = df_tbl[df_tbl["Provinsi"] == tbl_prov]
+    if tbl_kab  != "Semua": df_tbl = df_tbl[df_tbl["Kab/Kota"] == tbl_kab]
 
     st.markdown(
-        f'<div class="tbl-info">'
-        f'📋 Menampilkan <b>{len(df_tbl):,} bantuan</b>'
-        f'&nbsp;·&nbsp;Total Nominal: <b>{fmt_rp(df_tbl["Nominal"].sum())}</b>'
-        f'</div>',
+        f'<div class="tbl-info">📋 Menampilkan <b>{len(df_tbl):,} bantuan</b>'
+        f'&nbsp;·&nbsp;Total: <b>{fmt_rp(df_tbl["Nominal"].sum())}</b></div>',
         unsafe_allow_html=True,
     )
-
     COLS5 = ["Nama Bantuan","Jumlah Bantuan (Rp)","Provinsi","Kab/Kota","Tanggal Dibantu"]
-    df_show = df_tbl[[c for c in COLS5 if c in df_tbl.columns]].reset_index(drop=True)
-    render_table_html(df_show)
+    render_table_html(df_tbl[[c for c in COLS5 if c in df_tbl.columns]].reset_index(drop=True))
 
     csv_bytes = df_tbl.to_csv(index=False).encode("utf-8")
     dl1, _, dl2 = st.columns([2, 5, 2])
     with dl1:
-        st.download_button(
-            label="⬇️  Unduh Data (CSV)",
-            data=csv_bytes,
-            file_name=f"data_bantuan_{tbl_prov}_{tbl_year}.csv",
-            mime="text/csv",
-        )
+        st.download_button("⬇️  Unduh Data (CSV)", data=csv_bytes,
+                           file_name=f"bantuan_{tbl_prov}_{tbl_year}.csv", mime="text/csv")
     with dl2:
         st.markdown(
             f"<p style='text-align:right;font-size:11px;color:{P['muted']};margin-top:12px;'>"
@@ -1077,9 +1031,8 @@ def main() -> None:
     st.markdown(
         f"<hr style='border:none;border-top:1.5px solid {P['rose100']};margin:36px 0 12px;'>"
         f"<p style='text-align:center;font-size:11.5px;color:{P['muted']};line-height:1.8;'>"
-        f"📡 Data real-time dari Google Sheets"
-        f"&nbsp;·&nbsp; Peta: GeoJSON Indonesia (superpikar)"
-        f"&nbsp;·&nbsp; 🌾 Spasial Bantuan v3.0"
+        f"📡 Data real-time dari Google Sheets &nbsp;·&nbsp; "
+        f"🗺️ Peta: GADM v4.1 Level-2 Indonesia &nbsp;·&nbsp; 🌾 Spasial Bantuan v4.0"
         f"</p>",
         unsafe_allow_html=True,
     )
