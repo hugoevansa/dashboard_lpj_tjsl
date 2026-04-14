@@ -1,12 +1,14 @@
 """
-sidebar.py  ─  Shared Sidebar Component
-=========================================
+sidebar_component.py  ─  Shared Sidebar Component  (v2 — Fix Navigation)
+=========================================================================
+FIX: Mengganti <a href> HTML biasa dengan st.page_link() agar navigasi
+     bekerja dengan benar & tanpa lag di Streamlit multipage app.
+
 Import di setiap halaman:
+    from sidebar_component import render_sidebar
+    render_sidebar(active_page="main")   # "main"|"database"|"notifikasi"|"sebaran"
 
-    from sidebar import render_sidebar
-    render_sidebar(active_page="main")   # "main" | "database" | "notifikasi" | "sebaran"
-
-Letakkan file ini di root folder project (sejajar dengan main.py dan folder pages/).
+Letakkan di root folder (sejajar main.py & folder pages/).
 """
 
 import os
@@ -15,39 +17,36 @@ import streamlit as st
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  PALET WARNA SIDEBAR  (maroon gelap, konsisten dgn semua halaman)
+#  WARNA
 # ─────────────────────────────────────────────────────────────────────────────
 SB = {
-    "bg"       : "#2D0A18",    # background utama sidebar
-    "bg2"      : "#3D0E21",    # sedikit lebih terang
-    "active"   : "#7C1F3F",    # highlight item aktif
-    "hover"    : "rgba(255,255,255,.07)",
-    "line"     : "rgba(255,255,255,.10)",
-    "text"     : "rgba(255,255,255,.90)",
-    "muted"    : "rgba(255,255,255,.45)",
-    "accent"   : "#E8A0B4",    # rose accent untuk active text
-    "badge_bg" : "#7C1F3F",
-    "badge_txt": "#FFD6E3",
+    "bg"      : "#2D0A18",
+    "active"  : "#7C1F3F",
+    "hover"   : "rgba(255,255,255,.07)",
+    "line"    : "rgba(255,255,255,.10)",
+    "text"    : "rgba(255,255,255,.90)",
+    "muted"   : "rgba(255,255,255,.45)",
+    "accent"  : "#E8A0B4",
+    "badge_bg": "#C5547A",
+    "badge_txt":"#fff",
 }
 
+
 # ─────────────────────────────────────────────────────────────────────────────
-#  CSS GLOBAL SIDEBAR
-#  FIX: Hapus min-width/max-width agar tombol toggle Streamlit bisa bekerja.
-#       Gunakan width saja, dan biarkan Streamlit mengurus collapsed state.
+#  CSS  (injected once per page)
 # ─────────────────────────────────────────────────────────────────────────────
 SIDEBAR_CSS = f"""
 <style>
-/* ══ Background & padding utama ════════════════════════════════════ */
+/* ══ Sidebar container ═════════════════════════════════════════════ */
+section[data-testid="stSidebar"] {{
+    background: {SB['bg']} !important;
+    width: 240px !important;
+}}
 section[data-testid="stSidebar"] > div:first-child {{
     padding: 0 !important;
 }}
-section[data-testid="stSidebar"] {{
-    background: {SB['bg']} !important;
-    /* PERBAIKAN: Hapus min-width & max-width agar toggle bisa bekerja */
-    width: 240px !important;
-}}
 
-/* ══ Sembunyikan nav otomatis Streamlit (pages/) ════════════════════ */
+/* ══ Sembunyikan nav auto Streamlit ══════════════════════════════ */
 section[data-testid="stSidebar"] nav,
 section[data-testid="stSidebar"] [data-testid="stSidebarNavItems"],
 section[data-testid="stSidebar"] [data-testid="stSidebarNavLink"],
@@ -55,13 +54,13 @@ section[data-testid="stSidebar"] [data-testid="stSidebarNavSeparator"] {{
     display: none !important;
 }}
 
-/* ══ Reset warna teks ═══════════════════════════════════════════════ */
+/* ══ Reset warna teks global sidebar ════════════════════════════ */
 section[data-testid="stSidebar"] * {{
     color: {SB['text']} !important;
     border-color: {SB['line']} !important;
 }}
 
-/* ══ Hapus gap & padding bawaan Streamlit ══════════════════════════ */
+/* ══ Hapus gap bawaan Streamlit ══════════════════════════════════ */
 section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {{
     gap: 0 !important;
     padding: 0 !important;
@@ -71,35 +70,87 @@ section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {{
     width: 100% !important;
 }}
 
-/* ══ Scrollbar ══════════════════════════════════════════════════════ */
+/* ══ Scrollbar ═══════════════════════════════════════════════════ */
 section[data-testid="stSidebar"] ::-webkit-scrollbar       {{ width: 4px; }}
 section[data-testid="stSidebar"] ::-webkit-scrollbar-track {{ background: {SB['bg']}; }}
 section[data-testid="stSidebar"] ::-webkit-scrollbar-thumb {{ background: {SB['active']}; border-radius: 4px; }}
 
-/* ══ Komponen custom sidebar ════════════════════════════════════════ */
-.sb-root {{
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    background: {SB['bg']};
-    font-family: 'DM Sans', 'Plus Jakarta Sans', sans-serif;
-    overflow-y: auto;
-    user-select: none;
+/* ════════════════════════════════════════════════════════════════
+   STYLE  st.page_link()  agar mirip nav item kustom
+   ════════════════════════════════════════════════════════════════ */
+
+/* Wrapper dari st.page_link */
+section[data-testid="stSidebar"] [data-testid="stPageLink"] {{
+    padding: 0 !important;
+    margin: 0 !important;
 }}
 
-/* ── Logo block ──────────────────────────────────────────────────── */
+/* Anchor tag di dalam st.page_link */
+section[data-testid="stSidebar"] [data-testid="stPageLink"] > a,
+section[data-testid="stSidebar"] [data-testid="stPageLink-NavLink"] {{
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 9px 14px !important;
+    margin: 1px 8px !important;
+    border-radius: 9px !important;
+    text-decoration: none !important;
+    background: transparent !important;
+    border: none !important;
+    color: rgba(255,255,255,.75) !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    transition: background .13s !important;
+    width: calc(100% - 16px) !important;
+    box-sizing: border-box !important;
+}}
+
+section[data-testid="stSidebar"] [data-testid="stPageLink"] > a:hover,
+section[data-testid="stSidebar"] [data-testid="stPageLink-NavLink"]:hover {{
+    background: {SB['hover']} !important;
+    color: #fff !important;
+}}
+
+/* Link AKTIF — Streamlit memberi aria-current="page" pada link aktif */
+section[data-testid="stSidebar"] [data-testid="stPageLink-NavLink"][aria-current="page"],
+section[data-testid="stSidebar"] [data-testid="stPageLink"] > a[aria-current="page"] {{
+    background: {SB['active']} !important;
+    color: #fff !important;
+    font-weight: 800 !important;
+    position: relative !important;
+}}
+
+/* Garis accent kiri untuk item aktif */
+section[data-testid="stSidebar"] [data-testid="stPageLink-NavLink"][aria-current="page"]::before,
+section[data-testid="stSidebar"] [data-testid="stPageLink"] > a[aria-current="page"]::before {{
+    content: "" !important;
+    position: absolute !important;
+    left: 0 !important; top: 20% !important; bottom: 20% !important;
+    width: 3px !important;
+    background: {SB['accent']} !important;
+    border-radius: 0 3px 3px 0 !important;
+}}
+
+/* Icon di st.page_link */
+section[data-testid="stSidebar"] [data-testid="stPageLink"] svg,
+section[data-testid="stSidebar"] [data-testid="stPageLink"] [data-testid="stIconMaterial"] {{
+    color: rgba(255,255,255,.80) !important;
+    fill:  rgba(255,255,255,.80) !important;
+}}
+
+/* ════════════════════════════════════════════════════════════════
+   HTML komponen dekoratif (logo, search, section label)
+   ════════════════════════════════════════════════════════════════ */
+
+/* Logo block */
 .sb-logo {{
-    display: flex;
-    align-items: center;
-    gap: 11px;
+    display: flex; align-items: center; gap: 11px;
     padding: 20px 18px 16px;
     border-bottom: 1px solid {SB['line']};
 }}
 .sb-logo-img {{
-    width: 38px; height: 38px;
-    border-radius: 10px;
-    object-fit: cover;
-    flex-shrink: 0;
+    width: 38px; height: 38px; border-radius: 10px;
+    object-fit: cover; flex-shrink: 0;
     background: {SB['active']};
     display: flex; align-items: center; justify-content: center;
     font-size: 20px; line-height: 1;
@@ -109,150 +160,64 @@ section[data-testid="stSidebar"] ::-webkit-scrollbar-thumb {{ background: {SB['a
     border-radius: 10px; object-fit: cover;
 }}
 .sb-logo-name {{
-    font-size: 14px;
-    font-weight: 800;
-    color: #fff !important;
-    line-height: 1.2;
-    letter-spacing: -.2px;
+    font-size: 14px; font-weight: 800; color: #fff !important;
+    line-height: 1.2; letter-spacing: -.2px;
+    font-family: 'DM Sans','Plus Jakarta Sans',sans-serif;
 }}
 .sb-logo-sub {{
-    font-size: 10.5px;
-    color: {SB['muted']} !important;
-    margin-top: 1px;
+    font-size: 10.5px; color: {SB['muted']} !important; margin-top: 1px;
+    font-family: 'DM Sans','Plus Jakarta Sans',sans-serif;
 }}
 
-/* ── Search box ──────────────────────────────────────────────────── */
+/* Search bar (dekoratif) */
 .sb-search {{
-    margin: 12px 14px 6px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    margin: 12px 14px 4px;
+    display: flex; align-items: center; gap: 8px;
     background: rgba(255,255,255,.07);
     border: 1px solid {SB['line']};
-    border-radius: 9px;
-    padding: 7px 12px;
-    cursor: text;
+    border-radius: 9px; padding: 7px 12px; cursor: text;
 }}
 .sb-search-icon {{ font-size: 13px; opacity: .55; }}
-.sb-search-txt  {{ font-size: 12px; color: {SB['muted']} !important; flex: 1; }}
+.sb-search-txt  {{ font-size: 12px; color: {SB['muted']} !important; flex: 1; font-family: 'DM Sans','Plus Jakarta Sans',sans-serif; }}
 .sb-search-kbd  {{
     font-size: 10px; color: {SB['muted']} !important;
-    background: rgba(255,255,255,.08);
-    border: 1px solid rgba(255,255,255,.14);
-    border-radius: 4px;
-    padding: 1px 5px;
-    font-family: monospace;
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
+    border-radius: 4px; padding: 1px 5px; font-family: monospace;
 }}
 
-/* ── Section label ───────────────────────────────────────────────── */
+/* Section label */
 .sb-section-lbl {{
-    font-size: 9.5px;
-    font-weight: 800;
-    letter-spacing: 1.3px;
-    text-transform: uppercase;
+    font-size: 9.5px; font-weight: 800;
+    letter-spacing: 1.3px; text-transform: uppercase;
     color: {SB['muted']} !important;
-    padding: 14px 18px 5px;
+    padding: 14px 18px 4px;
+    font-family: 'DM Sans','Plus Jakarta Sans',sans-serif;
 }}
 
-/* ── Nav item ────────────────────────────────────────────────────── */
-.sb-nav-item {{
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 14px;
-    margin: 1px 8px;
-    border-radius: 9px;
-    text-decoration: none !important;
-    cursor: pointer;
-    transition: background .13s;
-    position: relative;
+/* Badge notifikasi di samping label */
+.sb-notif-row {{
+    display: flex; align-items: center;
+    padding: 0 22px 0 22px; margin-top: -4px; margin-bottom: 2px;
 }}
-.sb-nav-item:hover {{
-    background: {SB['hover']};
-}}
-.sb-nav-item.active {{
-    background: {SB['active']};
-}}
-.sb-nav-item.active::before {{
-    content: "";
-    position: absolute;
-    left: 0; top: 20%; bottom: 20%;
-    width: 3px;
-    background: {SB['accent']};
-    border-radius: 0 3px 3px 0;
-}}
-.sb-nav-icon {{
-    font-size: 16px;
-    width: 24px;
-    text-align: center;
-    flex-shrink: 0;
-    opacity: .80;
-}}
-.sb-nav-item.active .sb-nav-icon {{ opacity: 1; }}
-.sb-nav-label {{
-    font-size: 13px;
-    font-weight: 600;
-    color: rgba(255,255,255,.75) !important;
-    flex: 1;
-}}
-.sb-nav-item.active .sb-nav-label {{
-    color: #fff !important;
-    font-weight: 800;
-}}
-.sb-nav-badge {{
-    font-size: 10px;
-    font-weight: 800;
-    background: {SB['badge_bg']};
-    color: {SB['badge_txt']} !important;
-    border-radius: 999px;
-    padding: 2px 7px;
-    min-width: 20px;
-    text-align: center;
-}}
-.sb-nav-item.active .sb-nav-badge {{
-    background: {SB['accent']};
-    color: {SB['bg']} !important;
+.sb-notif-badge {{
+    display: inline-flex; align-items: center; justify-content: center;
+    background: {SB['badge_bg']}; color: {SB['badge_txt']} !important;
+    border-radius: 999px; font-size: 10px; font-weight: 800;
+    padding: 2px 8px; min-width: 22px; margin-left: auto;
+    font-family: 'DM Sans','Plus Jakarta Sans',sans-serif;
+    line-height: 1.4;
 }}
 
-/* ── Sub-item (indented) ─────────────────────────────────────────── */
-.sb-sub-item {{
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 6px 14px 6px 44px;
-    margin: 1px 8px;
-    border-radius: 9px;
-    text-decoration: none !important;
-    cursor: pointer;
-    transition: background .13s;
-}}
-.sb-sub-item:hover {{
-    background: {SB['hover']};
-}}
-.sb-sub-item.active {{
-    background: rgba(255,255,255,.10);
-}}
-.sb-sub-label {{
-    font-size: 12.5px;
-    font-weight: 500;
-    color: rgba(255,255,255,.65) !important;
-}}
-.sb-sub-item.active .sb-sub-label {{
-    color: rgba(255,255,255,.95) !important;
-    font-weight: 700;
-}}
-
-/* ── Divider ─────────────────────────────────────────────────────── */
+/* Divider */
 .sb-divider {{
-    height: 1px;
-    background: {SB['line']};
-    margin: 10px 14px;
+    height: 1px; background: {SB['line']}; margin: 8px 14px;
 }}
 
-/* ── Spacer ──────────────────────────────────────────────────────── */
-.sb-spacer {{ flex: 1; min-height: 20px; }}
+/* Spacer bawah */
+.sb-spacer {{ min-height: 20px; }}
 </style>
 """
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  LOGO LOADER
@@ -267,92 +232,74 @@ def _load_logo_b64() -> str | None:
     ]
     for path in candidates:
         if os.path.exists(path):
-            with open(path, "rb") as f:
-                return base64.b64encode(f.read()).decode()
+            try:
+                with open(path, "rb") as f:
+                    return base64.b64encode(f.read()).decode()
+            except Exception:
+                pass
     return None
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-#  BUILD HTML
-# ─────────────────────────────────────────────────────────────────────────────
-def _nav_item(icon: str, label: str, page_key: str, active_page: str,
-              badge: str = "", href: str = "") -> str:
-    is_active = (page_key == active_page)
-    active_cls = "active" if is_active else ""
-    badge_html = f'<span class="sb-nav-badge">{badge}</span>' if badge else ""
-    link = href if href else f"/{page_key}" if page_key != "main" else "/"
-    return (
-        f'<a href="{link}" class="sb-nav-item {active_cls}" target="_self">'
-        f'  <span class="sb-nav-icon">{icon}</span>'
-        f'  <span class="sb-nav-label">{label}</span>'
-        f'  {badge_html}'
-        f'</a>'
-    )
-
-
-def _sub_item(label: str, page_key: str, active_page: str) -> str:
-    is_active = (page_key == active_page)
-    cls = "active" if is_active else ""
-    return (
-        f'<div class="sb-sub-item {cls}">'
-        f'  <span class="sb-sub-label">{label}</span>'
-        f'</div>'
-    )
-
-
-def _build_sidebar_html(active_page: str, notif_count: int = 0) -> str:
-    logo_b64 = _load_logo_b64()
-    if logo_b64:
-        logo_img = f'<div class="sb-logo-img"><img src="data:image/png;base64,{logo_b64}" alt="logo"></div>'
-    else:
-        logo_img = '<div class="sb-logo-img">🏛️</div>'
-
-    badge_notif = str(notif_count) if notif_count > 0 else ""
-
-    # PERBAIKAN: Footer (Feedback & Bantuan) dihapus sesuai permintaan
-    html = (
-        f'<div class="sb-root">'
-
-        # ── Logo
-        f'<div class="sb-logo">{logo_img}'
-        f'<div class="sb-logo-text">'
-        f'<div class="sb-logo-name">Dashboard Bantuan</div>'
-        f'<div class="sb-logo-sub">Sistem Monitoring</div>'
-        f'</div></div>'
-
-        # ── Search
-        f'<div class="sb-search">'
-        f'<span class="sb-search-icon">🔍</span>'
-        f'<span class="sb-search-txt">Cari menu…</span>'
-        f'<span class="sb-search-kbd">⌘K</span>'
-        f'</div>'
-
-        # ── Menu Utama
-        f'<div class="sb-section-lbl">Menu Utama</div>'
-        f'{_nav_item("🏠", "Main", "main", active_page)}'
-        f'{_nav_item("🗄️", "Database", "database", active_page)}'
-        f'{_nav_item("🔔", "Notifikasi", "notifikasi", active_page, badge=badge_notif)}'
-
-        # ── Analitik
-        f'<div class="sb-section-lbl">Analitik</div>'
-        f'{_nav_item("🗺️", "Sebaran Bantuan", "sebaran", active_page)}'
-
-        # ── Spacer (tanpa footer)
-        f'<div class="sb-spacer"></div>'
-        f'</div>'
-    )
-    return html
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  PUBLIC API
 # ─────────────────────────────────────────────────────────────────────────────
 def render_sidebar(active_page: str = "main", notif_count: int = 0) -> None:
-    sidebar_html = _build_sidebar_html(active_page, notif_count)
+    """
+    Render sidebar navigasi.
 
-    # Inject CSS ke halaman utama
+    Parameters
+    ----------
+    active_page : str
+        "main" | "database" | "notifikasi" | "sebaran"
+    notif_count : int
+        Jumlah notifikasi aktif → ditampilkan sebagai badge di menu Notifikasi
+    """
+
+    # 1. Inject CSS global
     st.markdown(SIDEBAR_CSS, unsafe_allow_html=True)
 
-    # Inject HTML ke sidebar
     with st.sidebar:
-        st.markdown(sidebar_html, unsafe_allow_html=True)
+
+        # ── Logo / Brand ──────────────────────────────────────────────
+        logo_b64 = _load_logo_b64()
+        if logo_b64:
+            logo_img_html = f'<div class="sb-logo-img"><img src="data:image/png;base64,{logo_b64}" alt="logo"></div>'
+        else:
+            logo_img_html = '<div class="sb-logo-img">🏛️</div>'
+
+        st.markdown(f"""
+        <div class="sb-logo">
+            {logo_img_html}
+            <div>
+                <div class="sb-logo-name">Dashboard Bantuan</div>
+                <div class="sb-logo-sub">Sistem Monitoring</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # ── Search (dekoratif) ─────────────────────────────────────────
+        st.markdown("""
+        <div class="sb-search">
+            <span class="sb-search-icon">🔍</span>
+            <span class="sb-search-txt">Cari menu…</span>
+            <span class="sb-search-kbd">⌘K</span>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # ── MENU UTAMA ─────────────────────────────────────────────────
+        st.markdown('<div class="sb-section-lbl">Menu Utama</div>', unsafe_allow_html=True)
+
+        # Gunakan st.page_link() → navigasi native Streamlit, tanpa lag
+        st.page_link("main.py",               label="Main",           icon="🏠")
+        st.page_link("pages/database.py",     label="Database",       icon="🗄️")
+
+        # Notifikasi — tampilkan badge di bawah link jika ada notif
+        notif_label = f"Notifikasi  ({notif_count})" if notif_count > 0 else "Notifikasi"
+        st.page_link("pages/notifikasi.py",   label=notif_label,      icon="🔔")
+
+        # ── ANALITIK ───────────────────────────────────────────────────
+        st.markdown('<div class="sb-section-lbl">Analitik</div>', unsafe_allow_html=True)
+        st.page_link("pages/sebaran.py",      label="Sebaran Bantuan", icon="🗺️")
+
+        # ── Spacer bawah ───────────────────────────────────────────────
+        st.markdown('<div class="sb-spacer"></div>', unsafe_allow_html=True)
