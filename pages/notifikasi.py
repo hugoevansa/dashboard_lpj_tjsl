@@ -400,7 +400,12 @@ total_notif = len(belum_chat) + len(blacklist) + len(follow_up) + len(menunggu)
 # ─────────────────────────────────────────────────────────────────────────────
 #  SIDEBAR  ← baru
 # ─────────────────────────────────────────────────────────────────────────────
-render_sidebar(active_page="notifikasi", notif_count=total_notif)
+with st.sidebar:
+    st.markdown("### 🏛️ Dashboard Bantuan")
+    st.page_link("main.py",              label="🏠 Main")
+    st.page_link("pages/database.py",    label="🗄️ Database")
+    st.page_link("pages/notifikasi.py",  label="🔔 Notifikasi")
+    st.page_link("pages/sebaran.py",     label="🗺️ Sebaran Bantuan")
 
 # ═════════════════════════════════════════════════════════════════════════════
 #  LAYOUT
