@@ -573,59 +573,6 @@ if nama_filter and len(table_df) >= 1:
         </div>
     </div>
     """, unsafe_allow_html=True)
-
-# ── FILTER ───────────────────────────────────────────────────────────────────
-f1, f2, f3, f4 = st.columns([2, 1, 1, 1], gap="medium")
-
-with f2:
-    st.markdown('<div class="filter-label">TAHUN</div>', unsafe_allow_html=True)
-    selected_tahun = st.selectbox("Tahun", ["Semua", 2023, 2024, 2025, 2026], label_visibility="collapsed")
-
-with f3:
-    st.markdown('<div class="filter-label">KONDISI</div>', unsafe_allow_html=True)
-    selected_status = st.selectbox("Kondisi", ["Semua", "LPJ", "Belum LPJ", "Jatuh Tempo"], label_visibility="collapsed")
-
-with f4:
-    st.markdown('<div class="filter-label">STATUS CHAT</div>', unsafe_allow_html=True)
-    selected_chat = st.selectbox(
-        "Status Chat",
-        ["Semua","Belum di Chat","Sudah di Chat","Menunggu LPJ","Follow Up LPJ","BlackList"],
-        label_visibility="collapsed"
-    )
-
-# ── BUILD FILTERED ────────────────────────────────────────────────────────────
-def make_filtered(tahun, status, chat):
-    f = data.copy()
-    if tahun != "Semua":    f = f[f["Tahun"] == tahun]
-    if status == "LPJ":   f = f[f["Status Pembayaran"] == "LPJ"]
-    elif status == "Belum LPJ":
-        f = f[(f["Status Pembayaran"]=="Belum LPJ") & (f["Kondisi Tenggat"]=="Belum Jatuh Tempo")]
-    elif status == "Jatuh Tempo": f = f[f["Kondisi Tenggat"] == "Jatuh Tempo"]
-    if chat == "Belum di Chat":   f = f[f["Chat Normal"] == "Belum di Chat"]
-    elif chat == "Sudah di Chat": f = f[f["Chat Normal"] == "Sudah di Chat"]
-    elif chat == "Menunggu LPJ":  f = f[f["Klasifikasi Chat"] == "Menunggu LPJ"]
-    elif chat == "Follow Up LPJ": f = f[f["Klasifikasi Chat"] == "Follow Up LPJ"]
-    elif chat == "BlackList":     f = f[f["Klasifikasi Chat"] == "BlackList"]
-    return f
-
-filtered = make_filtered(selected_tahun, selected_status, selected_chat)
-
-total_nominal_semua = filtered["Jumlah Bantuan (Rp)"].fillna(0).sum()
-total_nominal_lpj = filtered.loc[filtered["Status Pembayaran"]=="LPJ","Jumlah Bantuan (Rp)"].fillna(0).sum()
-
-with f1:
-    st.markdown(f"""
-    <div class="kpi-wrap">
-        <div class="kpi-label">NOMINAL SUDAH LPJ / TOTAL NOMINAL LPJ</div>
-        <div class="kpi-value">
-            {fmt_rupiah(total_nominal_lpj)}
-            <div style="font-size:0.95rem;color:#8a6672;font-weight:600;margin-top:4px;">
-                dari {fmt_rupiah(total_nominal_semua)}
-            </div>
-        </div>
-        <div class="kpi-note">Total nominal bantuan yang sudah lpj</div>
-    </div>
-    """, unsafe_allow_html=True)
     
 # ── Search & Tabel ────────────────────────────────────────────────────────────
 if not nama_filter:
