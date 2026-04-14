@@ -53,24 +53,24 @@ st.markdown("""
     --text-primary: #1C0A12;
     --text-secondary:#6B4558;
     --text-muted:   #9E7080;
-    --success:      #0F7540;
-    --success-bg:   #E8F5EE;
-    --success-bdr:  #A8D9BC;
-    --warning:      #8A5A00;
-    --warning-bg:   #FEF6E4;
-    --warning-bdr:  #EDD38A;
-    --danger:       #B91C3A;
-    --danger-bg:    #FDE8EE;
-    --danger-bdr:   #F0ABBC;
-    --info:         #1557C0;
-    --info-bg:      #EBF2FF;
-    --info-bdr:     #AECBFA;
-    --indigo:       #4338CA;
-    --indigo-bg:    #EEF0FF;
-    --indigo-bdr:   #BBBFF7;
-    --amber:        #92400E;
-    --amber-bg:     #FFFBEB;
-    --amber-bdr:    #FCD34D;
+    --success:      #5E0F26;
+    --success-bg:   #F9EEF2;
+    --success-bdr:  #D9BEC9;
+    --warning:      #8B1A3A;
+    --warning-bg:   #FDF0F4;
+    --warning-bdr:  #C4849A;
+    --danger:       #5E0F26;
+    --danger-bg:    #F9EEF2;
+    --danger-bdr:   #D9BEC9;
+    --info:         #8B1A3A;
+    --info-bg:      #FDF0F4;
+    --info-bdr:     #C4849A;
+    --indigo:       #6B1530;
+    --indigo-bg:    #FAF0F3;
+    --indigo-bdr:   #CFAAB8;
+    --amber:        #7C1F3F;
+    --amber-bg:     #FDF5F7;
+    --amber-bdr:    #D9BEC9;
     --shadow-sm:    0 1px 3px rgba(92,18,41,0.08), 0 1px 2px rgba(92,18,41,0.04);
     --shadow-md:    0 4px 16px rgba(92,18,41,0.10), 0 2px 6px rgba(92,18,41,0.05);
     --shadow-lg:    0 12px 40px rgba(92,18,41,0.14), 0 4px 12px rgba(92,18,41,0.06);
@@ -222,11 +222,11 @@ div[data-baseweb="input"] > div {
     background: linear-gradient(90deg, var(--crimson-dark), var(--crimson-mid));
     border-radius: 0;
 }
-.kpi-card-accent-success { background: linear-gradient(90deg, #0F7540, #34a869); }
-.kpi-card-accent-warning { background: linear-gradient(90deg, #B91C3A, #e84b6a); }
-.kpi-card-accent-info    { background: linear-gradient(90deg, #1557C0, #4285f4); }
-.kpi-card-accent-indigo  { background: linear-gradient(90deg, #4338CA, #7c6ee8); }
-.kpi-card-accent-amber   { background: linear-gradient(90deg, #92400E, #d97706); }
+.kpi-card-accent-success { background: linear-gradient(90deg, #5E0F26, #8B1A3A); }
+.kpi-card-accent-warning { background: linear-gradient(90deg, #7C1F3F, #B5476A); }
+.kpi-card-accent-info    { background: linear-gradient(90deg, #8B1A3A, #C4617F); }
+.kpi-card-accent-indigo  { background: linear-gradient(90deg, #6B1530, #A8355A); }
+.kpi-card-accent-amber   { background: linear-gradient(90deg, #5E0F26, #9E3055); }
 
 .kpi-icon {
     width: 36px; height: 36px;
@@ -432,19 +432,19 @@ div[data-baseweb="input"] > div {
 
 /* ── CHIPS ── */
 .chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; white-space: nowrap; letter-spacing: 0.01em; }
-.chip-lpj          { background: var(--success-bg); color: var(--success);  border: 1px solid var(--success-bdr); }
-.chip-belum        { background: var(--warning-bg); color: var(--warning);  border: 1px solid var(--warning-bdr); }
-.chip-jatuh        { background: var(--danger-bg);  color: var(--danger);   border: 1px solid var(--danger-bdr);  }
-.chip-chat         { background: var(--info-bg);    color: var(--info);     border: 1px solid var(--info-bdr);    }
-.chip-menunggu     { background: var(--indigo-bg);  color: var(--indigo);   border: 1px solid var(--indigo-bdr);  }
-.chip-follow       { background: var(--amber-bg);   color: var(--amber);    border: 1px solid var(--amber-bdr);   }
-.chip-blacklist    { background: #111827;            color: #f9fafb;         border: 1px solid #374151;            }
-.chip-muted        { background: #f5f5f5;            color: #6b7280;         border: 1px solid #e5e7eb;            }
-.chip-konfirmasi   { background: var(--info-bg);    color: var(--info);     border: 1px solid var(--info-bdr);    }
-.chip-sudah-followup { background: var(--amber-bg); color: var(--amber);    border: 1px solid var(--amber-bdr);   }
-.chip-lpj-diterima { background: var(--success-bg); color: var(--success);  border: 1px solid var(--success-bdr); }
-.chip-bl-konfirmasi { background: #1f2937;           color: #f9fafb;         border: 1px solid #6b7280;            }
-.chip-belum-diisi  { background: #f3f4f6;            color: #9ca3af;         border: 1px solid #d1d5db; font-style: italic; }
+.chip-lpj          { background: #F0E6EA; color: #5E0F26;  border: 1px solid #C4849A; }
+.chip-belum        { background: #FDF5F7; color: #8B1A3A;  border: 1px solid #D9BEC9; }
+.chip-jatuh        { background: #F9EEF2; color: #5E0F26;  border: 1px solid #C4849A; font-weight:800; }
+.chip-chat         { background: #FDF0F4; color: #7C1F3F;  border: 1px solid #D9BEC9; }
+.chip-menunggu     { background: #FAF0F3; color: #6B1530;  border: 1px solid #CFAAB8; }
+.chip-follow       { background: #F9EEF2; color: #8B1A3A;  border: 1px solid #C4849A; }
+.chip-blacklist    { background: #2A0D18;            color: #f9fafb;         border: 1px solid #5E0F26;            }
+.chip-muted        { background: #f5f0f2;            color: #9E7080;         border: 1px solid #e5d8dd;            }
+.chip-konfirmasi   { background: #FDF0F4; color: #7C1F3F;  border: 1px solid #D9BEC9; }
+.chip-sudah-followup { background: #FDF5F7; color: #8B1A3A; border: 1px solid #C4849A; }
+.chip-lpj-diterima { background: #F0E6EA; color: #5E0F26;  border: 1px solid #C4849A; font-weight:800; }
+.chip-bl-konfirmasi { background: #2A0D18;           color: #f9fafb;         border: 1px solid #5E0F26;            }
+.chip-belum-diisi  { background: #f5f0f2;            color: #9E7080;         border: 1px solid #e0d0d6; font-style: italic; }
 
 /* ── SUB-SECTION HEADERS ── */
 .sub-section-header {
@@ -739,21 +739,23 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-_spacer, _notif_col, _refresh_col = st.columns([7, 1.5, 0.4], gap="small")
+st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
+
+# ── FILTER + TOMBOL DALAM SATU BARIS ─────────────────────────────────────────
+_notif_col, _refresh_col, f2, f3, f4 = st.columns([1.6, 0.38, 1, 1, 1], gap="small")
+
 with _notif_col:
+    st.markdown('<div class="filter-label">Notifikasi</div>', unsafe_allow_html=True)
     notif_label = f"🔔  Notifikasi  {total_notif}" if total_notif > 0 else "🔔  Notifikasi"
     if st.button(notif_label, key="btn_notif", use_container_width=True,
                  type="primary" if total_notif > 0 else "secondary"):
         st.switch_page("pages/notifikasi.py")
+
 with _refresh_col:
+    st.markdown('<div class="filter-label">&nbsp;</div>', unsafe_allow_html=True)
     if st.button("↺", key="btn_refresh", use_container_width=True, help="Refresh data dari Google Sheets"):
         st.cache_data.clear()
         st.rerun()
-
-st.markdown("<div style='height:4px'></div>", unsafe_allow_html=True)
-
-# ── FILTER ───────────────────────────────────────────────────────────────────
-f1, f2, f3, f4 = st.columns([2.5, 1, 1, 1], gap="medium")
 
 with f2:
     st.markdown('<div class="filter-label">Tahun</div>', unsafe_allow_html=True)
@@ -837,36 +839,81 @@ for col, label, val, sub, note, accent, _ in kpi_data:
 st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
 # ── CHARTS ──────────────────────────────────────────────────────────────────
-PALETTE = {"LPJ":"#0F7540","Belum LPJ":"#8B1A3A","Jatuh Tempo":"#B91C3A"}
+PALETTE_BAR = {"LPJ":"#5E0F26","Belum LPJ":"#8B1A3A","Jatuh Tempo":"#C4617F"}
 PLOTLY_BASE = dict(
     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
     margin=dict(t=10, b=10, l=0, r=0),
     font=dict(family="Plus Jakarta Sans, sans-serif", color="#1C0A12"),
 )
 
-chart_df = filtered["Status Pembayaran"].value_counts().reset_index()
-chart_df.columns = ["Status","Jumlah"]
 status_dist_df = (
     filtered["Label Tampilan"].value_counts()
     .reindex(["LPJ","Belum LPJ","Jatuh Tempo"], fill_value=0).reset_index()
 )
 status_dist_df.columns = ["Kategori","Jumlah"]
 
+# Helper: SVG circular gauge (maroon theme)
+def circular_gauge_svg(pct, label, color_main="#8B1A3A", color_track="#EAD8DF", size=110):
+    """
+    Generates an SVG circular gauge indicator (like a donut ring progress).
+    pct: 0-100 float
+    """
+    import math
+    r = 40
+    cx = cy = size // 2
+    stroke = 9
+    circumference = 2 * math.pi * r
+    fill_len = circumference * min(pct, 100) / 100
+    gap_len  = circumference - fill_len
+    # Start from top (-90deg) → rotate transform
+    pct_text = f"{pct:.1f}%".replace(".0%", "%")
+    svg = f"""
+    <svg width="{size}" height="{size}" viewBox="0 0 {size} {size}" xmlns="http://www.w3.org/2000/svg">
+      <!-- Track -->
+      <circle cx="{cx}" cy="{cy}" r="{r}"
+        fill="none" stroke="{color_track}" stroke-width="{stroke}"
+        stroke-linecap="round"/>
+      <!-- Progress -->
+      <circle cx="{cx}" cy="{cy}" r="{r}"
+        fill="none" stroke="{color_main}" stroke-width="{stroke}"
+        stroke-linecap="round"
+        stroke-dasharray="{fill_len:.2f} {gap_len:.2f}"
+        transform="rotate(-90 {cx} {cy})"/>
+      <!-- Percentage text -->
+      <text x="{cx}" y="{cy+1}" text-anchor="middle" dominant-baseline="middle"
+        font-family="Sora, sans-serif" font-size="13" font-weight="800" fill="#1C0A12">{pct_text}</text>
+    </svg>"""
+    return svg
+
+pct_lpj = round((total_lpj / total_penerima) * 100, 1) if total_penerima else 0
+pct_jt  = round((total_jatuh_tempo / total_penerima) * 100, 1) if total_penerima else 0
+pct_fu  = round((total_follow_up / total_penerima) * 100, 1)   if total_penerima else 0
+pct_bl  = round((total_blacklist / total_penerima) * 100, 1)   if total_penerima else 0
+
 c1, c2, c3 = st.columns(3, gap="medium")
 
 with c1:
     with st.container(border=True):
-        st.markdown('<div class="panel-title">Komposisi Status LPJ</div>', unsafe_allow_html=True)
-        st.markdown('<div class="panel-sub">Perbandingan antara sudah dan belum LPJ</div>', unsafe_allow_html=True)
-        if not chart_df.empty:
-            fig = px.pie(chart_df, names="Status", values="Jumlah", hole=0.65,
-                         color="Status", color_discrete_map=PALETTE)
-            fig.update_traces(textposition="inside", textinfo="percent+label",
-                              marker=dict(line=dict(color="white", width=3)))
-            fig.update_layout(**PLOTLY_BASE, height=250, showlegend=False)
-            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar":False})
-        else:
-            st.info("Tidak ada data.")
+        st.markdown('<div class="panel-title">Indikator Realisasi LPJ</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-sub">Persentase penerima yang telah menyelesaikan LPJ</div>', unsafe_allow_html=True)
+
+        gauge_lpj   = circular_gauge_svg(pct_lpj,  "LPJ",        color_main="#5E0F26")
+        gauge_belum = circular_gauge_svg(100 - pct_lpj, "Belum", color_main="#C4617F")
+
+        st.markdown(f"""
+        <div style="display:flex;align-items:center;justify-content:space-around;padding:10px 0 6px 0;gap:8px;flex-wrap:wrap;">
+            <div style="text-align:center;">
+                {gauge_lpj}
+                <div style="font-size:0.72rem;font-weight:700;color:#5E0F26;margin-top:4px;letter-spacing:0.04em;text-transform:uppercase;">Sudah LPJ</div>
+                <div style="font-size:0.78rem;font-weight:600;color:#9E7080;">{total_lpj} orang</div>
+            </div>
+            <div style="text-align:center;">
+                {gauge_belum}
+                <div style="font-size:0.72rem;font-weight:700;color:#C4617F;margin-top:4px;letter-spacing:0.04em;text-transform:uppercase;">Belum LPJ</div>
+                <div style="font-size:0.78rem;font-weight:600;color:#9E7080;">{total_belum_lpj} orang</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
 with c2:
     with st.container(border=True):
@@ -874,8 +921,8 @@ with c2:
         st.markdown('<div class="panel-sub">LPJ, belum LPJ, dan jatuh tempo</div>', unsafe_allow_html=True)
         if not status_dist_df.empty:
             fig2 = px.bar(status_dist_df, x="Kategori", y="Jumlah", color="Kategori",
-                          color_discrete_map=PALETTE)
-            fig2.update_layout(**PLOTLY_BASE, height=250, xaxis_title="", yaxis_title="", showlegend=False)
+                          color_discrete_map=PALETTE_BAR)
+            fig2.update_layout(**PLOTLY_BASE, height=258, xaxis_title="", yaxis_title="", showlegend=False)
             fig2.update_traces(marker_line_width=0, marker_cornerradius=6)
             st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar":False})
         else:
@@ -883,22 +930,25 @@ with c2:
 
 with c3:
     with st.container(border=True):
-        st.markdown('<div class="panel-title">Indikator Risiko</div>', unsafe_allow_html=True)
-        st.markdown('<div class="panel-sub">Persentase berdasarkan kategori tindak lanjut</div>', unsafe_allow_html=True)
-        pct_jt = round((total_jatuh_tempo/total_penerima)*100, 1) if total_penerima else 0
-        pct_fu = round((total_follow_up/total_penerima)*100, 1)   if total_penerima else 0
-        pct_bl = round((total_blacklist/total_penerima)*100, 1)   if total_penerima else 0
-        for lbl, val_pct in [
-            ("Jatuh Tempo", f"{pct_jt}%"),
-            ("Perlu Follow Up", f"{pct_fu}%"),
-            ("Potensi Blacklist", f"{pct_bl}%"),
-        ]:
-            st.markdown(f"""
-            <div class="mini-stat">
-                <div class="mini-stat-label">{lbl}</div>
-                <div class="mini-stat-value">{val_pct}</div>
-            </div>
-            """, unsafe_allow_html=True)
+        st.markdown('<div class="panel-title">Indikator Risiko Tindak Lanjut</div>', unsafe_allow_html=True)
+        st.markdown('<div class="panel-sub">Proporsi berdasarkan urgensi tindak lanjut</div>', unsafe_allow_html=True)
+
+        risk_items = [
+            ("Jatuh Tempo",     pct_jt,  "#8B1A3A", total_jatuh_tempo),
+            ("Perlu Follow Up", pct_fu,  "#A8355A", total_follow_up),
+            ("Potensi Blacklist",pct_bl, "#C4617F", total_blacklist),
+        ]
+        gauge_html = '<div style="display:flex;align-items:center;justify-content:space-around;padding:10px 0 4px 0;flex-wrap:wrap;gap:8px;">'
+        for lbl, pct, clr, cnt in risk_items:
+            g = circular_gauge_svg(pct, lbl, color_main=clr, size=100)
+            gauge_html += f"""
+            <div style="text-align:center;">
+                {g}
+                <div style="font-size:0.7rem;font-weight:700;color:{clr};margin-top:4px;letter-spacing:0.03em;text-transform:uppercase;">{lbl}</div>
+                <div style="font-size:0.76rem;font-weight:600;color:#9E7080;">{cnt} orang</div>
+            </div>"""
+        gauge_html += '</div>'
+        st.markdown(gauge_html, unsafe_allow_html=True)
 
 st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
