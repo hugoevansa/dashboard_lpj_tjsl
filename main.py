@@ -855,12 +855,13 @@ status_dist_df = (
 )
 status_dist_df.columns = ["Kategori","Jumlah"]
 
-def make_gauge_html(items):
+def make_gauge_html(items, cols=2):
     """
     items: list of (label, pct_float, color_hex, count_int)
+    cols: number of columns in the grid
     Returns a full HTML string with embedded SVG ring gauges.
     """
-    def one_gauge(pct, color, size=95, stroke=9, track="#EAD8DF"):
+    def one_gauge(pct, color, size=88, stroke=9, track="#EAD8DF"):
         r = (size - stroke * 2) / 2
         cx = cy = size / 2
         circ = 2 * math.pi * r
@@ -884,20 +885,30 @@ def make_gauge_html(items):
     for label, pct, color, count in items:
         svg = one_gauge(pct, color)
         cards += f"""
-        <div style="text-align:center;flex:1;min-width:90px;">
+        <div style="text-align:center;display:flex;flex-direction:column;align-items:center;
+                    justify-content:flex-start;padding:4px 6px;">
           {svg}
-          <div style="font-size:11px;font-weight:700;color:{color};margin-top:5px;
-                      letter-spacing:0.05em;text-transform:uppercase;line-height:1.3;">{label}</div>
-          <div style="font-size:12px;font-weight:600;color:#9E7080;margin-top:2px;">{count} orang</div>
+          <div style="font-size:10px;font-weight:700;color:{color};margin-top:4px;
+                      letter-spacing:0.05em;text-transform:uppercase;line-height:1.3;
+                      white-space:nowrap;">{label}</div>
+          <div style="font-size:11px;font-weight:600;color:#9E7080;margin-top:1px;">{count} orang</div>
         </div>"""
+
+    grid_style = (
+        f"display:grid;"
+        f"grid-template-columns:repeat({cols}, 1fr);"
+        f"gap:4px 0;"
+        f"align-items:start;"
+        f"justify-items:center;"
+        f"padding:6px 4px 6px 4px;"
+    )
 
     return f"""
     <html><head>
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@800&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet">
     <style>body{{margin:0;padding:0;background:transparent;font-family:'Plus Jakarta Sans',sans-serif;}}</style>
     </head><body>
-    <div style="display:flex;align-items:flex-start;justify-content:space-around;
-                padding:8px 4px 10px 4px;gap:8px;flex-wrap:wrap;">
+    <div style="{grid_style}">
       {cards}
     </div>
     </body></html>"""
@@ -925,8 +936,8 @@ with c1:
         html_gauge = make_gauge_html([
             ("Sudah LPJ",  pct_lpj,   "#5E0F26", total_lpj),
             ("Belum LPJ",  pct_belum, "#B5476A", total_belum_lpj),
-        ])
-        components.html(html_gauge, height=180, scrolling=False)
+        ], cols=2)
+        components.html(html_gauge, height=210, scrolling=False)
 
 with c2:
     with st.container(border=True):
@@ -935,7 +946,7 @@ with c2:
         if not status_dist_df.empty:
             fig2 = px.bar(status_dist_df, x="Kategori", y="Jumlah", color="Kategori",
                           color_discrete_map=PALETTE_BAR)
-            fig2.update_layout(**PLOTLY_BASE, height=180, xaxis_title="", yaxis_title="", showlegend=False)
+            fig2.update_layout(**PLOTLY_BASE, height=210, xaxis_title="", yaxis_title="", showlegend=False)
             fig2.update_traces(marker_line_width=0, marker_cornerradius=6)
             st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar":False})
         else:
@@ -950,8 +961,8 @@ with c3:
             ("Menunggu LPJ",     pct_menunggu,     "#8B1A3A", total_menunggu),
             ("Follow Up LPJ",    pct_fu,           "#A8355A", total_follow_up),
             ("Blacklist",        pct_bl,           "#C4617F", total_blacklist),
-        ])
-        components.html(html_risk, height=200, scrolling=False)
+        ], cols=2)
+        components.html(html_risk, height=210, scrolling=False)
 
 st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
 
