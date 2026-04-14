@@ -1,71 +1,62 @@
 """
-sidebar_component.py  ─  Shared Sidebar Component
-===================================================
-Cara pakai di setiap halaman:
+sidebar.py  ─  Shared Sidebar Component
+=========================================
+Import di setiap halaman:
 
-    from sidebar_component import render_sidebar
-    render_sidebar(active_page="main")
-    # active_page: "main" | "database" | "notifikasi" | "sebaran"
+    from sidebar import render_sidebar
+    render_sidebar(active_page="main")   # "main" | "database" | "notifikasi" | "sebaran"
 
-Letakkan file ini di root project (sejajar dengan main.py dan folder pages/).
+Letakkan file ini di root folder project (sejajar dengan main.py dan folder pages/).
 """
 
 import os
 import base64
 import streamlit as st
 
+
 # ─────────────────────────────────────────────────────────────────────────────
-#  PALET WARNA
+#  PALET WARNA SIDEBAR  (maroon gelap, konsisten dgn semua halaman)
 # ─────────────────────────────────────────────────────────────────────────────
 SB = {
-    "bg"       : "#2D0A18",
-    "active"   : "#7C1F3F",
+    "bg"       : "#2D0A18",    # background utama sidebar
+    "bg2"      : "#3D0E21",    # sedikit lebih terang
+    "active"   : "#7C1F3F",    # highlight item aktif
     "hover"    : "rgba(255,255,255,.07)",
     "line"     : "rgba(255,255,255,.10)",
     "text"     : "rgba(255,255,255,.90)",
     "muted"    : "rgba(255,255,255,.45)",
-    "accent"   : "#E8A0B4",
-    "badge_bg" : "#b42318",
+    "accent"   : "#E8A0B4",    # rose accent untuk active text
+    "badge_bg" : "#7C1F3F",
     "badge_txt": "#FFD6E3",
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  CSS  —  KUNCI: tidak ada height:100vh, tidak ada overflow yang menghalangi
+#  CSS GLOBAL SIDEBAR
 # ─────────────────────────────────────────────────────────────────────────────
-def _build_css(notif_count: int) -> str:
-    badge_display = "inline-flex" if notif_count > 0 else "none"
-    return f"""
+SIDEBAR_CSS = f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&display=swap');
-
-/* ── Sidebar container ─────────────────────────────────────────── */
-section[data-testid="stSidebar"] {{
-    background: {SB['bg']} !important;
-    min-width: 240px !important;
-    max-width: 260px !important;
-}}
+/* ══ Sembunyikan nav bawaan Streamlit ══════════════════════════════ */
 section[data-testid="stSidebar"] > div:first-child {{
     padding: 0 !important;
-    background: {SB['bg']} !important;
 }}
-
-/* Sembunyikan nav otomatis Streamlit */
+section[data-testid="stSidebar"] {{
+    background: {SB['bg']} !important;
+    min-width: 230px !important;
+    max-width: 250px !important;
+}}
+/* Sembunyikan nav otomatis Streamlit (pages/) */
 section[data-testid="stSidebar"] nav,
 section[data-testid="stSidebar"] [data-testid="stSidebarNavItems"],
 section[data-testid="stSidebar"] [data-testid="stSidebarNavLink"],
 section[data-testid="stSidebar"] [data-testid="stSidebarNavSeparator"] {{
     display: none !important;
 }}
-
-/* Reset warna teks & border di dalam sidebar */
+/* Reset semua teks sidebar ke warna putih */
 section[data-testid="stSidebar"] * {{
     color: {SB['text']} !important;
     border-color: {SB['line']} !important;
-    font-family: 'DM Sans', sans-serif !important;
-    box-sizing: border-box;
 }}
-
-/* Hapus padding/gap bawaan Streamlit di dalam sidebar */
+/* Hilangkan padding bawaan st.sidebar.markdown */
 section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {{
     gap: 0 !important;
     padding: 0 !important;
@@ -74,73 +65,110 @@ section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {{
     padding: 0 !important;
     width: 100% !important;
 }}
-
-/* Scrollbar sidebar */
-section[data-testid="stSidebar"] ::-webkit-scrollbar       {{ width: 4px; }}
+/* Scrollbar */
+section[data-testid="stSidebar"] ::-webkit-scrollbar       {{ width:4px; }}
 section[data-testid="stSidebar"] ::-webkit-scrollbar-track {{ background: {SB['bg']}; }}
-section[data-testid="stSidebar"] ::-webkit-scrollbar-thumb {{ background: {SB['active']}; border-radius: 4px; }}
+section[data-testid="stSidebar"] ::-webkit-scrollbar-thumb {{ background: {SB['active']}; border-radius:4px; }}
 
-/* ── Logo ──────────────────────────────────────────────────────── */
-.sb-logo-block {{
+/* ══ Komponen custom sidebar ════════════════════════════════════════ */
+.sb-root {{
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: {SB['bg']};
+    font-family: 'DM Sans', 'Plus Jakarta Sans', sans-serif;
+    overflow-y: auto;
+    user-select: none;
+}}
+
+/* ── Logo block ──────────────────────────────────────────────────── */
+.sb-logo {{
     display: flex;
     align-items: center;
     gap: 11px;
-    padding: 20px 18px 16px 18px;
+    padding: 20px 18px 16px;
     border-bottom: 1px solid {SB['line']};
-    background: {SB['bg']};
 }}
-.sb-logo-icon {{
+.sb-logo-img {{
     width: 38px; height: 38px;
     border-radius: 10px;
+    object-fit: cover;
+    flex-shrink: 0;
     background: {SB['active']};
     display: flex; align-items: center; justify-content: center;
-    font-size: 20px; flex-shrink: 0;
-    overflow: hidden;
+    font-size: 20px; line-height: 1;
 }}
-.sb-logo-icon img {{
+.sb-logo-img img {{
     width: 38px; height: 38px;
     border-radius: 10px; object-fit: cover;
 }}
+.sb-logo-text {{}}
 .sb-logo-name {{
-    font-size: 14px; font-weight: 800;
-    color: #fff !important; line-height: 1.2;
+    font-size: 14px;
+    font-weight: 800;
+    color: #fff !important;
+    line-height: 1.2;
+    letter-spacing: -.2px;
 }}
 .sb-logo-sub {{
-    font-size: 10.5px; color: {SB['muted']} !important;
+    font-size: 10.5px;
+    color: {SB['muted']} !important;
     margin-top: 1px;
 }}
 
-/* ── Section label ─────────────────────────────────────────────── */
-.sb-section-lbl {{
-    font-size: 9.5px; font-weight: 800;
-    letter-spacing: 1.3px; text-transform: uppercase;
-    color: {SB['muted']} !important;
-    padding: 14px 18px 5px 18px;
-    background: {SB['bg']};
+/* ── Search box ──────────────────────────────────────────────────── */
+.sb-search {{
+    margin: 12px 14px 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,.07);
+    border: 1px solid {SB['line']};
+    border-radius: 9px;
+    padding: 7px 12px;
+    cursor: text;
+}}
+.sb-search-icon {{ font-size: 13px; opacity: .55; }}
+.sb-search-txt  {{ font-size: 12px; color: {SB['muted']} !important; flex: 1; }}
+.sb-search-kbd  {{
+    font-size: 10px; color: {SB['muted']} !important;
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.14);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-family: monospace;
 }}
 
-/* ── Nav item (link) ───────────────────────────────────────────── */
+/* ── Section label ───────────────────────────────────────────────── */
+.sb-section-lbl {{
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: 1.3px;
+    text-transform: uppercase;
+    color: {SB['muted']} !important;
+    padding: 14px 18px 5px;
+}}
+
+/* ── Nav item ────────────────────────────────────────────────────── */
 .sb-nav-item {{
-    display: flex !important;
-    align-items: center !important;
-    gap: 10px !important;
-    padding: 9px 14px !important;
-    margin: 1px 8px !important;
-    border-radius: 9px !important;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    margin: 1px 8px;
+    border-radius: 9px;
     text-decoration: none !important;
-    cursor: pointer !important;
-    transition: background 0.13s !important;
-    position: relative !important;
-    background: transparent !important;
+    cursor: pointer;
+    transition: background .13s;
+    position: relative;
 }}
 .sb-nav-item:hover {{
-    background: {SB['hover']} !important;
-    text-decoration: none !important;
+    background: {SB['hover']};
 }}
-.sb-nav-item.sb-active {{
-    background: {SB['active']} !important;
+.sb-nav-item.active {{
+    background: {SB['active']};
 }}
-.sb-nav-item.sb-active::before {{
+.sb-nav-item.active::before {{
     content: "";
     position: absolute;
     left: 0; top: 20%; bottom: 20%;
@@ -149,109 +177,106 @@ section[data-testid="stSidebar"] ::-webkit-scrollbar-thumb {{ background: {SB['a
     border-radius: 0 3px 3px 0;
 }}
 .sb-nav-icon {{
-    font-size: 16px; width: 24px;
-    text-align: center; flex-shrink: 0; opacity: 0.8;
+    font-size: 16px;
+    width: 24px;
+    text-align: center;
+    flex-shrink: 0;
+    opacity: .80;
 }}
-.sb-nav-item.sb-active .sb-nav-icon {{ opacity: 1; }}
+.sb-nav-item.active .sb-nav-icon {{ opacity: 1; }}
 .sb-nav-label {{
-    font-size: 13px; font-weight: 600;
-    color: rgba(255,255,255,0.75) !important;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255,255,255,.75) !important;
     flex: 1;
 }}
-.sb-nav-item.sb-active .sb-nav-label {{
-    color: #fff !important; font-weight: 800;
+.sb-nav-item.active .sb-nav-label {{
+    color: #fff !important;
+    font-weight: 800;
 }}
 .sb-nav-badge {{
-    display: {badge_display};
-    align-items: center; justify-content: center;
-    font-size: 10px; font-weight: 800;
+    font-size: 10px;
+    font-weight: 800;
     background: {SB['badge_bg']};
     color: {SB['badge_txt']} !important;
     border-radius: 999px;
-    padding: 2px 7px; min-width: 20px;
+    padding: 2px 7px;
+    min-width: 20px;
+    text-align: center;
 }}
-.sb-nav-item.sb-active .sb-nav-badge {{
+.sb-nav-item.active .sb-nav-badge {{
     background: {SB['accent']};
     color: {SB['bg']} !important;
 }}
 
-/* ── Divider ───────────────────────────────────────────────────── */
+/* ── Sub-item (indented) ─────────────────────────────────────────── */
+.sb-sub-item {{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 14px 6px 44px;
+    margin: 1px 8px;
+    border-radius: 9px;
+    text-decoration: none !important;
+    cursor: pointer;
+    transition: background .13s;
+}}
+.sb-sub-item:hover {{
+    background: {SB['hover']};
+}}
+.sb-sub-item.active {{
+    background: rgba(255,255,255,.10);
+}}
+.sb-sub-label {{
+    font-size: 12.5px;
+    font-weight: 500;
+    color: rgba(255,255,255,.65) !important;
+}}
+.sb-sub-item.active .sb-sub-label {{
+    color: rgba(255,255,255,.95) !important;
+    font-weight: 700;
+}}
+
+/* ── Divider ─────────────────────────────────────────────────────── */
 .sb-divider {{
     height: 1px;
     background: {SB['line']};
-    margin: 8px 14px;
+    margin: 10px 14px;
 }}
 
-/* ── Footer area ───────────────────────────────────────────────── */
-.sb-footer-block {{
-    padding: 10px 14px 14px 14px;
+/* ── Spacer ──────────────────────────────────────────────────────── */
+.sb-spacer {{ flex: 1; }}
+
+/* ── Footer (user) ───────────────────────────────────────────────── */
+.sb-footer {{
     border-top: 1px solid {SB['line']};
+    padding: 12px 14px;
 }}
-
-/* ── Tombol Streamlit di dalam sidebar — restyling ─────────────── */
-section[data-testid="stSidebar"] .stButton > button {{
-    width: 100% !important;
-    background: transparent !important;
-    border: none !important;
-    border-radius: 8px !important;
-    color: rgba(255,255,255,0.60) !important;
-    font-size: 12px !important;
-    font-weight: 500 !important;
-    text-align: left !important;
-    padding: 7px 10px !important;
-    cursor: pointer !important;
-    transition: background 0.13s !important;
-    box-shadow: none !important;
-    margin-bottom: 2px !important;
-}}
-section[data-testid="stSidebar"] .stButton > button:hover {{
-    background: {SB['hover']} !important;
-    color: rgba(255,255,255,0.90) !important;
-    border: none !important;
-    box-shadow: none !important;
-}}
-section[data-testid="stSidebar"] .stButton > button:focus {{
-    box-shadow: none !important;
-    border: none !important;
-    outline: none !important;
-}}
-
-/* Tombol search styling */
-.sb-search-btn {{
+.sb-footer-link {{
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin: 12px 14px 8px 14px;
-    background: rgba(255,255,255,.07) !important;
-    border: 1px solid {SB['line']} !important;
-    border-radius: 9px !important;
-    padding: 8px 12px !important;
+    gap: 9px;
+    padding: 6px 6px;
+    border-radius: 8px;
     cursor: pointer;
-    width: calc(100% - 28px);
-    color: {SB['muted']} !important;
-    font-size: 12px !important;
-    text-align: left !important;
-    transition: background 0.13s;
+    transition: background .13s;
+    text-decoration: none !important;
+    margin-bottom: 2px;
 }}
-.sb-search-btn:hover {{
-    background: rgba(255,255,255,.12) !important;
+.sb-footer-link:hover {{ background: {SB['hover']}; }}
+.sb-footer-icon {{ font-size: 14px; opacity: .6; width: 20px; text-align: center; }}
+.sb-footer-txt  {{
+    font-size: 12px;
+    color: rgba(255,255,255,.60) !important;
 }}
-section[data-testid="stSidebar"] .sb-search-wrap .stButton > button {{
-    background: rgba(255,255,255,.07) !important;
-    border: 1px solid {SB['line']} !important;
-    border-radius: 9px !important;
-    margin: 12px 6px 8px 6px !important;
-    padding: 8px 12px !important;
-    color: {SB['muted']} !important;
-    font-size: 12px !important;
-}}
+.sb-footer-txt:hover {{ color: rgba(255,255,255,.85) !important; }}
 </style>
 """
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  LOGO LOADER
 # ─────────────────────────────────────────────────────────────────────────────
-def _load_logo_b64():
+def _load_logo_b64() -> str | None:
     candidates = [
         "Dokumentasi/DummyLogo.png",
         "dokumentasi/DummyLogo.png",
@@ -265,95 +290,81 @@ def _load_logo_b64():
                 return base64.b64encode(f.read()).decode()
     return None
 
+
 # ─────────────────────────────────────────────────────────────────────────────
-#  HELPER: render satu nav item sebagai <a> link
+#  BUILD HTML
 # ─────────────────────────────────────────────────────────────────────────────
-def _nav_link(icon: str, label: str, page_key: str, active_page: str,
-              badge: str = "") -> str:
+def _nav_item(icon: str, label: str, page_key: str, active_page: str,
+              badge: str = "", href: str = "") -> str:
     is_active = (page_key == active_page)
-    active_cls = "sb-active" if is_active else ""
+    active_cls = "active" if is_active else ""
     badge_html = f'<span class="sb-nav-badge">{badge}</span>' if badge else ""
-    href = "/" if page_key == "main" else f"/{page_key}"
+    link = href if href else f"/{page_key}" if page_key != "main" else "/"
     return (
-        f'<a href="{href}" class="sb-nav-item {active_cls}" target="_self">'
-        f'<span class="sb-nav-icon">{icon}</span>'
-        f'<span class="sb-nav-label">{label}</span>'
-        f'{badge_html}'
+        f'<a href="{link}" class="sb-nav-item {active_cls}" target="_self">'
+        f'  <span class="sb-nav-icon">{icon}</span>'
+        f'  <span class="sb-nav-label">{label}</span>'
+        f'  {badge_html}'
         f'</a>'
     )
+
+
+def _sub_item(label: str, page_key: str, active_page: str) -> str:
+    is_active = (page_key == active_page)
+    cls = "active" if is_active else ""
+    return (
+        f'<div class="sb-sub-item {cls}">'
+        f'  <span class="sb-sub-label">{label}</span>'
+        f'</div>'
+    )
+
+
+def _build_sidebar_html(active_page: str, notif_count: int = 0) -> str:
+    logo_b64 = _load_logo_b64()
+    if logo_b64:
+        logo_img = f'<div class="sb-logo-img"><img src="data:image/png;base64,{logo_b64}" alt="logo"></div>'
+    else:
+        logo_img = '<div class="sb-logo-img">🏛️</div>'
+
+    badge_notif = str(notif_count) if notif_count > 0 else ""
+
+    html = (
+        f'<div class="sb-root">'
+        f'<div class="sb-logo">{logo_img}'
+        f'<div class="sb-logo-text">'
+        f'<div class="sb-logo-name">Dashboard Bantuan</div>'
+        f'<div class="sb-logo-sub">Sistem Monitoring</div>'
+        f'</div></div>'
+        f'<div class="sb-search">'
+        f'<span class="sb-search-icon">🔍</span>'
+        f'<span class="sb-search-txt">Cari menu…</span>'
+        f'<span class="sb-search-kbd">⌘K</span>'
+        f'</div>'
+        f'<div class="sb-section-lbl">Menu Utama</div>'
+        f'{_nav_item("🏠", "Main", "main", active_page)}'
+        f'{_nav_item("🗄️", "Database", "database", active_page)}'
+        f'{_nav_item("🔔", "Notifikasi", "notifikasi", active_page, badge=badge_notif)}'
+        f'<div class="sb-section-lbl">Analitik</div>'
+        f'{_nav_item("🗺️", "Sebaran Bantuan", "sebaran", active_page)}'
+        f'<div class="sb-spacer"></div>'
+        f'<div class="sb-divider"></div>'
+        f'<div class="sb-footer">'
+        f'<div class="sb-footer-link"><span class="sb-footer-icon">💬</span><span class="sb-footer-txt">Feedback</span></div>'
+        f'<div class="sb-footer-link"><span class="sb-footer-icon">ℹ️</span><span class="sb-footer-txt">Bantuan & Panduan</span></div>'
+        f'</div>'
+        f'</div>'
+    )
+    return html
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  PUBLIC API
 # ─────────────────────────────────────────────────────────────────────────────
 def render_sidebar(active_page: str = "main", notif_count: int = 0) -> None:
-    """
-    Render sidebar kustom.
+    sidebar_html = _build_sidebar_html(active_page, notif_count)
 
-    Parameters
-    ----------
-    active_page : str
-        "main" | "database" | "notifikasi" | "sebaran"
-    notif_count : int
-        Jumlah notifikasi (ditampilkan sebagai badge merah).
-    """
+    # Inject CSS ke halaman utama (agar bisa target .stApp dll)
+    st.markdown(SIDEBAR_CSS, unsafe_allow_html=True)
 
-    # 1) Inject CSS ke halaman utama
-    st.markdown(_build_css(notif_count), unsafe_allow_html=True)
-
-    # 2) Render isi sidebar dengan with block
+    # Inject HTML ke sidebar dengan with block (lebih reliable di semua versi Streamlit)
     with st.sidebar:
-
-        # ── LOGO ──────────────────────────────────────────────────
-        logo_b64 = _load_logo_b64()
-        if logo_b64:
-            logo_inner = (
-                f'<div class="sb-logo-icon">'
-                f'<img src="data:image/png;base64,{logo_b64}" alt="logo">'
-                f'</div>'
-            )
-        else:
-            logo_inner = '<div class="sb-logo-icon">🏛️</div>'
-
-        st.markdown(
-            f'<div class="sb-logo-block">'
-            f'{logo_inner}'
-            f'<div>'
-            f'<div class="sb-logo-name">Dashboard Bantuan</div>'
-            f'<div class="sb-logo-sub">Sistem Monitoring</div>'
-            f'</div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
-
-        # ── SEARCH BUTTON (native Streamlit button) ────────────────
-        st.markdown('<div style="height:4px"></div>', unsafe_allow_html=True)
-        if st.button("🔍  Cari menu…", key="sb_search_btn", use_container_width=True):
-            pass  # Bisa dihubungkan ke fungsi search nantinya
-
-        # ── MAIN MENU ──────────────────────────────────────────────
-        badge_str = str(notif_count) if notif_count > 0 else ""
-        st.markdown(
-            f'<div class="sb-section-lbl">Menu Utama</div>'
-            f'{_nav_link("🏠", "Main",        "main",       active_page)}'
-            f'{_nav_link("🗄️",  "Database",   "database",   active_page)}'
-            f'{_nav_link("🔔", "Notifikasi", "notifikasi", active_page, badge=badge_str)}',
-            unsafe_allow_html=True,
-        )
-
-        # ── ANALYTICS ──────────────────────────────────────────────
-        st.markdown(
-            f'<div class="sb-section-lbl">Analitik</div>'
-            f'{_nav_link("🗺️", "Sebaran Bantuan", "sebaran", active_page)}',
-            unsafe_allow_html=True,
-        )
-
-        # ── SPACER ─────────────────────────────────────────────────
-        st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
-        st.markdown('<div class="sb-divider"></div>', unsafe_allow_html=True)
-
-        # ── FOOTER BUTTONS (native Streamlit button) ───────────────
-        if st.button("💬  Feedback", key="sb_feedback_btn", use_container_width=True):
-            pass  # Hubungkan ke form feedback / email / link
-
-        if st.button("ℹ️  Bantuan & Panduan", key="sb_help_btn", use_container_width=True):
-            pass  # Hubungkan ke halaman dokumentasi / modal
+        st.markdown(sidebar_html, unsafe_allow_html=True)
