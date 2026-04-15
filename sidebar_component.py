@@ -1,13 +1,15 @@
 """
-sidebar_component.py  ─  Shared Sidebar Component  (v4 — Full Redesign)
-========================================================================
-PERBAIKAN v4:
-  ✅ Tombol buka/tutup sidebar kini terlihat jelas
-  ✅ Badge notifikasi merah muncul di SEMUA halaman (tidak hilang)
-  ✅ Pattern background dari Dokumentasi/paterns.avif
-  ✅ Desain lebih rapi & profesional
-  ✅ Navigasi tetap mulus menggunakan st.page_link()
-  ✅ Item Notifikasi dibuat sebagai HTML kustom agar badge selalu muncul
+sidebar_component.py  ─  Shared Sidebar Component  (v4.1 — Targeted Fixes)
+===========================================================================
+BASE: v4  |  PERBAIKAN SPESIFIK:
+
+  ✅ FIX #1 — Teks nav items sejajar (padding & alignment konsisten)
+  ✅ FIX #2 — Badge merah muncul di semua halaman via st.session_state
+  ✅ FIX #3 — Notifikasi tidak lag (notif_count dari session_state, bukan recompute)
+  ✅ FIX #4 — Tombol buka/tutup MUNCUL KEMBALI
+              ROOT CAUSE: "stSidebar * { font-family }" menimpa font
+              Material Symbols Streamlit → icon jadi teks "keyboard_double."
+              SOLUSI: font-family HANYA diterapkan ke elemen non-button
 
 Cara pakai di setiap halaman:
     from sidebar_component import render_sidebar
@@ -22,7 +24,7 @@ import streamlit as st
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  PALET WARNA
+#  PALET WARNA  (sama dengan v4)
 # ─────────────────────────────────────────────────────────────────────────────
 SB = {
     "bg"         : "#1A0810",
@@ -41,10 +43,9 @@ SB = {
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  FILE LOADER UTILITY
+#  FILE LOADER
 # ─────────────────────────────────────────────────────────────────────────────
-def _load_file_b64(candidates: list[str], mime: str) -> str | None:
-    """Coba beberapa path, kembalikan data-URI base64 atau None."""
+def _load_file_b64(candidates: list, mime: str):
     for path in candidates:
         if os.path.exists(path):
             try:
@@ -56,7 +57,7 @@ def _load_file_b64(candidates: list[str], mime: str) -> str | None:
     return None
 
 
-def _load_logo() -> str | None:
+def _load_logo():
     root = os.path.dirname(os.path.abspath(__file__))
     return _load_file_b64([
         os.path.join(root, "Dokumentasi", "DummyLogo.png"),
@@ -66,7 +67,7 @@ def _load_logo() -> str | None:
     ], "image/png")
 
 
-def _load_pattern() -> str | None:
+def _load_pattern():
     root = os.path.dirname(os.path.abspath(__file__))
     return _load_file_b64([
         os.path.join(root, "Dokumentasi", "paterns.avif"),
@@ -77,23 +78,38 @@ def _load_pattern() -> str | None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+#  FIX #2 — BADGE PERSISTEN via session_state
+# ─────────────────────────────────────────────────────────────────────────────
+def _resolve_notif_count(notif_count: int) -> int:
+    """
+    Simpan notif_count ke session_state agar badge tetap muncul
+    di semua halaman. Cukup kirim nilai dari main.py, halaman lain
+    cukup panggil render_sidebar("database") tanpa notif_count.
+    """
+    key = "_sb_notif_count"
+    if notif_count > 0:
+        st.session_state[key] = notif_count
+    return st.session_state.get(key, 0)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 #  CSS BUILDER
 # ─────────────────────────────────────────────────────────────────────────────
-def _build_css(pattern_uri: str | None) -> str:
+def _build_css(pattern_uri=None) -> str:
 
     pattern_css = ""
     if pattern_uri:
         pattern_css = f"""
         section[data-testid="stSidebar"]::before {{
-            content: "";
-            position: absolute;
-            inset: 0;
-            background-image: url("{pattern_uri}");
-            background-size: cover;
-            background-position: center;
-            opacity: 0.06;
-            pointer-events: none;
-            z-index: 0;
+            content: "" !important;
+            position: absolute !important;
+            inset: 0 !important;
+            background-image: url("{pattern_uri}") !important;
+            background-size: cover !important;
+            background-position: center !important;
+            opacity: 0.06 !important;
+            pointer-events: none !important;
+            z-index: 0 !important;
         }}
         """
 
@@ -113,58 +129,87 @@ section[data-testid="stSidebar"] {{
 }}
 section[data-testid="stSidebar"] > div:first-child {{
     padding: 0 !important;
-    position: relative;
-    z-index: 1;
+    position: relative !important;
+    z-index: 1 !important;
 }}
 
 {pattern_css}
 
 /* ════════════════════════════════════════════════════════════════
-   TOMBOL BUKA / TUTUP SIDEBAR  ← FIX UTAMA
+   FIX #4 — TOMBOL BUKA / TUTUP SIDEBAR
+   ─────────────────────────────────────────────────────────────
+   BUG: Selector lama "stSidebar * {{ font-family: Plus Jakarta Sans }}"
+        menimpa font "Material Symbols Rounded" yang dipakai Streamlit
+        untuk merender icon tombol collapse → icon muncul sebagai teks
+        "keyboard_double_arrow_left" (ligature gagal tanpa font aslinya).
+
+   FIX: Jangan override font-family pada button dan descendant-nya.
+        Hanya targetkan elemen teks konten sidebar (div, p, a, span
+        yang BUKAN bagian dari tombol collapse).
    ════════════════════════════════════════════════════════════════ */
 
-/* Tombol collapse (chevron) di dalam sidebar — pastikan terlihat */
-section[data-testid="stSidebar"] button[data-testid="stBaseButton-headerNoPadding"],
-section[data-testid="stSidebar"] button[kind="header"],
-section[data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"] button {{
-    color: rgba(255,255,255,0.80) !important;
-    background: rgba(255,255,255,0.09) !important;
-    border: 1px solid rgba(255,255,255,0.14) !important;
-    border-radius: 8px !important;
+/* Tombol collapse (di dalam sidebar, saat sidebar terbuka) */
+section[data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"] {{
+    opacity: 1 !important;
+    visibility: visible !important;
+}}
+section[data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"] button,
+section[data-testid="stSidebar"] button[data-testid="stBaseButton-headerNoPadding"] {{
     opacity: 1 !important;
     visibility: visible !important;
     display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: rgba(255,255,255,0.80) !important;
+    background: rgba(255,255,255,0.09) !important;
+    border: 1px solid rgba(255,255,255,0.15) !important;
+    border-radius: 8px !important;
+    /* font-family SENGAJA tidak di-override agar Material Icons tetap render */
 }}
+section[data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"] button:hover,
 section[data-testid="stSidebar"] button[data-testid="stBaseButton-headerNoPadding"]:hover {{
     background: {SB['active']} !important;
     border-color: {SB['active']} !important;
 }}
-section[data-testid="stSidebar"] button[data-testid="stBaseButton-headerNoPadding"] svg,
-section[data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"] svg {{
-    color: rgba(255,255,255,0.85) !important;
+/* Warna icon (SVG atau Material Symbols span) di dalam tombol collapse */
+section[data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"] button svg,
+section[data-testid="stSidebar"] button[data-testid="stBaseButton-headerNoPadding"] svg {{
     fill: rgba(255,255,255,0.85) !important;
+    color: rgba(255,255,255,0.85) !important;
+    opacity: 1 !important;
+}}
+/* span Material Symbols — JANGAN ubah font-family di sini */
+section[data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"] button span.material-symbols-rounded,
+section[data-testid="stSidebar"] button[data-testid="stBaseButton-headerNoPadding"] span.material-symbols-rounded {{
+    color: rgba(255,255,255,0.85) !important;
     opacity: 1 !important;
 }}
 
-/* Tombol EXPAND saat sidebar sedang tertutup */
+/* Tombol EXPAND saat sidebar tertutup */
 [data-testid="collapsedControl"] {{
-    color: rgba(255,255,255,0.85) !important;
-    background: {SB['toggle_bg']} !important;
-    border: 1px solid rgba(255,255,255,0.15) !important;
-    border-radius: 0 8px 8px 0 !important;
     opacity: 1 !important;
     visibility: visible !important;
     display: flex !important;
+    background: {SB['toggle_bg']} !important;
+    border: 1px solid rgba(255,255,255,0.15) !important;
+    border-left: none !important;
+    border-radius: 0 8px 8px 0 !important;
     box-shadow: 3px 0 16px rgba(0,0,0,0.5) !important;
+    color: rgba(255,255,255,0.85) !important;
 }}
 [data-testid="collapsedControl"]:hover {{
     background: {SB['active']} !important;
     border-color: {SB['active']} !important;
 }}
 [data-testid="collapsedControl"] svg {{
-    color: rgba(255,255,255,0.85) !important;
     fill: rgba(255,255,255,0.85) !important;
+    color: rgba(255,255,255,0.85) !important;
     opacity: 1 !important;
+}}
+[data-testid="collapsedControl"] span.material-symbols-rounded {{
+    color: rgba(255,255,255,0.85) !important;
+    opacity: 1 !important;
+    /* font-family TIDAK diubah */
 }}
 
 /* ════════════════════════════════════════════════════════════════
@@ -178,9 +223,14 @@ section[data-testid="stSidebar"] [data-testid="stSidebarNavSeparator"] {{
 }}
 
 /* ════════════════════════════════════════════════════════════════
-   RESET GLOBAL
+   FIX #4 (lanjutan) — FONT OVERRIDE AMAN: hanya konten, bukan button
    ════════════════════════════════════════════════════════════════ */
-section[data-testid="stSidebar"] * {{
+section[data-testid="stSidebar"] [data-testid="stVerticalBlock"],
+section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"],
+section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
+section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] div,
+section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] span,
+section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] a {{
     font-family: 'Plus Jakarta Sans', sans-serif !important;
     box-sizing: border-box !important;
 }}
@@ -201,7 +251,7 @@ section[data-testid="stSidebar"] ::-webkit-scrollbar-track {{ background: transp
 section[data-testid="stSidebar"] ::-webkit-scrollbar-thumb {{ background: {SB['active']}90; border-radius: 4px; }}
 
 /* ════════════════════════════════════════════════════════════════
-   st.page_link() STYLING
+   FIX #1 — st.page_link() STYLE (padding & font identik sb-nav-link)
    ════════════════════════════════════════════════════════════════ */
 section[data-testid="stSidebar"] [data-testid="stPageLink"] {{
     padding: 0 !important;
@@ -221,9 +271,11 @@ section[data-testid="stSidebar"] [data-testid="stPageLink-NavLink"] {{
     border: none !important;
     outline: none !important;
     color: {SB['muted']} !important;
-    font-size: 13px !important;
+    font-size: 13.5px !important;
     font-weight: 600 !important;
     letter-spacing: 0.05px !important;
+    line-height: 1.4 !important;
+    font-family: 'Plus Jakarta Sans', sans-serif !important;
     transition: background 0.15s ease, color 0.15s ease !important;
     width: calc(100% - 20px) !important;
     position: relative !important;
@@ -233,8 +285,6 @@ section[data-testid="stSidebar"] [data-testid="stPageLink-NavLink"]:hover {{
     background: {SB['hover']} !important;
     color: rgba(255,255,255,.80) !important;
 }}
-
-/* STATE AKTIF */
 section[data-testid="stSidebar"] [data-testid="stPageLink-NavLink"][aria-current="page"],
 section[data-testid="stSidebar"] [data-testid="stPageLink"] > a[aria-current="page"] {{
     background: {SB['active']} !important;
@@ -253,17 +303,15 @@ section[data-testid="stSidebar"] [data-testid="stPageLink"] > a[aria-current="pa
     background: {SB['accent']} !important;
     border-radius: 0 3px 3px 0 !important;
 }}
-
-/* Sembunyikan icon emoji bawaan Streamlit */
 section[data-testid="stSidebar"] [data-testid="stPageLink"] [data-testid="stIconMaterial"] {{
     display: none !important;
 }}
 
 /* ════════════════════════════════════════════════════════════════
-   KOMPONEN HTML KUSTOM
+   HTML KOMPONEN KUSTOM
    ════════════════════════════════════════════════════════════════ */
 
-/* ── Logo block ── */
+/* ── Logo ── */
 .sb-logo {{
     display: flex;
     align-items: center;
@@ -271,6 +319,7 @@ section[data-testid="stSidebar"] [data-testid="stPageLink"] [data-testid="stIcon
     padding: 20px 18px 16px;
     border-bottom: 1px solid {SB['line']};
     margin-bottom: 4px;
+    box-sizing: border-box;
 }}
 .sb-logo-avatar {{
     width: 40px; height: 40px;
@@ -282,7 +331,7 @@ section[data-testid="stSidebar"] [data-testid="stPageLink"] [data-testid="stIcon
     justify-content: center;
     font-size: 15px;
     font-weight: 900;
-    color: rgba(255,255,255,.95) !important;
+    color: rgba(255,255,255,.95);
     box-shadow: 0 4px 14px {SB['active_glow']};
     overflow: hidden;
     letter-spacing: -1px;
@@ -294,33 +343,33 @@ section[data-testid="stSidebar"] [data-testid="stPageLink"] [data-testid="stIcon
     display: block;
 }}
 .sb-logo-name {{
-    font-size: 13.5px !important;
-    font-weight: 800 !important;
-    color: rgba(255,255,255,.95) !important;
+    font-size: 13.5px;
+    font-weight: 800;
+    color: rgba(255,255,255,.95);
     line-height: 1.25;
     letter-spacing: -0.3px;
-    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    font-family: 'Plus Jakarta Sans', sans-serif;
 }}
 .sb-logo-sub {{
-    font-size: 9.5px !important;
-    font-weight: 600 !important;
-    color: {SB['muted']} !important;
+    font-size: 9.5px;
+    font-weight: 600;
+    color: {SB['muted']};
     margin-top: 2px;
     letter-spacing: 0.8px;
     text-transform: uppercase;
-    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    font-family: 'Plus Jakarta Sans', sans-serif;
 }}
 
 /* ── Section label ── */
 .sb-section-lbl {{
-    font-size: 9px !important;
-    font-weight: 800 !important;
-    letter-spacing: 1.8px !important;
-    text-transform: uppercase !important;
-    color: {SB['muted']} !important;
-    padding: 16px 20px 5px !important;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: {SB['muted']};
+    padding: 16px 20px 5px;
     display: block;
-    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    font-family: 'Plus Jakarta Sans', sans-serif;
 }}
 
 /* ── Divider ── */
@@ -330,7 +379,7 @@ section[data-testid="stSidebar"] [data-testid="stPageLink"] [data-testid="stIcon
     margin: 8px 16px 4px;
 }}
 
-/* ── Nav link HTML kustom (Notifikasi + badge) ── */
+/* ── FIX #1: Nav link HTML — ukuran identik dengan st.page_link ── */
 .sb-nav-link {{
     display: flex !important;
     align-items: center !important;
@@ -341,9 +390,10 @@ section[data-testid="stSidebar"] [data-testid="stPageLink"] [data-testid="stIcon
     text-decoration: none !important;
     background: transparent !important;
     color: {SB['muted']} !important;
-    font-size: 13px !important;
+    font-size: 13.5px !important;
     font-weight: 600 !important;
     letter-spacing: 0.05px !important;
+    line-height: 1.4 !important;
     transition: background 0.15s ease, color 0.15s ease !important;
     cursor: pointer !important;
     width: calc(100% - 20px) !important;
@@ -366,9 +416,7 @@ section[data-testid="stSidebar"] [data-testid="stPageLink"] [data-testid="stIcon
 .sb-nav-link.sb-active::before {{
     content: "";
     position: absolute;
-    left: 0;
-    top: 18%;
-    bottom: 18%;
+    left: 0; top: 18%; bottom: 18%;
     width: 3px;
     background: {SB['accent']};
     border-radius: 0 3px 3px 0;
@@ -379,7 +427,7 @@ section[data-testid="stSidebar"] [data-testid="stPageLink"] [data-testid="stIcon
     font-family: 'Plus Jakarta Sans', sans-serif !important;
 }}
 
-/* ── Badge notifikasi ── */
+/* ── Badge ── */
 .sb-badge {{
     display: inline-flex !important;
     align-items: center !important;
@@ -405,11 +453,11 @@ section[data-testid="stSidebar"] [data-testid="stPageLink"] [data-testid="stIcon
     margin-top: 8px;
 }}
 .sb-footer-txt {{
-    font-size: 10px !important;
-    color: {SB['muted']} !important;
-    font-weight: 500 !important;
-    line-height: 1.6 !important;
-    font-family: 'Plus Jakarta Sans', sans-serif !important;
+    font-size: 10px;
+    color: {SB['muted']};
+    font-weight: 500;
+    line-height: 1.6;
+    font-family: 'Plus Jakarta Sans', sans-serif;
 }}
 
 /* ── Spacer ── */
@@ -419,14 +467,9 @@ section[data-testid="stSidebar"] [data-testid="stPageLink"] [data-testid="stIcon
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  HELPER: NOTIFIKASI ITEM HTML
+#  HELPER: NOTIFIKASI HTML
 # ─────────────────────────────────────────────────────────────────────────────
 def _notif_item_html(is_active: bool, notif_count: int) -> str:
-    """
-    Render item Notifikasi sebagai <a> HTML kustom dengan badge inline.
-    URL "/notifikasi" sesuai dengan pages/notifikasi.py di Streamlit.
-    Jika nama file berbeda (mis. pages/Notifikasi.py), sesuaikan href-nya.
-    """
     active_cls = "sb-active" if is_active else ""
     badge_html = (
         f'<span class="sb-badge">{notif_count}</span>'
@@ -452,32 +495,34 @@ def render_sidebar(active_page: str = "main", notif_count: int = 0) -> None:
     active_page : str
         "main" | "database" | "notifikasi" | "sebaran"
     notif_count : int
-        Jumlah notifikasi → ditampilkan sebagai badge merah.
-        Pastikan nilai ini selalu dikirim dari SETIAP halaman agar badge
-        muncul konsisten di semua tab.
+        Jumlah notifikasi. Disimpan ke session_state otomatis.
+        Cukup kirim dari main.py — halaman lain tidak perlu kirim ulang.
 
-    Contoh pemakaian per halaman
-    ----------------------------
-    main.py             → render_sidebar("main",        notif_count=n)
-    pages/database.py   → render_sidebar("database",    notif_count=n)
-    pages/notifikasi.py → render_sidebar("notifikasi",  notif_count=n)
-    pages/sebaran.py    → render_sidebar("sebaran",     notif_count=n)
+    Contoh:
+        main.py             → render_sidebar("main",     notif_count=n)
+        pages/database.py   → render_sidebar("database")
+        pages/notifikasi.py → render_sidebar("notifikasi")
+        pages/sebaran.py    → render_sidebar("sebaran")
     """
 
-    # ── Load aset ─────────────────────────────────────────────────
+    # FIX #2: Resolve dari session_state
+    notif_count = _resolve_notif_count(notif_count)
+
     logo_uri    = _load_logo()
     pattern_uri = _load_pattern()
 
-    # ── Inject CSS ────────────────────────────────────────────────
     st.markdown(_build_css(pattern_uri), unsafe_allow_html=True)
 
     with st.sidebar:
 
-        # ── Logo / Brand ──────────────────────────────────────────
+        # Brand
         if logo_uri:
             avatar_inner = f'<img src="{logo_uri}" alt="logo">'
         else:
-            avatar_inner = '<span style="color:#fff;font-weight:900;font-size:15px;">DB</span>'
+            avatar_inner = (
+                '<span style="color:#fff;font-weight:900;font-size:15px;'
+                'font-family:\'Plus Jakarta Sans\',sans-serif;">DB</span>'
+            )
 
         st.markdown(f"""
         <div class="sb-logo">
@@ -489,28 +534,30 @@ def render_sidebar(active_page: str = "main", notif_count: int = 0) -> None:
         </div>
         """, unsafe_allow_html=True)
 
-        # ══ MENU UTAMA ═════════════════════════════════════════════
-        st.markdown('<span class="sb-section-lbl">Menu Utama</span>', unsafe_allow_html=True)
+        # Menu Utama
+        st.markdown('<span class="sb-section-lbl">Menu Utama</span>',
+                    unsafe_allow_html=True)
 
         st.page_link("main.py",           label="Main")
         st.page_link("pages/database.py", label="Database")
 
-        # Notifikasi — HTML kustom agar badge SELALU tampil di semua halaman
+        # Notifikasi + badge (HTML kustom)
         st.markdown(
             _notif_item_html(
-                is_active=active_page == "notifikasi",
+                is_active=(active_page == "notifikasi"),
                 notif_count=notif_count,
             ),
             unsafe_allow_html=True,
         )
 
-        # ══ ANALITIK ═══════════════════════════════════════════════
+        # Analitik
         st.markdown('<div class="sb-divider"></div>', unsafe_allow_html=True)
-        st.markdown('<span class="sb-section-lbl">Analitik</span>', unsafe_allow_html=True)
+        st.markdown('<span class="sb-section-lbl">Analitik</span>',
+                    unsafe_allow_html=True)
 
         st.page_link("pages/sebaran.py", label="Sebaran Bantuan")
 
-        # ── Spacer & Footer ───────────────────────────────────────
+        # Footer
         st.markdown('<div class="sb-spacer"></div>', unsafe_allow_html=True)
         st.markdown("""
         <div class="sb-footer">
