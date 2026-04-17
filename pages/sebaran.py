@@ -1,15 +1,16 @@
 """
-heatmap.py  ─  Peta Penyebaran Bantuan Indonesia  (v5 — Fast Indonesia-Only Map)
-=================================================================================
-CHANGELOG v5:
-  - FIX LAG: Ganti scope="asia" → projection mercator + tight Indonesia bounds
-  - FIX LAG: Province-level choropleth (34 polygon, bukan ribuan GADM2)
-  - FIX LAG: GADM2 hanya dipakai untuk garis batas kabupaten (thin overlay)
-  - NEW: Desain peta lebih cantik — gradient background, glow markers, dsb.
-  - NEW: Map container dengan card design & watermark dekoratif
+heatmap.py  ─  Peta Penyebaran Bantuan Indonesia  (v6 — Ultra-Fast Mapbox)
+===========================================================================
+CHANGELOG v6:
+  - ⚡ PERFORMA: Ganti go.Choropleth + go.Scattergeo → go.Choroplethmapbox +
+    go.Scattermapbox (WebGL/GPU rendering, jauh lebih cepat)
+  - 🗺️ Indonesia Only: mapbox_style="white-bg" + dark ocean background layer
+    → tidak ada negara lain yang muncul sama sekali
+  - 🎨 Desain baru: gradient glow, badge animasi, warna lebih hidup
+  - ✅ Tidak perlu Mapbox API token (white-bg built-in)
 """
 
-import os, re, json, base64, requests
+import os, re, json, requests
 import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
@@ -39,22 +40,33 @@ P = {
     "card"      : "#FFFFFF",
     "muted"     : "#9C7B86",
     "text"      : "#2D1A20",
-    "ocean"     : "#B8D8F0",
-    "land"      : "#F0E8EC",
+    "ocean"     : "#071524",
+    "land_dark" : "#0D2137",
 }
 
-# Colorscale peta — lebih vivid
+# Colorscale vivid rose-maroon
 MAP_COLORSCALE = [
     [0.00, "#FFF0F4"],
-    [0.08, "#F8D7DA"],
-    [0.25, "#E8A0B4"],
+    [0.10, "#F8D7DA"],
+    [0.28, "#E8A0B4"],
     [0.50, "#C5547A"],
     [0.75, "#8B2252"],
     [1.00, "#3D0E21"],
 ]
 
+# Ocean background GeoJSON (seluruh dunia sebagai backdrop gelap)
+OCEAN_BG_GEOJSON = {
+    "type": "Feature",
+    "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+            [-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]
+        ]]
+    }
+}
+
 # ─────────────────────────────────────────────────────────────────────────────
-#  GADM NAME_1 → data
+#  GADM NAME_1 → nama data
 # ─────────────────────────────────────────────────────────────────────────────
 GADM_TO_DATA = {
     "Aceh":"Aceh","Bali":"Bali",
@@ -88,7 +100,7 @@ html,body,[class*="css"]{{font-family:'Plus Jakarta Sans',sans-serif!important;}
 .stApp{{background-color:{P['bg']};}}
 footer,div[data-testid="stDecoration"]{{visibility:hidden!important;}}
 
-/* ══ SIDEBAR ══════════════════════════════════════════════════════════ */
+/* ── SIDEBAR ─────────────────────────────────────────────────────── */
 section[data-testid="stSidebar"]{{
     background:linear-gradient(180deg,{P['deep']} 0%,#2A0818 60%,#1E0512 100%)!important;
     border-right:none;box-shadow:4px 0 24px rgba(61,14,33,.35);
@@ -138,12 +150,8 @@ section[data-testid="stSidebar"] a[data-testid="stSidebarNavLink"][aria-current=
              animation:rice-sway 2s ease-in-out infinite;display:inline-block;transform-origin:bottom center;}}
 .sawah-farmer{{position:absolute;bottom:4px;left:-40px;font-size:20px;
                animation:farmer-walk 6s linear infinite;filter:drop-shadow(0 1px 2px rgba(0,0,0,.5));}}
-.sb-logo-footer{{padding:10px 14px 14px;border-top:1px solid rgba(255,255,255,.08);}}
-.sb-logo-row{{display:flex;align-items:center;gap:10px;}}
-.sb-logo-name{{font-size:12.5px!important;font-weight:700!important;color:rgba(255,255,255,.88)!important;}}
-.sb-logo-ver{{font-size:10px!important;color:rgba(255,255,255,.38)!important;}}
 
-/* ══ BANNER ════════════════════════════════════════════════════════════ */
+/* ── BANNER ──────────────────────────────────────────────────────── */
 .banner{{
     background:linear-gradient(135deg,{P['deep']} 0%,{P['primary']} 45%,{P['secondary']} 80%,{P['accent']} 100%);
     padding:26px 36px 26px 30px;border-radius:18px;color:#fff;margin-bottom:22px;
@@ -155,8 +163,7 @@ section[data-testid="stSidebar"] a[data-testid="stSidebarNavLink"][aria-current=
     border-radius:50%;background:rgba(255,255,255,.06);pointer-events:none;
 }}
 .banner::after{{
-    content:"🇮🇩";position:absolute;right:30px;bottom:-8px;font-size:72px;opacity:.08;
-    pointer-events:none;
+    content:"🇮🇩";position:absolute;right:30px;bottom:-8px;font-size:72px;opacity:.08;pointer-events:none;
 }}
 .banner-icon{{
     font-size:38px;line-height:1;background:rgba(255,255,255,.18);padding:12px 14px;
@@ -166,7 +173,7 @@ section[data-testid="stSidebar"] a[data-testid="stSidebarNavLink"][aria-current=
 .banner h1{{margin:0;font-size:22px;font-weight:800;letter-spacing:-.4px;text-transform:uppercase;}}
 .banner p{{margin:6px 0 0;font-size:13px;opacity:.78;}}
 
-/* ══ FILTER ════════════════════════════════════════════════════════════ */
+/* ── FILTER ──────────────────────────────────────────────────────── */
 .filter-wrap{{
     background:{P['card']};border-radius:16px;padding:16px 24px 12px;margin-bottom:20px;
     box-shadow:0 4px 20px rgba(107,29,58,.10),0 1px 4px rgba(107,29,58,.06);
@@ -194,7 +201,7 @@ div[data-testid="stRadio"]>div>label:has(input:checked){{
     box-shadow:0 3px 10px rgba(107,29,58,.30);transform:translateY(-1px);
 }}
 
-/* ══ KPI ═══════════════════════════════════════════════════════════════ */
+/* ── KPI ─────────────────────────────────────────────────────────── */
 .kpi-grid{{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:22px;}}
 .kpi{{
     background:{P['card']};border-radius:16px;padding:18px 20px 16px;
@@ -205,15 +212,14 @@ div[data-testid="stRadio"]>div>label:has(input:checked){{
 }}
 .kpi::before{{
     content:"";position:absolute;top:-20px;right:-20px;width:80px;height:80px;
-    border-radius:50%;background:radial-gradient(circle,{P['rose100']} 0%,transparent 70%);
-    pointer-events:none;
+    border-radius:50%;background:radial-gradient(circle,{P['rose100']} 0%,transparent 70%);pointer-events:none;
 }}
 .kpi:hover{{transform:translateY(-4px);box-shadow:0 10px 32px rgba(107,29,58,.16);}}
 .kpi-icon{{font-size:22px;margin-bottom:8px;display:block;}}
 .kpi-val{{font-size:26px;font-weight:800;color:{P['primary']};line-height:1.1;letter-spacing:-.6px;}}
 .kpi-lbl{{font-size:10px;font-weight:700;color:{P['muted']};text-transform:uppercase;letter-spacing:1px;margin-top:6px;}}
 
-/* ══ SECTION HEADER ════════════════════════════════════════════════════ */
+/* ── SECTION HEADER ──────────────────────────────────────────────── */
 .sec{{
     background:{P['card']};border-radius:12px;padding:13px 20px;margin:22px 0 14px;
     box-shadow:0 4px 16px rgba(107,29,58,.08),0 1px 4px rgba(107,29,58,.05);
@@ -223,68 +229,66 @@ div[data-testid="stRadio"]>div>label:has(input:checked){{
 .sec h3{{margin:0;color:{P['primary']};font-size:14px;font-weight:800;flex:1;}}
 .sec span{{font-size:11.5px;color:{P['muted']};font-weight:400;}}
 
-/* ══ MAP CONTAINER — Desain baru ═══════════════════════════════════════ */
+/* ── MAP CONTAINER v6 — Ocean frame ──────────────────────────────── */
 .map-outer{{
     position:relative;
-    background:linear-gradient(135deg, #0D1B2A 0%, #1A2D45 30%, #1E3A5F 60%, #152535 100%);
+    background:linear-gradient(135deg,#030d18 0%,#071524 40%,#0a1c32 70%,#050e1a 100%);
     border-radius:22px;
-    padding:6px;
+    padding:5px;
     box-shadow:
-        0 20px 60px rgba(61,14,33,.35),
-        0 8px 24px rgba(0,0,0,.25),
-        inset 0 1px 0 rgba(255,255,255,.08),
-        inset 0 -1px 0 rgba(0,0,0,.15);
-    border:1px solid rgba(255,255,255,.10);
+        0 24px 64px rgba(0,0,0,.55),
+        0 8px 24px rgba(61,14,33,.30),
+        inset 0 1px 0 rgba(255,255,255,.07),
+        inset 0 -1px 0 rgba(0,0,0,.20);
+    border:1px solid rgba(255,255,255,.08);
     overflow:hidden;
     margin-bottom:6px;
 }}
+/* Ambience glow kiri dan kanan */
 .map-outer::before{{
     content:"";position:absolute;inset:0;
     background:
-        radial-gradient(ellipse at 15% 85%, rgba(197,84,122,.12) 0%, transparent 50%),
-        radial-gradient(ellipse at 85% 15%, rgba(107,29,58,.15) 0%, transparent 50%),
-        radial-gradient(ellipse at 50% 50%, rgba(30,58,95,.20) 0%, transparent 70%);
+        radial-gradient(ellipse at 10% 90%, rgba(197,84,122,.10) 0%,transparent 45%),
+        radial-gradient(ellipse at 90% 10%, rgba(107,29,58,.14) 0%,transparent 45%);
     pointer-events:none;z-index:0;border-radius:22px;
 }}
 .map-inner{{
     position:relative;z-index:1;
-    background:linear-gradient(180deg, #0A1929 0%, #0D2137 40%, #0F2845 100%);
-    border-radius:17px;
+    background:{P['ocean']};
+    border-radius:18px;
     overflow:hidden;
-    box-shadow:inset 0 2px 8px rgba(0,0,0,.30);
+    box-shadow:inset 0 2px 10px rgba(0,0,0,.40);
 }}
-/* Badge overlay kiri atas */
+/* ── Live badge overlay ── */
+@keyframes pulse-dot{{0%,100%{{transform:scale(1);opacity:1;}}50%{{transform:scale(1.5);opacity:.65;}}}}
 .map-badge{{
-    position:absolute;top:14px;left:14px;z-index:10;
-    background:rgba(13,27,42,.85);
-    backdrop-filter:blur(8px);
-    border:1px solid rgba(255,255,255,.12);
-    border-radius:12px;padding:8px 14px;
-    display:flex;align-items:center;gap:8px;
-    box-shadow:0 4px 16px rgba(0,0,0,.30);
+    position:absolute;top:14px;left:14px;z-index:20;
+    background:rgba(5,15,28,.88);backdrop-filter:blur(10px);
+    border:1px solid rgba(197,84,122,.30);border-radius:12px;
+    padding:8px 14px;display:flex;align-items:center;gap:8px;
+    box-shadow:0 4px 16px rgba(0,0,0,.40);
 }}
 .map-badge-dot{{
     width:8px;height:8px;border-radius:50%;
     background:radial-gradient(circle,#E8A0B4,#8B2252);
-    box-shadow:0 0 6px rgba(197,84,122,.6);
-    animation:pulse-dot 2s ease-in-out infinite;
+    box-shadow:0 0 8px rgba(197,84,122,.70);
+    animation:pulse-dot 2s ease-in-out infinite;flex-shrink:0;
 }}
-@keyframes pulse-dot{{0%,100%{{transform:scale(1);opacity:1;}}50%{{transform:scale(1.4);opacity:.7;}}}}
-.map-badge-text{{font-size:11px;font-weight:700;color:rgba(255,255,255,.90);letter-spacing:.5px;}}
-/* Badge overlay kanan bawah */
+.map-badge-text{{font-size:11px;font-weight:700;color:rgba(255,255,255,.90);letter-spacing:.6px;}}
+/* ── Credit badge kanan bawah ── */
 .map-credit{{
-    position:absolute;bottom:14px;right:14px;z-index:10;
-    background:rgba(13,27,42,.75);backdrop-filter:blur(6px);
-    border:1px solid rgba(255,255,255,.08);border-radius:8px;
-    padding:5px 11px;font-size:10px;color:rgba(255,255,255,.45);letter-spacing:.4px;
+    position:absolute;bottom:12px;right:14px;z-index:20;
+    background:rgba(5,15,28,.75);backdrop-filter:blur(6px);
+    border:1px solid rgba(255,255,255,.07);border-radius:8px;
+    padding:5px 11px;font-size:10px;color:rgba(255,255,255,.40);letter-spacing:.5px;
 }}
-/* Dekoratif sudut kanan bawah */
+/* ── Dekorasi sudut ── */
 .map-deco{{
-    position:absolute;bottom:-10px;left:-10px;z-index:0;
-    font-size:120px;opacity:.03;transform:rotate(-15deg);pointer-events:none;
+    position:absolute;bottom:-18px;left:-10px;z-index:0;
+    font-size:130px;opacity:.025;transform:rotate(-12deg);pointer-events:none;
 }}
 
-/* ══ TABLE ══════════════════════════════════════════════════════════════ */
+/* ── TABLE ───────────────────────────────────────────────────────── */
 .tbl-info{{
     background:linear-gradient(90deg,{P['rose100']},#fff8fb);
     border-radius:10px;padding:10px 18px;font-size:12.5px;color:{P['text']};
@@ -308,7 +312,7 @@ div[data-testid="stRadio"]>div>label:has(input:checked){{
 .bantuan-table .td-muted{{font-size:12px;color:{P['muted']};white-space:nowrap;}}
 .bantuan-table .td-tgl{{font-size:12px;color:{P['text']};white-space:nowrap;}}
 
-/* ══ DOWNLOAD ═══════════════════════════════════════════════════════════ */
+/* ── DOWNLOAD ─────────────────────────────────────────────────────── */
 .stDownloadButton>button{{
     background:linear-gradient(135deg,{P['primary']},{P['secondary']})!important;
     color:#fff!important;border:none!important;border-radius:10px!important;
@@ -448,7 +452,6 @@ SHEET_CSV = (
     "https://docs.google.com/spreadsheets/d/"
     "1wi4id0XqYlTuw_KO89-cOLSPTFAQ6ODv_tH09LK_2Ao/export?format=csv&gid=0"
 )
-# GeoJSON provinsi Indonesia ringan (34 fitur saja, jauh lebih cepat dari GADM2)
 GEOJSON_PROV_URL = (
     "https://raw.githubusercontent.com/superpikar/indonesia-geojson/master/indonesia.geojson"
 )
@@ -468,11 +471,6 @@ def load_data() -> pd.DataFrame:
 
 @st.cache_data(ttl=86400, show_spinner=False)
 def load_province_geojson():
-    """
-    Muat GeoJSON provinsi — hanya 34 fitur, sangat ringan & cepat.
-    Coba lokal dulu (indonesia.geojson), fallback ke URL.
-    """
-    # Coba lokal
     this_dir = os.path.dirname(os.path.abspath(__file__))
     for candidate in [
         "indonesia.geojson",
@@ -483,11 +481,9 @@ def load_province_geojson():
         if os.path.exists(p):
             try:
                 with open(p, "r", encoding="utf-8") as f:
-                    gj = json.load(f)
-                return gj
+                    return json.load(f)
             except Exception:
                 pass
-    # Fallback URL
     try:
         r = requests.get(GEOJSON_PROV_URL, timeout=20)
         r.raise_for_status()
@@ -500,14 +496,19 @@ def detect_prop_key(geojson: dict) -> str:
     if not geojson or not geojson.get("features"):
         return "state"
     props = geojson["features"][0].get("properties", {})
-    for k in ("state","name","NAME_1","PROVINSI","Provinsi"):
+    for k in ("state", "name", "NAME_1", "PROVINSI", "Provinsi"):
         if k in props:
             return k
     return list(props.keys())[0] if props else "state"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  BUILD MAP v5  ─ CEPAT: hanya Indonesia, Mercator, provinsi choropleth
+#  BUILD MAP v6  — Choroplethmapbox + Scattermapbox (GPU / WebGL)
+#  Strategi "Indonesia Only":
+#    1. mapbox_style="white-bg" → tidak ada tile, tidak ada negara lain
+#    2. Tambahkan layer gelap (OCEAN_BG_GEOJSON) sebagai backdrop
+#    3. Choropleth hanya dari GeoJSON Indonesia (34 provinsi)
+#    → hasilnya: latar gelap, hanya Indonesia yang berwarna, CEPAT
 # ─────────────────────────────────────────────────────────────────────────────
 def build_map(df_f: pd.DataFrame, geojson: dict | None) -> go.Figure:
 
@@ -522,7 +523,7 @@ def build_map(df_f: pd.DataFrame, geojson: dict | None) -> go.Figure:
     prov_agg["HoverKab"] = prov_agg["Provinsi"].apply(lambda p: build_kab_hover(p, df_f))
     z_max = float(prov_agg["Total"].max() or 1)
 
-    # ── Agregasi kab/kota untuk scatter ──────────────────────────────────
+    # ── Agregasi kab/kota ─────────────────────────────────────────────────
     kab_agg = (
         df_f.groupby(["Kab/Kota","Provinsi"])
         .agg(Bantuan=("Nominal","count"), Total=("Nominal","sum"))
@@ -531,143 +532,138 @@ def build_map(df_f: pd.DataFrame, geojson: dict | None) -> go.Figure:
     kab_agg["lat"] = kab_agg["Kab/Kota"].map(lambda k: KOTA_COORDS.get(k,(None,None))[0])
     kab_agg["lon"] = kab_agg["Kab/Kota"].map(lambda k: KOTA_COORDS.get(k,(None,None))[1])
     kab_ok = kab_agg.dropna(subset=["lat","lon"]).copy()
-    mx = kab_ok["Total"].max() or 1
-    # Size dengan dynamic range agar terlihat proporsional
-    kab_ok["sz"]  = (kab_ok["Total"] / mx) ** 0.45 * 28 + 8
-    kab_ok["szg"] = kab_ok["sz"] * 1.8  # glow layer
+    mx = float(kab_ok["Total"].max() or 1)
+    kab_ok["sz"]  = (kab_ok["Total"] / mx) ** 0.42 * 22 + 7
+    kab_ok["szg"] = kab_ok["sz"] * 1.9   # glow radius
 
     fig = go.Figure()
 
-    # ══ LAYER 1: Choropleth Provinsi (lightweight — 34 polygon) ══════════
+    # ══ LAYER 1: Choroplethmapbox Provinsi ═══════════════════════════════
     if geojson:
-        # Mapping nama GeoJSON → nama di data kita
-        # (buat lookup reverse dari prop_key)
         geo_prov_names = [
-            f.get("properties",{}).get(prop_key,"")
-            for f in geojson.get("features",[])
+            f.get("properties", {}).get(prop_key, "")
+            for f in geojson.get("features", [])
         ]
-        # Cari provinsi yang cocok (exact atau via GADM_TO_DATA)
         mapped_prov, mapped_total, mapped_count, mapped_hover = [], [], [], []
         for gname in geo_prov_names:
             dname = GADM_TO_DATA.get(gname, gname)
-            row = prov_agg[prov_agg["Provinsi"] == dname]
+            row   = prov_agg[prov_agg["Provinsi"] == dname]
             mapped_prov.append(gname)
             mapped_total.append(float(row["Total"].values[0]) if len(row) else 0.0)
             mapped_count.append(int(row["Bantuan"].values[0]) if len(row) else 0)
             mapped_hover.append(row["HoverKab"].values[0] if len(row) else "")
 
-        # Nama display yang bersih
         display_names = [GADM_TO_DATA.get(g, g) for g in mapped_prov]
 
-        fig.add_trace(go.Choropleth(
-            geojson        = geojson,
-            featureidkey   = f"properties.{prop_key}",
-            locations      = mapped_prov,
-            z              = mapped_total,
-            colorscale     = MAP_COLORSCALE,
+        fig.add_trace(go.Choroplethmapbox(
+            geojson      = geojson,
+            featureidkey = f"properties.{prop_key}",
+            locations    = mapped_prov,
+            z            = mapped_total,
+            colorscale   = MAP_COLORSCALE,
             zmin=0, zmax=z_max,
-            marker_line_color = "rgba(255,255,255,0.25)",
-            marker_line_width = 1.2,
+            marker_line_color = "rgba(255,255,255,0.22)",
+            marker_line_width = 0.8,
             colorbar=dict(
                 title=dict(text="Total<br>Dana", font=dict(size=10, color="#E8A0B4")),
                 tickformat=".2s",
-                x=1.005, thickness=14, len=0.60,
-                tickfont=dict(size=9, color="#E0C8D0"),
-                bgcolor="rgba(13,27,42,0.85)",
-                bordercolor="rgba(197,84,122,0.40)", borderwidth=1, outlinewidth=0,
+                x=1.01, thickness=13, len=0.62,
+                tickfont=dict(size=9, color="#D8B8C4"),
+                bgcolor="rgba(5,15,28,0.88)",
+                bordercolor="rgba(197,84,122,0.35)", borderwidth=1, outlinewidth=0,
             ),
             customdata=list(zip(display_names, mapped_count, mapped_total, mapped_hover)),
             hovertemplate=(
-                "<b style='font-size:14px'>🏛️ %{customdata[0]}</b><br>"
-                "━━━━━━━━━━━━━━━━━━━━━━<br>"
-                "📦 Jumlah Bantuan : <b>%{customdata[1]}</b><br>"
-                "💰 Total Dana     : <b>Rp %{customdata[2]:,.0f}</b>"
+                "<b style='font-size:13px'>🏛️ %{customdata[0]}</b><br>"
+                "━━━━━━━━━━━━━━━━━━<br>"
+                "📦 Bantuan : <b>%{customdata[1]}</b><br>"
+                "💰 Total    : <b>Rp %{customdata[2]:,.0f}</b>"
                 "%{customdata[3]}"
                 "<extra></extra>"
             ),
             name="Provinsi",
             showlegend=True,
+            below="",
         ))
 
-    # ══ LAYER 2: Glow effect (lingkaran besar transparan di belakang) ═════
+    # ══ LAYER 2: Glow — lingkaran besar semi-transparan ══════════════════
     if not kab_ok.empty:
-        fig.add_trace(go.Scattergeo(
-            lat=kab_ok["lat"], lon=kab_ok["lon"],
-            mode="markers",
-            marker=dict(
-                size=kab_ok["szg"],
-                color=kab_ok["Total"],
-                colorscale=MAP_COLORSCALE,
-                cmin=0, cmax=float(mx),
-                opacity=0.18,
-                line=dict(width=0),
+        fig.add_trace(go.Scattermapbox(
+            lat   = kab_ok["lat"].tolist(),
+            lon   = kab_ok["lon"].tolist(),
+            mode  = "markers",
+            marker= go.scattermapbox.Marker(
+                size    = kab_ok["szg"].tolist(),
+                color   = "rgba(197,84,122,0.18)",
+                opacity = 1,
             ),
-            hoverinfo="skip",
-            showlegend=False,
-            name="_glow",
+            hoverinfo  = "skip",
+            showlegend = False,
+            name       = "_glow",
         ))
 
-    # ══ LAYER 3: Titik utama kab/kota ════════════════════════════════════
+    # ══ LAYER 3: Titik data kab/kota ═════════════════════════════════════
     if not kab_ok.empty:
-        fig.add_trace(go.Scattergeo(
-            lat=kab_ok["lat"], lon=kab_ok["lon"],
-            mode="markers",
-            marker=dict(
-                size=kab_ok["sz"],
-                color=kab_ok["Total"],
-                colorscale=MAP_COLORSCALE,
-                cmin=0, cmax=float(mx),
-                opacity=0.92,
-                line=dict(color="rgba(255,255,255,0.70)", width=1.5),
-                showscale=False,
+        fig.add_trace(go.Scattermapbox(
+            lat  = kab_ok["lat"].tolist(),
+            lon  = kab_ok["lon"].tolist(),
+            mode = "markers",
+            marker = go.scattermapbox.Marker(
+                size       = kab_ok["sz"].tolist(),
+                color      = kab_ok["Total"].tolist(),
+                colorscale = MAP_COLORSCALE,
+                cmin=0, cmax=mx,
+                opacity    = 0.92,
             ),
-            customdata=kab_ok[["Kab/Kota","Provinsi","Bantuan","Total"]].values,
-            hovertemplate=(
+            customdata = kab_ok[["Kab/Kota","Provinsi","Bantuan","Total"]].values.tolist(),
+            hovertemplate = (
                 "<b>📍 %{customdata[0]}</b><br>"
                 "Provinsi : %{customdata[1]}<br>"
                 "Bantuan  : <b>%{customdata[2]}</b><br>"
                 "Total    : <b>Rp %{customdata[3]:,.0f}</b>"
                 "<extra></extra>"
             ),
-            name="Titik Data Bantuan",
-            showlegend=True,
+            name       = "Titik Data",
+            showlegend = True,
         ))
 
-    # ══ LAYOUT: Mercator tight ke Indonesia — NO world map lag ════════════
+    # ══ LAYOUT — Mapbox WebGL, Indonesia only, no API key needed ══════════
     fig.update_layout(
-        geo=dict(
-            # ── Kunci: projection mercator + bounds ketat Indonesia ──────
-            projection_type = "mercator",
-            lonaxis=dict(range=[94.5, 141.5], showgrid=False),
-            lataxis=dict(range=[-12.0,   7.0], showgrid=False),
-
-            showland       = True,  landcolor      = "#1A2D20",   # land gelap elegan
-            showocean      = True,  oceancolor     = "#0A1929",   # laut navy deep
-            showcountries  = True,  countrycolor   = "rgba(255,255,255,0.08)",
-            showcoastlines = True,  coastlinecolor = "rgba(255,255,255,0.15)",
-            showlakes      = True,  lakecolor      = "#0A1929",
-            showrivers     = True,  rivercolor     = "#0D2137",
-            showframe      = False,
-            bgcolor        = "rgba(0,0,0,0)",
-            resolution     = 50,
+        mapbox=dict(
+            # white-bg: tidak ada tile = tidak ada negara lain
+            style  = "white-bg",
+            center = dict(lat=-2.5, lon=118.0),
+            zoom   = 3.8,
+            # Layer gelap sebagai "lautan" agar background tidak putih
+            layers = [
+                dict(
+                    sourcetype = "geojson",
+                    source     = OCEAN_BG_GEOJSON,
+                    type       = "fill",
+                    color      = P["ocean"],   # #071524 navy deep
+                    opacity    = 1,
+                    below      = "traces",
+                )
+            ],
         ),
         paper_bgcolor = "rgba(0,0,0,0)",
         plot_bgcolor  = "rgba(0,0,0,0)",
-        margin=dict(l=0, r=0, t=4, b=4),
-        height=560,
-        legend=dict(
+        margin = dict(l=0, r=0, t=4, b=4),
+        height = 560,
+        legend = dict(
             x=0.01, y=0.06,
-            bgcolor="rgba(13,27,42,0.85)",
-            bordercolor="rgba(197,84,122,0.40)", borderwidth=1,
-            font=dict(size=11, color="#E8D0D8"),
+            bgcolor     = "rgba(5,15,28,0.88)",
+            bordercolor = "rgba(197,84,122,0.35)",
+            borderwidth = 1,
+            font        = dict(size=11, color="#E8D0D8"),
         ),
-        hoverlabel=dict(
-            bgcolor="#1A0A12",
-            font_color="#F8D7DA",
-            font_size=12,
-            font_family="Plus Jakarta Sans",
-            bordercolor="#C5547A",
-            align="left",
+        hoverlabel = dict(
+            bgcolor    = "#110812",
+            font_color = "#F8D7DA",
+            font_size  = 12,
+            font_family= "Plus Jakarta Sans",
+            bordercolor= "#C5547A",
+            align      = "left",
         ),
     )
     return fig
@@ -802,19 +798,22 @@ def main() -> None:
     with st.spinner("⏳ Memuat data …"):
         df = load_data()
 
-    with st.spinner("🗺️ Memuat peta provinsi …"):
+    with st.spinner("🗺️ Memuat GeoJSON provinsi …"):
         geojson = load_province_geojson()
 
     if geojson is None:
-        st.warning("⚠️ GeoJSON tidak dapat dimuat. Peta choropleth tidak tersedia, hanya titik data.")
+        st.warning("⚠️ GeoJSON tidak dapat dimuat. Hanya titik data yang ditampilkan.")
 
     # ── Filter Tahun ───────────────────────────────────────────────────────
     st.markdown('<div class="filter-wrap">', unsafe_allow_html=True)
     fc1, fc2 = st.columns([4, 4])
     with fc1:
         avail_years = sorted([int(y) for y in df["Tahun"].dropna().unique()])
-        sel_year    = st.radio("📅 Filter Tahun", options=["Semua"] + [str(y) for y in avail_years],
-                               horizontal=True, key="map_year")
+        sel_year    = st.radio(
+            "📅 Filter Tahun",
+            options=["Semua"] + [str(y) for y in avail_years],
+            horizontal=True, key="map_year",
+        )
     with fc2:
         if sel_year != "Semua":
             st.markdown(
@@ -855,8 +854,8 @@ def main() -> None:
     # ── Section header ─────────────────────────────────────────────────────
     st.markdown(f"""
     <div class="sec">
-      <h3>🗺️ Heatmap Interaktif Penyebaran Bantuan
-        <span>— Indonesia · Proyeksi Mercator · Hover untuk detail</span>
+      <h3>🗺️ Heatmap Interaktif — Indonesia Only
+        <span>· WebGL rendering · hover untuk detail · scroll untuk zoom</span>
       </h3>
     </div>""", unsafe_allow_html=True)
 
@@ -866,36 +865,39 @@ def main() -> None:
         with st.spinner("🎨 Merender peta …"):
             fig_map = build_map(df_map, geojson)
 
-        # ── Map container dengan desain baru ──────────────────────────────
+        # ── Map container ─────────────────────────────────────────────────
         st.markdown("""
         <div class="map-outer">
-          <div class="map-inner" id="map-wrap">
+          <div class="map-inner">
         """, unsafe_allow_html=True)
 
         st.plotly_chart(
             fig_map,
             use_container_width=True,
             config={
-                "displayModeBar"       : True,
+                "displayModeBar"        : True,
                 "modeBarButtonsToRemove": ["select2d","lasso2d","autoScale2d"],
-                "toImageButtonOptions" : {"filename":"peta_bantuan_indonesia","scale":2},
-                "scrollZoom"           : True,
-                "displaylogo"          : False,
+                "toImageButtonOptions"  : {"filename":"peta_bantuan_indonesia","scale":2},
+                "scrollZoom"            : True,
+                "displaylogo"           : False,
             },
         )
 
         st.markdown("""
           </div><!-- .map-inner -->
-          <div class="map-credit">🗺️ GADM · Spasial Bantuan v5.0</div>
-          <div class="map-deco">🌴</div>
         </div><!-- .map-outer -->
+        <div style="display:flex;align-items:center;justify-content:space-between;
+                    padding:6px 4px 2px;font-size:10.5px;color:#9C7B86;">
+          <span>🌐 Sumber GeoJSON: GADM Indonesia · Tidak ada tile eksternal diunduh</span>
+          <span>⚡ Spasial Bantuan v6.0 · WebGL</span>
+        </div>
         """, unsafe_allow_html=True)
 
     # ── Analitik ───────────────────────────────────────────────────────────
     st.markdown(f"""
     <div class="sec">
       <h3>📊 Analitik Distribusi
-        <span>— Top 10 nominal &amp; ranking provinsi penerima bantuan terbanyak</span>
+        <span>— Top 10 nominal &amp; ranking provinsi</span>
       </h3>
     </div>""", unsafe_allow_html=True)
 
@@ -966,7 +968,7 @@ def main() -> None:
         f"<hr style='border:none;border-top:1.5px solid {P['rose100']};margin:36px 0 12px;'>"
         f"<p style='text-align:center;font-size:11.5px;color:{P['muted']};line-height:1.8;'>"
         f"📡 Data real-time · Google Sheets &nbsp;·&nbsp; "
-        f"🗺️ Proyeksi Mercator · Indonesia Only &nbsp;·&nbsp; 🌾 Spasial Bantuan v5.0"
+        f"⚡ WebGL Mapbox · Indonesia Only &nbsp;·&nbsp; 🌾 Spasial Bantuan v6.0"
         f"</p>",
         unsafe_allow_html=True,
     )
